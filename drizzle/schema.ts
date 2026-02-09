@@ -181,3 +181,47 @@ export const userBadges = mysqlTable("userBadges", {
 
 export type UserBadge = typeof userBadges.$inferSelect;
 export type InsertUserBadge = typeof userBadges.$inferInsert;
+
+// Group challenges table (separate from main 12-week challenge)
+export const groupChallenges = mysqlTable("groupChallenges", {
+  id: int("id").autoincrement().primaryKey(),
+  groupId: int("groupId").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  challengeType: mysqlEnum("challengeType", ["running", "steps", "workouts", "custom"]).notNull(),
+  goalValue: float("goalValue"), // e.g., 10 miles, 50000 steps
+  goalUnit: varchar("goalUnit", { length: 50 }), // e.g., "miles", "steps", "workouts"
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GroupChallenge = typeof groupChallenges.$inferSelect;
+export type InsertGroupChallenge = typeof groupChallenges.$inferInsert;
+
+// Challenge participants table
+export const challengeParticipants = mysqlTable("challengeParticipants", {
+  id: int("id").autoincrement().primaryKey(),
+  challengeId: int("challengeId").notNull(),
+  userId: int("userId").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+});
+
+export type ChallengeParticipant = typeof challengeParticipants.$inferSelect;
+export type InsertChallengeParticipant = typeof challengeParticipants.$inferInsert;
+
+// Challenge progress table
+export const challengeProgress = mysqlTable("challengeProgress", {
+  id: int("id").autoincrement().primaryKey(),
+  challengeId: int("challengeId").notNull(),
+  userId: int("userId").notNull(),
+  currentValue: float("currentValue").default(0).notNull(), // Current progress toward goal
+  notes: text("notes"),
+  loggedAt: timestamp("loggedAt").defaultNow().notNull(),
+});
+
+export type ChallengeProgress = typeof challengeProgress.$inferSelect;
+export type InsertChallengeProgress = typeof challengeProgress.$inferInsert;

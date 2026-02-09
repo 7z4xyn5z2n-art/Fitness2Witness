@@ -2,9 +2,12 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   bodyMetrics,
+  challengeParticipants,
+  challengeProgress,
   challenges,
   communityPosts,
   dailyCheckins,
+  groupChallenges,
   groupChatMessages,
   groups,
   pointAdjustments,
@@ -14,9 +17,12 @@ import {
   weeklyAttendance,
   type BodyMetric,
   type Challenge,
+  type ChallengeParticipant,
+  type ChallengeProgress,
   type CommunityPost,
   type DailyCheckin,
   type Group,
+  type GroupChallenge,
   type GroupChatMessage,
   type InsertBodyMetric,
   type InsertChallenge,
@@ -757,4 +763,145 @@ export async function checkAndAwardBadges(userId: number): Promise<UserBadge[]> 
   }
 
   return newBadges;
+}
+
+// ===== Group Challenges Functions =====
+
+export async function createGroupChallenge(data: {
+  groupId: number;
+  createdByUserId: number;
+  title: string;
+  description?: string;
+  challengeType: "running" | "steps" | "workouts" | "custom";
+  goalValue?: number;
+  goalUnit?: string;
+  startDate: Date;
+  endDate: Date;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [result] = await db.insert(groupChallenges).values(data);
+  return result.insertId;
+}
+
+export async function getGroupChallenges(groupId: number, activeOnly = true): Promise<GroupChallenge[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  if (activeOnly) {
+    return await db
+      .select()
+      .from(groupChallenges)
+      .where(and(eq(groupChallenges.groupId, groupId), eq(groupChallenges.active, true)))
+      .orderBy(desc(groupChallenges.createdAt));
+  }
+
+  return await db
+    .select()
+    .from(groupChallenges)
+    .where(eq(groupChallenges.groupId, groupId))
+    .orderBy(desc(groupChallenges.createdAt));
+}
+
+export async function getGroupChallengeById(challengeId: number): Promise<GroupChallenge | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(groupChallenges).where(eq(groupChallenges.id, challengeId)).limit(1);
+  return result[0] || null;
+}
+
+export async function joinChallenge(challengeId: number, userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if already joined
+  const existing = await db
+    .select()
+    .from(challengeParticipants)
+    .where(and(eq(challengeParticipants.challengeId, challengeId), eq(challengeParticipants.userId, userId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0].id;
+  }
+
+  const [result] = await db.insert(challengeParticipants).values({ challengeId, userId });
+  return result.insertId;
+}
+
+export async function getChallengeParticipants(challengeId: number): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const participants = await db
+    .select()
+    .from(challengeParticipants)
+    .where(eq(challengeParticipants.challengeId, challengeId));
+
+  // Get user details for each participant
+  const result = [];
+  for (const p of participants) {
+    const user = await getUserById(p.userId);
+    if (user) {
+      result.push({
+        userId: p.userId,
+        userName: user.name || "Unknown",
+        joinedAt: p.joinedAt,
+      });
+    }
+  }
+
+  return result;
+}
+
+export async function logChallengeProgress(data: {
+  challengeId: number;
+  userId: number;
+  currentValue: number;
+  notes?: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [result] = await db.insert(challengeProgress).values(data);
+  return result.insertId;
+}
+
+export async function getChallengeProgress(challengeId: number, userId: number): Promise<ChallengeProgress[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(challengeProgress)
+    .where(and(eq(challengeProgress.challengeId, challengeId), eq(challengeProgress.userId, userId)))
+    .orderBy(desc(challengeProgress.loggedAt));
+}
+
+export async function getChallengeLeaderboard(challengeId: number): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const participants = await getChallengeParticipants(challengeId);
+  const leaderboard = [];
+
+  for (const p of participants) {
+    const progress = await getChallengeProgress(challengeId, p.userId);
+    const latestProgress = progress[0];
+    const currentValue = latestProgress?.currentValue || 0;
+
+    leaderboard.push({
+      userId: p.userId,
+      userName: p.userName,
+      currentValue,
+      lastUpdated: latestProgress?.loggedAt || p.joinedAt,
+    });
+  }
+
+  // Sort by current value descending
+  leaderboard.sort((a, b) => b.currentValue - a.currentValue);
+
+  return leaderboard;
 }

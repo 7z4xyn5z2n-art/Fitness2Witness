@@ -890,6 +890,225 @@ If a metric is not visible or cannot be determined, use null. Do not include any
       return db.checkAndAwardBadges(ctx.user.id);
     }),
   }),
+
+  // Analytics (Leaders and Admins only)
+  analytics: router({
+    getGroupAnalytics: protectedProcedure.query(async ({ ctx }) => {
+      // Only leaders and admins can access analytics
+      if (ctx.user.role !== "leader" && ctx.user.role !== "admin") {
+        throw new Error("Unauthorized");
+      }
+
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.groupId) {
+        throw new Error("User not in a group");
+      }
+
+      // Get all group members
+      const members = await db.getGroupMembers(user.groupId);
+      const totalMembers = members.length;
+
+      // Get current week start (Sunday)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - dayOfWeek);
+      weekStart.setHours(0, 0, 0, 0);
+
+      // Count members who checked in this week
+      let activeMembers = 0;
+      let totalWeeklyPoints = 0;
+      let totalOverallPoints = 0;
+      const topPerformers: any[] = [];
+      const needsFollowUp: any[] = [];
+
+      for (const member of members) {
+        // Get check-ins since week start
+        const allMemberCheckins = await db.getUserCheckins(member.id);
+        const weeklyCheckins = allMemberCheckins.filter((c: any) => new Date(c.date) >= weekStart);
+        const weeklyPoints = weeklyCheckins.reduce((sum: number, c: any) => {
+          let points = 0;
+          if (c.nutrition) points++;
+          if (c.hydration) points++;
+          if (c.movement) points++;
+          if (c.scripture) points++;
+          return sum + points;
+        }, 0);
+
+        if (weeklyCheckins.length > 0) {
+          activeMembers++;
+        }
+
+        totalWeeklyPoints += weeklyPoints;
+
+        // Get overall points
+        const allCheckins = await db.getUserCheckins(member.id);
+        const overallPoints = allCheckins.reduce((sum: number, c: any) => {
+          let points = 0;
+          if (c.nutrition) points++;
+          if (c.hydration) points++;
+          if (c.movement) points++;
+          if (c.scripture) points++;
+          return sum + points;
+        }, 0);
+        totalOverallPoints += overallPoints;
+
+        topPerformers.push({
+          userId: member.id,
+          userName: member.name || "Unknown",
+          weeklyPoints,
+        });
+
+        // Check if needs follow-up (no check-ins in 3+ days or below 50%)
+        const lastCheckin = allCheckins[0];
+        const daysSinceLastCheckin = lastCheckin
+          ? Math.floor((now.getTime() - new Date(lastCheckin.date).getTime()) / (1000 * 60 * 60 * 24))
+          : 999;
+
+        if (daysSinceLastCheckin >= 3) {
+          needsFollowUp.push({
+            userId: member.id,
+            userName: member.name || "Unknown",
+            reason: `No check-ins for ${daysSinceLastCheckin} days`,
+          });
+        } else if (weeklyPoints < 19) {
+          // Below 50% of weekly max (38 points)
+          needsFollowUp.push({
+            userId: member.id,
+            userName: member.name || "Unknown",
+            reason: `Low weekly score: ${weeklyPoints}/38 points`,
+          });
+        }
+      }
+
+      // Sort top performers
+      topPerformers.sort((a, b) => b.weeklyPoints - a.weeklyPoints);
+
+      // Get attendance rate
+      const weeklyAttendance = await db.getWeeklyAttendanceForGroup(user.groupId, weekStart);
+      const attendanceRate = totalMembers > 0 ? (weeklyAttendance.length / totalMembers) * 100 : 0;
+
+      // Get engagement metrics
+      // Get posts since week start
+      const allPosts = await db.getGroupPosts(user.groupId, 100);
+      const postsThisWeek = allPosts.filter((p: any) => new Date(p.createdAt) >= weekStart);
+      // Count workout loggers (simplified)
+      let workoutLoggers = 0;
+      for (const m of members) {
+        const checkins = await db.getUserCheckins(m.id, 20);
+        const weeklyCheckins = checkins.filter((c: any) => new Date(c.date) >= weekStart);
+        if (weeklyCheckins.some((c: any) => c.workoutLog)) {
+          workoutLoggers++;
+        }
+      }
+      // Count metrics trackers (simplified)
+      let metricsTrackers = 0;
+      for (const m of members) {
+        const metrics = await db.getUserBodyMetrics(m.id, 5);
+        if (metrics.length > 0) {
+          metricsTrackers++;
+        }
+      }
+
+      return {
+        totalMembers,
+        activeMembers,
+        participationRate: totalMembers > 0 ? (activeMembers / totalMembers) * 100 : 0,
+        avgWeeklyPoints: totalMembers > 0 ? totalWeeklyPoints / totalMembers : 0,
+        avgTotalPoints: totalMembers > 0 ? totalOverallPoints / totalMembers : 0,
+        topPerformers: topPerformers.slice(0, 3),
+        needsFollowUp: needsFollowUp.slice(0, 5),
+        attendanceRate,
+        postsThisWeek: postsThisWeek.length,
+        workoutLoggers,
+        metricsTrackers,
+      };
+    }),
+  }),
+
+  // Group Challenges
+  groupChallenges: router({
+    getAll: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.groupId) return [];
+      return db.getGroupChallenges(user.groupId);
+    }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          challengeType: z.enum(["running", "steps", "workouts", "custom"]),
+          goalValue: z.number().optional(),
+          goalUnit: z.string().optional(),
+          startDate: z.string(),
+          endDate: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        // Only leaders and admins can create challenges
+        if (ctx.user.role !== "leader" && ctx.user.role !== "admin") {
+          throw new Error("Unauthorized");
+        }
+
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || !user.groupId) {
+          throw new Error("User not in a group");
+        }
+
+        const challengeId = await db.createGroupChallenge({
+          groupId: user.groupId,
+          createdByUserId: ctx.user.id,
+          title: input.title,
+          description: input.description,
+          challengeType: input.challengeType,
+          goalValue: input.goalValue,
+          goalUnit: input.goalUnit,
+          startDate: new Date(input.startDate),
+          endDate: new Date(input.endDate),
+        });
+
+        return { success: true, challengeId };
+      }),
+
+    join: protectedProcedure
+      .input(z.object({ challengeId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.joinChallenge(input.challengeId, ctx.user.id);
+        return { success: true };
+      }),
+
+    logProgress: protectedProcedure
+      .input(
+        z.object({
+          challengeId: z.number(),
+          currentValue: z.number(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await db.logChallengeProgress({
+          challengeId: input.challengeId,
+          userId: ctx.user.id,
+          currentValue: input.currentValue,
+          notes: input.notes,
+        });
+        return { success: true };
+      }),
+
+    getLeaderboard: protectedProcedure
+      .input(z.object({ challengeId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getChallengeLeaderboard(input.challengeId);
+      }),
+
+    getMyProgress: protectedProcedure
+      .input(z.object({ challengeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getChallengeProgress(input.challengeId, ctx.user.id);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

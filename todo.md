@@ -211,3 +211,29 @@
 - [ ] Include check-in history
 - [x] Add export button to profile
 - [ ] Generate downloadable PDF file
+
+## Leader Analytics Dashboard
+- [x] Create analytics API endpoints for participation metrics
+- [x] Build analytics dashboard screen (leaders/admins only)
+- [x] Add participation overview card
+- [x] Show average points metrics
+- [x] Display top performers list
+- [x] Create members needing follow-up section
+- [x] Add attendance tracking summary
+- [x] Show engagement metrics
+- [x] Add Analytics tab to navigation (leaders/admins only)
+
+## Group Challenges
+- [x] Create challenges database table
+- [x] Create challenge participants table
+- [x] Create challenge progress table
+- [x] Build challenge creation API (leaders/admins)
+- [x] Build challenge participation API (all users)
+- [x] Create Challenges tab screen
+- [x] Add create challenge form (leaders/admins)
+- [x] Build challenge list view
+- [x] Add join challenge functionality
+- [x] Create progress logging UI
+- [x] Build challenge leaderboard
+- [x] Add challenge detail screen
+- [x] Add Challenges tab to navigation (all users)

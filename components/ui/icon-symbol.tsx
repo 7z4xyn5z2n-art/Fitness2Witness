@@ -21,6 +21,8 @@ const MAPPING = {
   "trophy": "emoji-events",
   "people": "people",
   "person": "person",
+  "chart.bar": "bar-chart",
+  "flag.checkered": "flag",
 } as const;
 
 /**
