@@ -1108,6 +1108,38 @@ If a metric is not visible or cannot be determined, use null. Do not include any
       .query(async ({ ctx, input }) => {
         return db.getChallengeProgress(input.challengeId, ctx.user.id);
       }),
+
+    getComments: protectedProcedure
+      .input(z.object({ challengeId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getChallengeComments(input.challengeId);
+      }),
+
+    createComment: protectedProcedure
+      .input(
+        z.object({
+          challengeId: z.number(),
+          content: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const commentId = await db.createChallengeComment({
+          challengeId: input.challengeId,
+          userId: ctx.user.id,
+          content: input.content,
+        });
+        return { success: true, commentId };
+      }),
+
+    deleteComment: protectedProcedure
+      .input(z.object({ commentId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const success = await db.deleteChallengeComment(input.commentId, ctx.user.id);
+        if (!success) {
+          throw new Error("Unauthorized or comment not found");
+        }
+        return { success: true };
+      }),
   }),
 });
 

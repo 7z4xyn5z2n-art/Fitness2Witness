@@ -237,3 +237,19 @@
 - [x] Build challenge leaderboard
 - [x] Add challenge detail screen
 - [x] Add Challenges tab to navigation (all users)
+
+## Badge Notifications
+- [x] Create badge notification modal component
+- [x] Add celebratory animation when badge is earned
+- [x] Trigger notification after check-in when new badge earned
+- [x] Show badge icon, name, and description in notification
+- [x] Add confetti or celebration effect
+- [x] Implement dismiss functionality
+
+## Challenge Comments
+- [x] Create challenge_comments database table
+- [x] Add challenge comments API endpoints (create, get, delete)
+- [x] Build comment input UI on challenge detail screen
+- [x] Display comments list with user names and timestamps
+- [x] Add delete comment functionality (author or admin only)
+- [x] Implement real-time comment refresh

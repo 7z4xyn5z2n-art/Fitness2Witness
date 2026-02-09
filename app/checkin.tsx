@@ -6,6 +6,7 @@ import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import { BadgeNotification } from "@/components/badge-notification";
 
 export default function CheckinScreen() {
   const router = useRouter();
@@ -19,6 +20,8 @@ export default function CheckinScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [workoutLog, setWorkoutLog] = useState("");
+  const [showBadgeNotification, setShowBadgeNotification] = useState(false);
+  const [earnedBadge, setEarnedBadge] = useState<any>(null);
 
   const checkBadgesMutation = trpc.badges.checkAndAward.useMutation();
 
@@ -32,6 +35,15 @@ export default function CheckinScreen() {
         const newBadges = await checkBadgesMutation.mutateAsync();
         if (newBadges && newBadges.length > 0) {
           utils.badges.getMyBadges.invalidate();
+          // Show badge notification for the first new badge
+          const badge = newBadges[0];
+          setEarnedBadge(badge);
+          setShowBadgeNotification(true);
+          
+          if (Platform.OS !== "web") {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          return; // Don't show success alert, badge notification will handle it
         }
       } catch (error) {
         // Silently fail badge check
@@ -263,6 +275,20 @@ export default function CheckinScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Badge Notification Modal */}
+      {earnedBadge && (
+        <BadgeNotification
+          visible={showBadgeNotification}
+          badgeName={earnedBadge.badgeName}
+          badgeEmoji={earnedBadge.badgeEmoji}
+          badgeDescription={earnedBadge.badgeDescription}
+          onDismiss={() => {
+            setShowBadgeNotification(false);
+            router.back();
+          }}
+        />
+      )}
     </ScreenContainer>
   );
 }

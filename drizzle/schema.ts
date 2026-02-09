@@ -225,3 +225,15 @@ export const challengeProgress = mysqlTable("challengeProgress", {
 
 export type ChallengeProgress = typeof challengeProgress.$inferSelect;
 export type InsertChallengeProgress = typeof challengeProgress.$inferInsert;
+
+// Challenge comments table
+export const challengeComments = mysqlTable("challengeComments", {
+  id: int("id").autoincrement().primaryKey(),
+  challengeId: int("challengeId").notNull(),
+  userId: int("userId").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ChallengeComment = typeof challengeComments.$inferSelect;
+export type InsertChallengeComment = typeof challengeComments.$inferInsert;

@@ -43,6 +43,13 @@
       "when": 1770651043678,
       "tag": "0005_silent_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1770651748575,
+      "tag": "0006_quick_scarecrow",
+      "breakpoints": true
     }
   ]
 }

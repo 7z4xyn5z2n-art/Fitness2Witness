@@ -11,6 +11,7 @@ export default function ChallengeDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [progressValue, setProgressValue] = useState("");
   const [progressNotes, setProgressNotes] = useState("");
+  const [commentText, setCommentText] = useState("");
 
   const { data: challenges = [], refetch: refetchChallenges } = trpc.groupChallenges.getAll.useQuery();
   const { data: leaderboard = [], refetch: refetchLeaderboard } = trpc.groupChallenges.getLeaderboard.useQuery(
@@ -21,14 +22,21 @@ export default function ChallengeDetailScreen() {
     { challengeId },
     { enabled: !!challengeId }
   );
+  const { data: comments = [], refetch: refetchComments } = trpc.groupChallenges.getComments.useQuery(
+    { challengeId },
+    { enabled: !!challengeId }
+  );
+  const { data: user } = trpc.auth.me.useQuery();
 
   const logProgress = trpc.groupChallenges.logProgress.useMutation();
+  const createComment = trpc.groupChallenges.createComment.useMutation();
+  const deleteComment = trpc.groupChallenges.deleteComment.useMutation();
 
   const challenge = challenges.find((c) => c.id === challengeId);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchChallenges(), refetchLeaderboard(), refetchProgress()]);
+    await Promise.all([refetchChallenges(), refetchLeaderboard(), refetchProgress(), refetchComments()]);
     setRefreshing(false);
   };
 
@@ -52,6 +60,30 @@ export default function ChallengeDetailScreen() {
       refetchProgress();
     } catch (error) {
       Alert.alert("Error", "Failed to log progress");
+    }
+  };
+
+  const handleCreateComment = async () => {
+    if (!commentText.trim()) return;
+
+    try {
+      await createComment.mutateAsync({
+        challengeId,
+        content: commentText.trim(),
+      });
+      setCommentText("");
+      refetchComments();
+    } catch (error) {
+      Alert.alert("Error", "Failed to post comment");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await deleteComment.mutateAsync({ commentId });
+      refetchComments();
+    } catch (error) {
+      Alert.alert("Error", "Failed to delete comment");
     }
   };
 
@@ -205,6 +237,64 @@ export default function ChallengeDetailScreen() {
                 <Text className="text-lg font-bold text-primary">
                   {entry.totalProgress?.toFixed(1) || 0} {challenge.goalUnit || ""}
                 </Text>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* Comments Section */}
+        <View className="bg-surface rounded-xl p-6 border border-border mt-6">
+          <Text className="text-xl font-bold text-foreground mb-4">💬 Comments</Text>
+
+          {/* Comment Input */}
+          <View className="flex-row gap-2 mb-4">
+            <TextInput
+              className="flex-1 bg-background border border-border rounded-xl p-3 text-foreground"
+              placeholder="Add a comment..."
+              placeholderTextColor="#9BA1A6"
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+            />
+            <TouchableOpacity
+              className="bg-primary rounded-xl px-4 justify-center active:opacity-80"
+              onPress={handleCreateComment}
+              disabled={createComment.isPending || !commentText.trim()}
+            >
+              <Text className="text-white font-semibold">
+                {createComment.isPending ? "..." : "Post"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Comments List */}
+          {comments.length === 0 ? (
+            <Text className="text-center text-muted py-4">No comments yet. Be the first!</Text>
+          ) : (
+            comments.map((comment: any) => (
+              <View
+                key={comment.id}
+                className="py-3 border-b border-border last:border-b-0"
+              >
+                <View className="flex-row items-start justify-between mb-1">
+                  <Text className="text-sm font-semibold text-foreground">
+                    {comment.userName}
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-xs text-muted">
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </Text>
+                    {(comment.userId === user?.id || user?.role === "admin") && (
+                      <TouchableOpacity
+                        onPress={() => handleDeleteComment(comment.id)}
+                        className="active:opacity-60"
+                      >
+                        <Text className="text-error text-xs">Delete</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                <Text className="text-sm text-foreground">{comment.content}</Text>
               </View>
             ))
           )}

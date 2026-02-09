@@ -2,6 +2,7 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   bodyMetrics,
+  challengeComments,
   challengeParticipants,
   challengeProgress,
   challenges,
@@ -904,4 +905,57 @@ export async function getChallengeLeaderboard(challengeId: number): Promise<any[
   leaderboard.sort((a, b) => b.currentValue - a.currentValue);
 
   return leaderboard;
+}
+
+// Challenge Comments
+export async function createChallengeComment(data: {
+  challengeId: number;
+  userId: number;
+  content: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [result] = await db.insert(challengeComments).values(data);
+  return result.insertId;
+}
+
+export async function getChallengeComments(challengeId: number): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const comments = await db
+    .select()
+    .from(challengeComments)
+    .where(eq(challengeComments.challengeId, challengeId))
+    .orderBy(desc(challengeComments.createdAt));
+
+  // Fetch user names for each comment
+  const commentsWithUsers = [];
+  for (const comment of comments) {
+    const user = await getUserById(comment.userId);
+    commentsWithUsers.push({
+      ...comment,
+      userName: user?.name || "Unknown User",
+    });
+  }
+
+  return commentsWithUsers;
+}
+
+export async function deleteChallengeComment(commentId: number, userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  // Check if user owns the comment or is admin
+  const comment = await db.select().from(challengeComments).where(eq(challengeComments.id, commentId)).limit(1);
+  if (!comment[0]) return false;
+
+  const user = await getUserById(userId);
+  if (comment[0].userId !== userId && user?.role !== "admin") {
+    return false;
+  }
+
+  await db.delete(challengeComments).where(eq(challengeComments.id, commentId));
+  return true;
 }
