@@ -192,6 +192,13 @@ export async function updateGroup(groupId: number, data: Partial<InsertGroup>): 
   await db.update(groups).set(data).where(eq(groups.id, groupId));
 }
 
+export async function getGroupMembers(groupId: number): Promise<User[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(users).where(eq(users.groupId, groupId)).orderBy(users.name);
+}
+
 // ============================================================================
 // Challenge Management
 // ============================================================================
@@ -322,6 +329,16 @@ export async function updateWeeklyAttendance(attendanceId: number, data: Partial
   if (!db) throw new Error("Database not available");
 
   await db.update(weeklyAttendance).set(data).where(eq(weeklyAttendance.id, attendanceId));
+}
+
+export async function getWeeklyAttendanceForGroup(groupId: number, weekStartDate: Date): Promise<WeeklyAttendance[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(weeklyAttendance)
+    .where(and(eq(weeklyAttendance.groupId, groupId), eq(weeklyAttendance.weekStartDate, weekStartDate)));
 }
 
 // ============================================================================

@@ -1,17 +1,29 @@
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
+import { useRouter } from "expo-router";
 
 export default function CommunityScreen() {
+  const router = useRouter();
   const { data: posts, isLoading } = trpc.community.getPosts.useQuery();
 
   return (
     <ScreenContainer className="p-6">
       <View className="flex-1 gap-6">
         {/* Header */}
-        <View className="items-center gap-2">
-          <Text className="text-3xl font-bold text-foreground">Community Feed</Text>
-          <Text className="text-base text-muted">Share and encourage each other</Text>
+        <View className="gap-4">
+          <View className="items-center gap-2">
+            <Text className="text-3xl font-bold text-foreground">Community Feed</Text>
+            <Text className="text-base text-muted">Share and encourage each other</Text>
+          </View>
+
+          {/* Create Post Button */}
+          <TouchableOpacity
+            onPress={() => router.push("/create-post" as any)}
+            className="bg-primary px-6 py-3 rounded-full active:opacity-80"
+          >
+            <Text className="text-background text-center font-semibold">✏️ Create Post</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Posts List */}

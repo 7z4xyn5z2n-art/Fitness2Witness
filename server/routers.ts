@@ -134,12 +134,53 @@ export const appRouter = router({
 
   // Weekly Attendance
   attendance: router({
+    getGroupMembers: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.groupId) {
+        throw new Error("User must be assigned to a group");
+      }
+
+      // Only admins and leaders can access this
+      if (ctx.user.role !== "admin" && ctx.user.role !== "leader") {
+        throw new Error("Only admins and leaders can view group members");
+      }
+
+      return db.getGroupMembers(user.groupId);
+    }),
+
+    getThisWeekAttendance: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.groupId) {
+        throw new Error("User must be assigned to a group");
+      }
+
+      const group = await db.getGroupById(user.groupId);
+      if (!group || !group.challengeId) {
+        throw new Error("Group must be assigned to a challenge");
+      }
+
+      // Get start of current week (Monday)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() + diff);
+      weekStart.setHours(0, 0, 0, 0);
+
+      return db.getWeeklyAttendanceForGroup(user.groupId, weekStart);
+    }),
+
     markAttendance: protectedProcedure
-      .input(z.object({ weekStartDate: z.string(), attended: z.boolean() }))
+      .input(z.object({ userIds: z.array(z.number()), date: z.string() }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || !user.groupId) {
           throw new Error("User must be assigned to a group");
+        }
+
+        // Only admins and leaders can mark attendance
+        if (ctx.user.role !== "admin" && ctx.user.role !== "leader") {
+          throw new Error("Only admins and leaders can mark attendance");
         }
 
         const group = await db.getGroupById(user.groupId);
@@ -147,19 +188,29 @@ export const appRouter = router({
           throw new Error("Group must be assigned to a challenge");
         }
 
-        const weekStart = new Date(input.weekStartDate);
-        const existing = await db.getWeeklyAttendance(ctx.user.id, weekStart);
+        // Get start of current week (Monday)
+        const now = new Date(input.date);
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() + diff);
+        weekStart.setHours(0, 0, 0, 0);
 
-        if (existing) {
-          await db.updateWeeklyAttendance(existing.id, { attendedWednesday: input.attended });
-        } else {
-          await db.createWeeklyAttendance({
-            weekStartDate: weekStart,
-            userId: ctx.user.id,
-            groupId: user.groupId,
-            challengeId: group.challengeId,
-            attendedWednesday: input.attended,
-          });
+        // Mark attendance for each selected user
+        for (const userId of input.userIds) {
+          const existing = await db.getWeeklyAttendance(userId, weekStart);
+
+          if (existing) {
+            await db.updateWeeklyAttendance(existing.id, { attendedWednesday: true });
+          } else {
+            await db.createWeeklyAttendance({
+              weekStartDate: weekStart,
+              userId,
+              groupId: user.groupId,
+              challengeId: group.challengeId,
+              attendedWednesday: true,
+            });
+          }
         }
 
         return { success: true };

@@ -1,10 +1,14 @@
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isAdminOrLeader = user?.role === "admin" || user?.role === "leader";
   const { data: metrics, isLoading: metricsLoading } = trpc.metrics.getMyMetrics.useQuery();
   const { data: todayCheckin, isLoading: checkinLoading } = trpc.checkins.getTodayCheckin.useQuery();
 
@@ -69,7 +73,12 @@ export default function DashboardScreen() {
 
           {/* Check-in Button */}
           <TouchableOpacity
-            onPress={() => router.push("/checkin" as any)}
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }
+              router.push("/checkin" as any);
+            }}
             disabled={hasCheckedInToday}
             className={`px-6 py-4 rounded-full ${hasCheckedInToday ? "bg-success" : "bg-primary"} active:opacity-80`}
           >
@@ -77,6 +86,23 @@ export default function DashboardScreen() {
               {hasCheckedInToday ? "✓ Checked In Today" : "Log Today's Check-In"}
             </Text>
           </TouchableOpacity>
+
+          {/* Wednesday Attendance (Admin/Leader only) */}
+          {isAdminOrLeader && (
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }
+                router.push("/attendance" as any);
+              }}
+              className="bg-success px-6 py-4 rounded-full active:opacity-80"
+            >
+              <Text className="text-background text-center font-semibold text-lg">
+                ✓ Mark Wednesday Attendance
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Breakdown Card */}
           <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">

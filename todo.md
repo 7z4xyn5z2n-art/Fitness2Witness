@@ -136,3 +136,17 @@
 - [ ] Test point adjustments and audit log
 - [ ] Verify all computed metrics are accurate
 - [ ] Test photo upload from camera and gallery
+
+## New Feature Requests (User Priority)
+- [x] Make Quay Merida (meridabiz@gmail.com) admin
+- [x] Build Wednesday Life Group attendance tracking (admin + leader access)
+- [ ] Create progression charts (day-over-day and week-over-week)
+- [x] Build interactive community feed with post creation
+- [x] Add emoji and GIF support to community posts
+- [ ] Add commenting functionality to posts
+- [ ] Create separate Body Metrics section
+- [ ] Implement InBody scan photo upload
+- [ ] Build AI analysis to extract InBody metrics
+- [ ] Track body composition metrics (weight, body fat %, muscle mass)
+- [ ] Create week-over-week body composition charts
+- [ ] Create month-over-month body composition charts
