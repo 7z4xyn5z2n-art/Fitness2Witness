@@ -66,6 +66,8 @@ export const dailyCheckins = mysqlTable("dailyCheckins", {
   scriptureDone: boolean("scriptureDone").default(false).notNull(),
   notes: text("notes"),
   proofPhotoUrl: text("proofPhotoUrl"),
+  workoutLog: text("workoutLog"),
+  workoutAnalysis: text("workoutAnalysis"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

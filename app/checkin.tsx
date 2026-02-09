@@ -18,6 +18,7 @@ export default function CheckinScreen() {
   const [notes, setNotes] = useState("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [workoutLog, setWorkoutLog] = useState("");
 
   const submitMutation = trpc.checkins.submit.useMutation({
     onSuccess: () => {
@@ -100,6 +101,7 @@ export default function CheckinScreen() {
       scriptureDone,
       notes: notes || undefined,
       proofPhotoBase64: photoBase64 || undefined,
+      workoutLog: workoutLog || undefined,
     });
   };
 
@@ -196,6 +198,22 @@ export default function CheckinScreen() {
               placeholderTextColor="#9BA1A6"
               multiline
               numberOfLines={3}
+              className="bg-surface border border-border rounded-xl p-4 text-foreground"
+              style={{ textAlignVertical: "top" }}
+            />
+          </View>
+
+          {/* Workout Log */}
+          <View>
+            <Text className="text-base font-semibold text-foreground mb-2">Workout Details (Optional)</Text>
+            <Text className="text-sm text-muted mb-2">Describe your workout for AI analysis (e.g., "30 min run, 5 miles" or "Bench press 3x10 @ 185lbs, squats 4x8 @ 225lbs")</Text>
+            <TextInput
+              value={workoutLog}
+              onChangeText={setWorkoutLog}
+              placeholder="Describe your workout..."
+              placeholderTextColor="#9BA1A6"
+              multiline
+              numberOfLines={4}
               className="bg-surface border border-border rounded-xl p-4 text-foreground"
               style={{ textAlignVertical: "top" }}
             />

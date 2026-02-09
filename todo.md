@@ -172,3 +172,10 @@
 - [x] Implement pull-to-refresh on dashboard
 - [x] Implement pull-to-refresh on leaderboard
 - [x] Implement pull-to-refresh on community feed
+
+## Advanced Workout Logging
+- [x] Add workout log text field to daily check-in
+- [x] Create AI analysis endpoint to extract workout metrics
+- [x] Display analyzed workout data (exercise types, duration, intensity, calories)
+- [x] Show workout summary in check-in history
+- [ ] Track training volume metrics over time

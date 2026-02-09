@@ -6,6 +6,31 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { storagePut } from "./storage";
 
+// Helper function to analyze workout text using AI
+async function analyzeWorkout(workoutText: string): Promise<string> {
+  const { invokeLLM } = await import("./_core/llm.js");
+
+  const prompt = `Analyze this workout description and extract key metrics. Respond ONLY with a JSON object:
+
+{
+  "exerciseTypes": ["strength", "cardio", "flexibility"],
+  "duration": number (minutes),
+  "intensity": "low" | "moderate" | "high",
+  "exercises": ["exercise name"],
+  "estimatedCalories": number,
+  "summary": "brief summary"
+}
+
+Workout: ${workoutText}`;
+
+  const result = await invokeLLM({
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const messageContent = result.choices[0]?.message?.content;
+  return typeof messageContent === "string" ? messageContent : "{}";
+}
+
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -40,6 +65,7 @@ export const appRouter = router({
           scriptureDone: z.boolean(),
           notes: z.string().optional(),
           proofPhotoBase64: z.string().optional(),
+          workoutLog: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -79,6 +105,8 @@ export const appRouter = router({
           scriptureDone: input.scriptureDone,
           notes: input.notes,
           proofPhotoUrl,
+          workoutLog: input.workoutLog,
+          workoutAnalysis: input.workoutLog ? await analyzeWorkout(input.workoutLog) : undefined,
         });
 
         return { success: true, checkinId };

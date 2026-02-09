@@ -115,6 +115,21 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Check-In History */}
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }
+              router.push("/checkin-history" as any);
+            }}
+            className="bg-surface border-2 border-primary px-6 py-4 rounded-full active:opacity-80"
+          >
+            <Text className="text-primary text-center font-semibold text-lg">
+              📋 View Check-In History
+            </Text>
+          </TouchableOpacity>
+
           {/* Body Metrics */}
           <TouchableOpacity
             onPress={() => {
