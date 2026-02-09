@@ -15,6 +15,7 @@ export default function TabLayout() {
   
   const { data: user } = trpc.auth.me.useQuery();
   const isLeaderOrAdmin = user?.role === "leader" || user?.role === "admin";
+  const isAdmin = user?.role === "admin";
 
   return (
     <Tabs
@@ -66,6 +67,14 @@ export default function TabLayout() {
           title: "Analytics",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar" color={color} />,
           href: isLeaderOrAdmin ? "/analytics" : null, // Only visible to leaders and admins
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: "Admin",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
+          href: isAdmin ? "/admin" : null, // Only visible to admins
         }}
       />
       <Tabs.Screen

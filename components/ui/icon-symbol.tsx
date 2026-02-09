@@ -23,6 +23,7 @@ const MAPPING = {
   "person": "person",
   "chart.bar": "bar-chart",
   "flag.checkered": "flag",
+  "gear": "settings",
 } as const;
 
 /**

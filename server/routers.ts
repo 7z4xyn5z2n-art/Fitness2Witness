@@ -548,8 +548,57 @@ export const appRouter = router({
         throw new Error("Only admins can access this");
       }
 
-      return db.getAllUsers();
+      // Get all users with their stats
+      const users = await db.getAllUsers();
+      const usersWithStats = await Promise.all(
+        users.map(async (u) => {
+          // Get the first challenge ID (assuming single challenge for now)
+          const challenges = await db.getAllChallenges();
+          const challengeId = challenges[0]?.id || 1;
+          const metrics = await db.getUserMetrics(u.id, challengeId);
+          return {
+            ...u,
+            totalPoints: metrics.totalPoints,
+            weekPoints: metrics.thisWeekTotal,
+            checkInCount: await db.getUserCheckInCount(u.id),
+          };
+        })
+      );
+      return usersWithStats;
     }),
+
+    updateUserRole: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+          role: z.enum(["user", "leader", "admin"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can update user roles");
+        }
+
+        await db.updateUser(parseInt(input.userId), { role: input.role });
+        return { success: true };
+      }),
+
+    removeUser: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can remove users");
+        }
+
+        await db.deleteUser(parseInt(input.userId));
+        return { success: true };
+      }),
 
     updateUser: protectedProcedure
       .input(

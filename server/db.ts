@@ -1018,3 +1018,33 @@ export async function createCheckIn(data: InsertDailyCheckin): Promise<number> {
   const result = await db.insert(dailyCheckins).values(data);
   return result[0].insertId;
 }
+
+export async function getUserCheckInCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const checkIns = await db
+    .select()
+    .from(dailyCheckins)
+    .where(eq(dailyCheckins.userId, userId));
+
+  return checkIns.length;
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Delete user's related data first
+  await db.delete(dailyCheckins).where(eq(dailyCheckins.userId, userId));
+  await db.delete(weeklyAttendance).where(eq(weeklyAttendance.userId, userId));
+  await db.delete(pointAdjustments).where(eq(pointAdjustments.userId, userId));
+  await db.delete(userBadges).where(eq(userBadges.userId, userId));
+  await db.delete(communityPosts).where(eq(communityPosts.userId, userId));
+  await db.delete(challengeParticipants).where(eq(challengeParticipants.userId, userId));
+  await db.delete(challengeProgress).where(eq(challengeProgress.userId, userId));
+  await db.delete(bodyMetrics).where(eq(bodyMetrics.userId, userId));
+
+  // Finally delete the user
+  await db.delete(users).where(eq(users.id, userId));
+}

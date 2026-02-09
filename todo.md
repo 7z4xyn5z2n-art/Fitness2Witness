@@ -272,3 +272,20 @@
 - [x] Add admin ability to edit/add weekly life group attendance
 - [x] Implement date picker for selecting past dates
 - [x] Add validation to prevent future date logging
+
+## Admin Panel
+- [x] Create admin panel main screen with navigation
+- [x] Add Admin tab to bottom navigation (admin-only)
+- [x] Build user management section
+- [x] Add view all users in group functionality
+- [x] Add role assignment interface (User/Leader/Admin)
+- [x] Add remove user from group functionality
+- [x] Show user activity stats in user list
+- [x] Build group management section
+- [x] Add edit group settings interface
+- [x] Add group statistics dashboard
+- [x] Build content moderation section
+- [x] Add view/delete community posts functionality
+- [x] Add view/delete challenge comments functionality
+- [x] Create admin API endpoints for user management
+- [x] Create admin API endpoints for content moderation
