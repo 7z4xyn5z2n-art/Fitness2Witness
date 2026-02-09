@@ -29,10 +29,10 @@ const schemeFromBundleId = `manus${timestamp}`;
 const env = {
   // App branding - update these values directly (do not use env vars)
   appName: "Fitness2Witness",
-  appSlug: "fitness2witness",
+  appSlug: "{{project_name}}",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://private-us-east-1.manuscdn.com/sessionFile/i1uQL3GYU6CrC9Z4pwcM4M/sandbox/4gnSSYyluyDnEZHYSBYHsa-img-1_1770609226000_na1fn_Zml0bmVzczJ3aXRuZXNzLWxvZ28.png?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvaTF1UUwzR1lVNkNyQzlaNHB3Y000TS9zYW5kYm94LzRnblNTWXlsdXlEbkVaSFlTQllIc2EtaW1nLTFfMTc3MDYwOTIyNjAwMF9uYTFmbl9abWwwYm1WemN6SjNhWFJ1WlhOekxXeHZaMjgucG5nP3gtb3NzLXByb2Nlc3M9aW1hZ2UvcmVzaXplLHdfMTkyMCxoXzE5MjAvZm9ybWF0LHdlYnAvcXVhbGl0eSxxXzgwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=kOdXPYmKdrkPa3~XA0J1oy6yTtjfTtnNX-4wQmVausT4pO9sLL67TID98ojfXx6yEmjs25OhVoGGIMOqrKQLrD8TNREtBn8FJwkQo4BmDCwX6qFaOeBbdRpHtd6YMn20tuLcc7~AIEOPK7byAhP95HiNTYh4hxLizCGJIwF~N7oDu8MwUHfLNfP6moGmnRmO44BB1PX0MbnejECn2NILOSIHo4-kY~jUVhBkOuWxFRSUyYJKKx2w7-a2ZB-uRxywIPsfM4hCWGjwddA7ybHVz5bTraY4IKF5SWyrGAQjjLweuiOw6RbP6YftPOE5Zr2na-Q6~oQH0G5ozO5p771WHw__",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,

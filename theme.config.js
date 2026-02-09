@@ -1,6 +1,7 @@
 /** @type {const} */
 const themeColors = {
-  primary: { light: '#0a7ea4', dark: '#0a7ea4' },
+  primary: { light: '#7C3AED', dark: '#8B5CF6' }, // Deep purple for faith
+  secondary: { light: '#10B981', dark: '#34D399' }, // Vibrant green for growth
   background: { light: '#ffffff', dark: '#151718' },
   surface: { light: '#f5f5f5', dark: '#1e2022' },
   foreground: { light: '#11181C', dark: '#ECEDEE' },

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -16,7 +16,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "leader", "admin"]).default("user").notNull(),
+  groupId: int("groupId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -25,4 +26,123 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// Groups table
+export const groups = mysqlTable("groups", {
+  id: int("id").autoincrement().primaryKey(),
+  groupName: varchar("groupName", { length: 255 }).notNull(),
+  leaderUserId: int("leaderUserId"),
+  challengeId: int("challengeId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Group = typeof groups.$inferSelect;
+export type InsertGroup = typeof groups.$inferInsert;
+
+// Challenges table
+export const challenges = mysqlTable("challenges", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Challenge = typeof challenges.$inferSelect;
+export type InsertChallenge = typeof challenges.$inferInsert;
+
+// Daily check-ins table
+export const dailyCheckins = mysqlTable("dailyCheckins", {
+  id: int("id").autoincrement().primaryKey(),
+  date: timestamp("date").notNull(),
+  userId: int("userId").notNull(),
+  groupId: int("groupId").notNull(),
+  challengeId: int("challengeId").notNull(),
+  nutritionDone: boolean("nutritionDone").default(false).notNull(),
+  hydrationDone: boolean("hydrationDone").default(false).notNull(),
+  movementDone: boolean("movementDone").default(false).notNull(),
+  scriptureDone: boolean("scriptureDone").default(false).notNull(),
+  notes: text("notes"),
+  proofPhotoUrl: text("proofPhotoUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DailyCheckin = typeof dailyCheckins.$inferSelect;
+export type InsertDailyCheckin = typeof dailyCheckins.$inferInsert;
+
+// Weekly attendance table
+export const weeklyAttendance = mysqlTable("weeklyAttendance", {
+  id: int("id").autoincrement().primaryKey(),
+  weekStartDate: timestamp("weekStartDate").notNull(),
+  userId: int("userId").notNull(),
+  groupId: int("groupId").notNull(),
+  challengeId: int("challengeId").notNull(),
+  attendedWednesday: boolean("attendedWednesday").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WeeklyAttendance = typeof weeklyAttendance.$inferSelect;
+export type InsertWeeklyAttendance = typeof weeklyAttendance.$inferInsert;
+
+// Point adjustments table
+export const pointAdjustments = mysqlTable("pointAdjustments", {
+  id: int("id").autoincrement().primaryKey(),
+  date: timestamp("date").notNull(),
+  userId: int("userId").notNull(),
+  groupId: int("groupId").notNull(),
+  challengeId: int("challengeId").notNull(),
+  pointsDelta: int("pointsDelta").notNull(),
+  reason: text("reason").notNull(),
+  adjustedBy: int("adjustedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PointAdjustment = typeof pointAdjustments.$inferSelect;
+export type InsertPointAdjustment = typeof pointAdjustments.$inferInsert;
+
+// Community posts table
+export const communityPosts = mysqlTable("communityPosts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  groupId: int("groupId").notNull(),
+  postType: mysqlEnum("postType", ["Encouragement", "Testimony", "Photo", "Video", "Announcement"]).notNull(),
+  postText: text("postText"),
+  postImageUrl: text("postImageUrl"),
+  postVideoUrl: text("postVideoUrl"),
+  isPinned: boolean("isPinned").default(false).notNull(),
+  visibility: mysqlEnum("visibility", ["GroupOnly", "LeadersOnly"]).default("GroupOnly").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = typeof communityPosts.$inferInsert;
+
+// Post comments table
+export const postComments = mysqlTable("postComments", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId").notNull(),
+  userId: int("userId").notNull(),
+  commentText: text("commentText").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PostComment = typeof postComments.$inferSelect;
+export type InsertPostComment = typeof postComments.$inferInsert;
+
+// Group chat messages table
+export const groupChatMessages = mysqlTable("groupChatMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  groupId: int("groupId").notNull(),
+  messageText: text("messageText"),
+  messageImageUrl: text("messageImageUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type GroupChatMessage = typeof groupChatMessages.$inferSelect;
+export type InsertGroupChatMessage = typeof groupChatMessages.$inferInsert;
