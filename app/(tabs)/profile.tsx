@@ -1,11 +1,19 @@
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
+import { LineChart, BarChart } from "react-native-chart-kit";
+import { useColors } from "@/hooks/use-colors";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { data: metrics } = trpc.metrics.getMyMetrics.useQuery();
+  const { data: weeklyProgress, isLoading: loadingWeekly } = trpc.metrics.getWeeklyProgress.useQuery();
+  const { data: categoryData, isLoading: loadingCategory } = trpc.metrics.getCategoryConsistency.useQuery();
+  const { data: bodyMetrics, isLoading: loadingBody } = trpc.bodyMetrics.getMyMetrics.useQuery();
+  
+  const colors = useColors();
+  const screenWidth = Dimensions.get("window").width - 48; // padding
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -55,6 +63,107 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+
+          {/* Weekly Progress Chart */}
+          <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
+            <Text className="text-lg font-semibold text-foreground mb-4">Weekly Progress Trend</Text>
+            {loadingWeekly ? (
+              <ActivityIndicator size="small" />
+            ) : weeklyProgress && weeklyProgress.length > 0 ? (
+              <LineChart
+                data={{
+                  labels: weeklyProgress.map(w => `W${w.week}`),
+                  datasets: [{ data: weeklyProgress.map(w => w.points) }]
+                }}
+                width={screenWidth - 48}
+                height={220}
+                chartConfig={{
+                  backgroundColor: colors.surface,
+                  backgroundGradientFrom: colors.surface,
+                  backgroundGradientTo: colors.surface,
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => colors.primary,
+                  labelColor: (opacity = 1) => colors.muted,
+                  style: { borderRadius: 16 },
+                  propsForDots: {
+                    r: "4",
+                    strokeWidth: "2",
+                    stroke: colors.primary
+                  }
+                }}
+                bezier
+                style={{ marginVertical: 8, borderRadius: 16 }}
+              />
+            ) : (
+              <Text className="text-sm text-muted text-center">No data yet</Text>
+            )}
+          </View>
+
+          {/* Category Consistency Chart */}
+          <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
+            <Text className="text-lg font-semibold text-foreground mb-4">Category Consistency</Text>
+            {loadingCategory ? (
+              <ActivityIndicator size="small" />
+            ) : categoryData && categoryData.length > 0 ? (
+              <BarChart
+                data={{
+                  labels: categoryData.map(c => c.category.slice(0, 3)),
+                  datasets: [{ data: categoryData.map(c => c.percentage) }]
+                }}
+                width={screenWidth - 48}
+                height={220}
+                chartConfig={{
+                  backgroundColor: colors.surface,
+                  backgroundGradientFrom: colors.surface,
+                  backgroundGradientTo: colors.surface,
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => colors.primary,
+                  labelColor: (opacity = 1) => colors.muted,
+                  style: { borderRadius: 16 }
+                }}
+                yAxisLabel=""
+                yAxisSuffix="%"
+                fromZero
+                style={{ marginVertical: 8, borderRadius: 16 }}
+              />
+            ) : (
+              <Text className="text-sm text-muted text-center">No data yet</Text>
+            )}
+          </View>
+
+          {/* Body Metrics Progress */}
+          {bodyMetrics && bodyMetrics.length > 0 && (
+            <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
+              <Text className="text-lg font-semibold text-foreground mb-4">Body Metrics Trend</Text>
+              {loadingBody ? (
+                <ActivityIndicator size="small" />
+              ) : (
+                <LineChart
+                  data={{
+                    labels: bodyMetrics.slice(-6).map((_: any, i: number) => `W${i + 1}`),
+                    datasets: [
+                      { data: bodyMetrics.slice(-6).map((m: any) => m.weight || 0), color: () => colors.primary },
+                      { data: bodyMetrics.slice(-6).map((m: any) => m.bodyFatPercent || 0), color: () => colors.warning },
+                    ],
+                    legend: ["Weight (lbs)", "Body Fat (%)"]
+                  }}
+                  width={screenWidth - 48}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: colors.surface,
+                    backgroundGradientFrom: colors.surface,
+                    backgroundGradientTo: colors.surface,
+                    decimalPlaces: 1,
+                    color: (opacity = 1) => colors.primary,
+                    labelColor: (opacity = 1) => colors.muted,
+                    style: { borderRadius: 16 }
+                  }}
+                  bezier
+                  style={{ marginVertical: 8, borderRadius: 16 }}
+                />
+              )}
+            </View>
+          )}
 
           {/* Info Card */}
           <View className="bg-primary/10 rounded-2xl p-4 border border-primary/20">

@@ -179,3 +179,12 @@
 - [x] Display analyzed workout data (exercise types, duration, intensity, calories)
 - [x] Show workout summary in check-in history
 - [ ] Track training volume metrics over time
+
+## Visual Progress Charts (Profile Section)
+- [x] Install chart library for React Native
+- [x] Create API endpoint for weekly points history
+- [x] Create API endpoint for category consistency data
+- [x] Build weekly points trend line chart
+- [x] Build category consistency breakdown chart
+- [x] Add body metrics progression chart
+- [x] Integrate charts into profile screen

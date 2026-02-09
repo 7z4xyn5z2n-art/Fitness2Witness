@@ -158,6 +158,81 @@ export const appRouter = router({
         leaderboard.sort((a, b) => b.points - a.points);
         return leaderboard;
       }),
+
+    getWeeklyProgress: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.groupId) {
+        throw new Error("User must be assigned to a group");
+      }
+
+      const group = await db.getGroupById(user.groupId);
+      if (!group || !group.challengeId) {
+        throw new Error("Group must be assigned to a challenge");
+      }
+
+      const challenge = await db.getChallengeById(group.challengeId);
+      if (!challenge) {
+        throw new Error("Challenge not found");
+      }
+
+      // Get all check-ins for this user in the challenge
+      const checkins = await db.getUserCheckins(ctx.user.id);
+      
+      // Group by week and calculate weekly totals
+      const weeklyData: { week: number; points: number }[] = [];
+      const challengeStart = new Date(challenge.startDate);
+      
+      for (let week = 1; week <= 12; week++) {
+        const weekStart = new Date(challengeStart);
+        weekStart.setDate(challengeStart.getDate() + (week - 1) * 7);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 7);
+        
+        const weekCheckins = checkins.filter(c => {
+          const checkinDate = new Date(c.date);
+          return checkinDate >= weekStart && checkinDate < weekEnd;
+        });
+        
+        const weekPoints = weekCheckins.reduce((sum, c) => {
+          return sum + [c.nutritionDone, c.hydrationDone, c.movementDone, c.scriptureDone].filter(Boolean).length;
+        }, 0);
+        
+        weeklyData.push({ week, points: weekPoints });
+      }
+      
+      return weeklyData;
+    }),
+
+    getCategoryConsistency: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.groupId) {
+        throw new Error("User must be assigned to a group");
+      }
+
+      const checkins = await db.getUserCheckins(ctx.user.id);
+      
+      const total = checkins.length;
+      if (total === 0) {
+        return [
+          { category: "Nutrition", percentage: 0 },
+          { category: "Hydration", percentage: 0 },
+          { category: "Movement", percentage: 0 },
+          { category: "Scripture", percentage: 0 },
+        ];
+      }
+      
+      const nutritionCount = checkins.filter(c => c.nutritionDone).length;
+      const hydrationCount = checkins.filter(c => c.hydrationDone).length;
+      const movementCount = checkins.filter(c => c.movementDone).length;
+      const scriptureCount = checkins.filter(c => c.scriptureDone).length;
+      
+      return [
+        { category: "Nutrition", percentage: Math.round((nutritionCount / total) * 100) },
+        { category: "Hydration", percentage: Math.round((hydrationCount / total) * 100) },
+        { category: "Movement", percentage: Math.round((movementCount / total) * 100) },
+        { category: "Scripture", percentage: Math.round((scriptureCount / total) * 100) },
+      ];
+    }),
   }),
 
   // Weekly Attendance
