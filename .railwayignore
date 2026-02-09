@@ -1,0 +1,15 @@
+node_modules
+.expo
+.expo-shared
+dist-web
+.netlify
+*.log
+.DS_Store
+.env.local
+.vscode
+.idea
+coverage
+*.tsbuildinfo
+android
+ios
+.git
