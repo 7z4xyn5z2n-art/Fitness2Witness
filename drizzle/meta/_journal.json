@@ -15,6 +15,13 @@
       "when": 1770608721936,
       "tag": "0001_regular_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1770612614844,
+      "tag": "0002_warm_legion",
+      "breakpoints": true
     }
   ]
 }

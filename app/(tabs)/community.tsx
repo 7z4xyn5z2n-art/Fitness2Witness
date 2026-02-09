@@ -36,7 +36,10 @@ export default function CommunityScreen() {
             data={posts}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
-              <View className="bg-surface rounded-2xl p-4 mb-3 border border-border">
+              <TouchableOpacity
+                onPress={() => router.push(`/post/${item.id}` as any)}
+                className="bg-surface rounded-2xl p-4 mb-3 border border-border active:opacity-80"
+              >
                 {/* Post Header */}
                 <View className="flex-row items-center mb-3">
                   <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mr-3">
@@ -76,7 +79,12 @@ export default function CommunityScreen() {
                     <Text className="text-muted">🎥 Video</Text>
                   </View>
                 )}
-              </View>
+
+                {/* Comment Count */}
+                <View className="mt-2 pt-2 border-t border-border">
+                  <Text className="text-xs text-muted">💬 Tap to view and comment</Text>
+                </View>
+              </TouchableOpacity>
             )}
             ListEmptyComponent={
               <View className="items-center justify-center py-12">

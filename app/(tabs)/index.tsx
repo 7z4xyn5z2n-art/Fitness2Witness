@@ -104,6 +104,21 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Body Metrics */}
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }
+              router.push("/body-metrics" as any);
+            }}
+            className="bg-secondary px-6 py-4 rounded-full active:opacity-80 border-2 border-secondary/30"
+          >
+            <Text className="text-background text-center font-semibold text-lg">
+              📊 Track Body Metrics
+            </Text>
+          </TouchableOpacity>
+
           {/* Breakdown Card */}
           <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
             <Text className="text-lg font-semibold text-foreground mb-4">This Week Breakdown</Text>
@@ -124,6 +139,23 @@ export default function DashboardScreen() {
                 <Text className="text-sm font-semibold text-foreground">
                   {metrics?.thisWeekAdjustments ? (metrics.thisWeekAdjustments > 0 ? "+" : "") + metrics.thisWeekAdjustments : 0}
                 </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Progression Summary */}
+          <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
+            <Text className="text-lg font-semibold text-foreground mb-4">📈 Your Progress</Text>
+            <View className="gap-3">
+              <View className="bg-primary/10 rounded-xl p-4">
+                <Text className="text-xs text-muted mb-1">This Week</Text>
+                <Text className="text-2xl font-bold text-primary">{metrics?.thisWeekTotal || 0} pts</Text>
+                <Text className="text-xs text-muted mt-1">out of 38 possible</Text>
+              </View>
+              <View className="bg-secondary/10 rounded-xl p-4">
+                <Text className="text-xs text-muted mb-1">Overall Challenge</Text>
+                <Text className="text-2xl font-bold text-secondary">{metrics?.totalPoints || 0} pts</Text>
+                <Text className="text-xs text-muted mt-1">out of 456 possible</Text>
               </View>
             </View>
           </View>

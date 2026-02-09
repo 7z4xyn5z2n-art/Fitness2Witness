@@ -239,6 +239,17 @@ export const appRouter = router({
       return postsWithUsers;
     }),
 
+    getPostById: protectedProcedure.input(z.object({ postId: z.number() })).query(async ({ input }) => {
+      const post = await db.getPostById(input.postId);
+      if (!post) return null;
+
+      const author = await db.getUserById(post.userId);
+      return {
+        ...post,
+        authorName: author?.name || "Unknown",
+      };
+    }),
+
     createPost: protectedProcedure
       .input(
         z.object({
@@ -619,6 +630,93 @@ export const appRouter = router({
       );
 
       return adjustmentsWithUsers;
+    }),
+  }),
+
+  // Body Metrics
+  bodyMetrics: router({
+    getMyMetrics: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserBodyMetrics(ctx.user.id);
+    }),
+
+    getMetricsByDateRange: protectedProcedure
+      .input(
+        z.object({
+          startDate: z.string(),
+          endDate: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        return db.getBodyMetricsByDateRange(ctx.user.id, new Date(input.startDate), new Date(input.endDate));
+      }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          date: z.string(),
+          weight: z.number().optional(),
+          bodyFatPercent: z.number().optional(),
+          muscleMass: z.number().optional(),
+          visceralFat: z.number().optional(),
+          bmr: z.number().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || !user.groupId) {
+          throw new Error("User must be assigned to a group");
+        }
+
+        const activeChallenges = await db.getActiveChallenges();
+        if (activeChallenges.length === 0) {
+          throw new Error("No active challenge found");
+        }
+
+        const metricId = await db.createBodyMetric({
+          userId: ctx.user.id,
+          groupId: user.groupId,
+          challengeId: activeChallenges[0].id,
+          date: new Date(input.date),
+          weight: input.weight,
+          bodyFatPercent: input.bodyFatPercent,
+          muscleMass: input.muscleMass,
+          visceralFat: input.visceralFat,
+          bmr: input.bmr,
+          notes: input.notes,
+        });
+
+        return { id: metricId, success: true };
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          weight: z.number().optional(),
+          bodyFatPercent: z.number().optional(),
+          muscleMass: z.number().optional(),
+          visceralFat: z.number().optional(),
+          bmr: z.number().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await db.updateBodyMetric(input.id, {
+          weight: input.weight,
+          bodyFatPercent: input.bodyFatPercent,
+          muscleMass: input.muscleMass,
+          visceralFat: input.visceralFat,
+          bmr: input.bmr,
+          notes: input.notes,
+        });
+
+        return { success: true };
+      }),
+
+    delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteBodyMetric(input.id);
+      return { success: true };
     }),
   }),
 });

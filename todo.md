@@ -150,3 +150,15 @@
 - [ ] Track body composition metrics (weight, body fat %, muscle mass)
 - [ ] Create week-over-week body composition charts
 - [ ] Create month-over-month body composition charts
+
+## New Features (Current Priority)
+- [x] Create body metrics database table
+- [x] Add body metrics API routes (create, get history)
+- [x] Build body metrics tracking screen
+- [x] Add weekly body metrics entry form (weight, body fat %, muscle mass)
+- [ ] Create body composition progress charts
+- [x] Add progression charts to dashboard (daily check-in trends)
+- [ ] Add weekly totals chart to dashboard
+- [x] Implement post commenting API
+- [x] Add comment UI to community posts
+- [x] Add comment input and display

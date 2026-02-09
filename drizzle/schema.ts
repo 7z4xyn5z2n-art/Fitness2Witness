@@ -1,4 +1,4 @@
-import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, float, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -146,3 +146,23 @@ export const groupChatMessages = mysqlTable("groupChatMessages", {
 
 export type GroupChatMessage = typeof groupChatMessages.$inferSelect;
 export type InsertGroupChatMessage = typeof groupChatMessages.$inferInsert;
+
+// Body metrics table for tracking weight, body fat %, muscle mass, etc.
+export const bodyMetrics = mysqlTable("bodyMetrics", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  groupId: int("groupId").notNull(),
+  challengeId: int("challengeId").notNull(),
+  date: timestamp("date").notNull(),
+  weight: float("weight"), // e.g., 185.5 lbs
+  bodyFatPercent: float("bodyFatPercent"), // e.g., 18.5%
+  muscleMass: float("muscleMass"), // e.g., 145.2 lbs
+  visceralFat: int("visceralFat"), // e.g., 8
+  bmr: int("bmr"), // Basal Metabolic Rate, e.g., 1850
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BodyMetric = typeof bodyMetrics.$inferSelect;
+export type InsertBodyMetric = typeof bodyMetrics.$inferInsert;

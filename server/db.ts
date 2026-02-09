@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
+  bodyMetrics,
   challenges,
   communityPosts,
   dailyCheckins,
@@ -10,11 +11,13 @@ import {
   postComments,
   users,
   weeklyAttendance,
+  type BodyMetric,
   type Challenge,
   type CommunityPost,
   type DailyCheckin,
   type Group,
   type GroupChatMessage,
+  type InsertBodyMetric,
   type InsertChallenge,
   type InsertCommunityPost,
   type InsertDailyCheckin,
@@ -573,4 +576,48 @@ export function getWeekNumber(challengeStartDate: Date, currentDate: Date): numb
   const weekNumber = Math.floor(diffDays / 7) + 1;
 
   return Math.max(1, Math.min(12, weekNumber));
+}
+
+// ============================================================================
+// Body Metrics
+// ============================================================================
+
+export async function getUserBodyMetrics(userId: number, limit = 50): Promise<BodyMetric[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(bodyMetrics).where(eq(bodyMetrics.userId, userId)).orderBy(desc(bodyMetrics.date)).limit(limit);
+}
+
+export async function getBodyMetricsByDateRange(userId: number, startDate: Date, endDate: Date): Promise<BodyMetric[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(bodyMetrics)
+    .where(and(eq(bodyMetrics.userId, userId), gte(bodyMetrics.date, startDate), lte(bodyMetrics.date, endDate)))
+    .orderBy(bodyMetrics.date);
+}
+
+export async function createBodyMetric(data: InsertBodyMetric): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(bodyMetrics).values(data);
+  return result[0].insertId;
+}
+
+export async function updateBodyMetric(metricId: number, data: Partial<InsertBodyMetric>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(bodyMetrics).set(data).where(eq(bodyMetrics.id, metricId));
+}
+
+export async function deleteBodyMetric(metricId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(bodyMetrics).where(eq(bodyMetrics.id, metricId));
 }
