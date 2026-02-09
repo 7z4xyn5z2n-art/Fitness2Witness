@@ -1,54 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1763372440610,
-      "tag": "0000_elite_eternals",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1770608721936,
-      "tag": "0001_regular_scarlet_spider",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1770612614844,
-      "tag": "0002_warm_legion",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1770613506097,
-      "tag": "0003_curious_black_cat",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1770644147422,
-      "tag": "0004_simple_tana_nile",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1770651043678,
-      "tag": "0005_silent_ezekiel",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "5",
-      "when": 1770651748575,
-      "tag": "0006_quick_scarecrow",
+      "version": "7",
+      "when": 1770680835850,
+      "tag": "0000_foamy_major_mapleleaf",
       "breakpoints": true
     }
   ]

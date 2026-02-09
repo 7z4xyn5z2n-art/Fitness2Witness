@@ -3,7 +3,7 @@
  * Run with: tsx scripts/seed-data.ts
  */
 
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { challenges, groups, users } from "../drizzle/schema";
 
 async function seed() {
