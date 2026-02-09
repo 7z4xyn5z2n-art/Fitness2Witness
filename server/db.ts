@@ -959,3 +959,62 @@ export async function deleteChallengeComment(commentId: number, userId: number):
   await db.delete(challengeComments).where(eq(challengeComments.id, commentId));
   return true;
 }
+
+// ============================================================================
+// Admin Calendar Functions
+// ============================================================================
+
+export async function getCheckInsByDate(date: Date): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const checkIns = await db
+    .select()
+    .from(dailyCheckins)
+    .where(and(gte(dailyCheckins.date, startOfDay), lte(dailyCheckins.date, endOfDay)));
+
+  // Fetch user details for each check-in
+  const checkInsWithUsers = [];
+  for (const checkIn of checkIns) {
+    const user = await getUserById(checkIn.userId);
+    checkInsWithUsers.push({
+      ...checkIn,
+      user: {
+        id: user?.id,
+        name: user?.name || "Unknown",
+        email: user?.email,
+      },
+    });
+  }
+
+  return checkInsWithUsers;
+}
+
+export async function getAttendanceByDate(date: Date): Promise<WeeklyAttendance[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const startOfWeek = new Date(date);
+  startOfWeek.setHours(0, 0, 0, 0);
+  const dayOfWeek = startOfWeek.getDay();
+  const diff = startOfWeek.getDate() - dayOfWeek;
+  startOfWeek.setDate(diff);
+
+  return db
+    .select()
+    .from(weeklyAttendance)
+    .where(eq(weeklyAttendance.weekStartDate, startOfWeek));
+}
+
+export async function createCheckIn(data: InsertDailyCheckin): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(dailyCheckins).values(data);
+  return result[0].insertId;
+}

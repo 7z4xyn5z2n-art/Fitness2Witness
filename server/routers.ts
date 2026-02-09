@@ -734,6 +734,113 @@ export const appRouter = router({
 
       return adjustmentsWithUsers;
     }),
+
+    getCheckInsByDate: protectedProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can access this");
+        }
+
+        return db.getCheckInsByDate(new Date(input.date));
+      }),
+
+    getAttendanceByDate: protectedProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can access this");
+        }
+
+        return db.getAttendanceByDate(new Date(input.date));
+      }),
+
+    addUserCheckIn: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+          date: z.string(),
+          nutritionDone: z.boolean(),
+          hydrationDone: z.boolean(),
+          movementDone: z.boolean(),
+          scriptureDone: z.boolean(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can add check-ins");
+        }
+
+        const targetUser = await db.getUserById(parseInt(input.userId));
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("User must be assigned to a group");
+        }
+
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+
+        await db.createCheckIn({
+          date: new Date(input.date),
+          userId: parseInt(input.userId),
+          groupId: targetUser.groupId,
+          challengeId: group.challengeId,
+          nutritionDone: input.nutritionDone,
+          hydrationDone: input.hydrationDone,
+          movementDone: input.movementDone,
+          scriptureDone: input.scriptureDone,
+          notes: input.notes,
+        });
+
+        return { success: true };
+      }),
+
+    addUserAttendance: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+          date: z.string(),
+          attended: z.boolean(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can add attendance");
+        }
+
+        const targetUser = await db.getUserById(parseInt(input.userId));
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("User must be assigned to a group");
+        }
+
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+
+        const date = new Date(input.date);
+        const startOfWeek = new Date(date);
+        startOfWeek.setHours(0, 0, 0, 0);
+        const dayOfWeek = startOfWeek.getDay();
+        const diff = startOfWeek.getDate() - dayOfWeek;
+        startOfWeek.setDate(diff);
+
+        await db.createWeeklyAttendance({
+          weekStartDate: startOfWeek,
+          userId: parseInt(input.userId),
+          groupId: targetUser.groupId,
+          challengeId: group.challengeId,
+          attendedWednesday: input.attended,
+        });
+
+        return { success: true };
+      }),
   }),
 
   // Body Metrics

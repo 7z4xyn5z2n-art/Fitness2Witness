@@ -6,6 +6,7 @@ import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { BadgeNotification } from "@/components/badge-notification";
 
 export default function CheckinScreen() {
@@ -22,6 +23,8 @@ export default function CheckinScreen() {
   const [workoutLog, setWorkoutLog] = useState("");
   const [showBadgeNotification, setShowBadgeNotification] = useState(false);
   const [earnedBadge, setEarnedBadge] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const checkBadgesMutation = trpc.badges.checkAndAward.useMutation();
 
@@ -118,7 +121,7 @@ export default function CheckinScreen() {
 
   const handleSubmit = () => {
     submitMutation.mutate({
-      date: new Date().toISOString(),
+      date: selectedDate.toISOString(),
       nutritionDone,
       hydrationDone,
       movementDone,
@@ -139,7 +142,27 @@ export default function CheckinScreen() {
               <Text className="text-primary text-base">← Back</Text>
             </TouchableOpacity>
             <Text className="text-3xl font-bold text-foreground">Daily Check-In</Text>
-            <Text className="text-base text-muted mt-2">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</Text>
+            <TouchableOpacity 
+              onPress={() => setShowDatePicker(true)}
+              className="mt-2 flex-row items-center gap-2"
+            >
+              <Text className="text-base text-muted">
+                {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              </Text>
+              <Text className="text-primary text-sm">(tap to change)</Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display="default"
+                maximumDate={new Date()}
+                onChange={(event, date) => {
+                  setShowDatePicker(Platform.OS === "ios");
+                  if (date) setSelectedDate(date);
+                }}
+              />
+            )}
           </View>
 
           {/* Categories */}

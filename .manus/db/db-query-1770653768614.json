@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, name, email, role, groupId FROM users WHERE email = 'meridabiz@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 49jrixUryxHWuBR.root --database mxmNzPwB3sbD83nhfzUWBi --execute SELECT id, name, email, role, groupId FROM users WHERE email = 'meridabiz@gmail.com';",
+  "rows": [
+    {
+      "id": "15",
+      "name": "Quay Merida",
+      "email": "meridabiz@gmail.com",
+      "role": "admin",
+      "groupId": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tgroupId\n15\tQuay Merida\tmeridabiz@gmail.com\tadmin\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 126
+}

@@ -1,0 +1,18 @@
+{
+  "query": "SELECT u.id, u.name, u.email, u.groupId, g.groupName, g.challengeId \nFROM users u \nLEFT JOIN `groups` g ON u.groupId = g.id \nWHERE u.email = 'meridabiz@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 49jrixUryxHWuBR.root --database mxmNzPwB3sbD83nhfzUWBi --execute SELECT u.id, u.name, u.email, u.groupId, g.groupName, g.challengeId \nFROM users u \nLEFT JOIN `groups` g ON u.groupId = g.id \nWHERE u.email = 'meridabiz@gmail.com';",
+  "rows": [
+    {
+      "id": "15",
+      "name": "Quay Merida",
+      "email": "meridabiz@gmail.com",
+      "groupId": "NULL",
+      "groupName": "NULL",
+      "challengeId": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tgroupId\tgroupName\tchallengeId\n15\tQuay Merida\tmeridabiz@gmail.com\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 51
+}

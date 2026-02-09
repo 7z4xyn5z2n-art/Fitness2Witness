@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, ActivityIndicator, RefreshControl } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
@@ -41,6 +41,14 @@ export default function AnalyticsScreen() {
         <View className="mb-4">
           <Text className="text-3xl font-bold text-foreground">Analytics</Text>
           <Text className="text-base text-muted mt-1">Group insights and member tracking</Text>
+          {user?.role === "admin" && (
+            <TouchableOpacity
+              onPress={() => router.push("/admin-calendar")}
+              className="mt-3 bg-primary px-4 py-3 rounded-xl"
+            >
+              <Text className="text-background font-semibold text-center">📅 Admin Calendar</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Participation Overview */}

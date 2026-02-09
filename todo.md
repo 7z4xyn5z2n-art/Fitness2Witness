@@ -253,3 +253,22 @@
 - [x] Display comments list with user names and timestamps
 - [x] Add delete comment functionality (author or admin only)
 - [x] Implement real-time comment refresh
+
+## Bug Fixes
+- [ ] Fix check-in submission not updating/calculating points
+- [ ] Verify point calculation logic is working correctly
+- [ ] Ensure dashboard metrics refresh after check-in
+
+## OAuth Authentication Fix
+- [ ] Configure OAuth to work with Expo Go redirect scheme
+- [ ] Test sign-in flow in Expo Go app
+- [ ] Verify users can successfully authenticate
+
+## Admin Calendar & Backlog Features
+- [x] Verify user has admin access
+- [x] Add user ability to log past/missed days (backlog check-ins)
+- [x] Create admin calendar view to see all user check-ins
+- [x] Add admin ability to edit/add user daily check-ins
+- [x] Add admin ability to edit/add weekly life group attendance
+- [x] Implement date picker for selecting past dates
+- [x] Add validation to prevent future date logging

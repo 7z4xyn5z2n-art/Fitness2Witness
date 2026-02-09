@@ -1,0 +1,16 @@
+{
+  "query": "SELECT g.id as groupId, g.groupName, g.challengeId, c.name as challengeName \nFROM `groups` g \nLEFT JOIN challenges c ON g.challengeId = c.id \nLIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 49jrixUryxHWuBR.root --database mxmNzPwB3sbD83nhfzUWBi --execute SELECT g.id as groupId, g.groupName, g.challengeId, c.name as challengeName \nFROM `groups` g \nLEFT JOIN challenges c ON g.challengeId = c.id \nLIMIT 1;",
+  "rows": [
+    {
+      "groupId": "1",
+      "groupName": "Pilot Group",
+      "challengeId": "1",
+      "challengeName": "Fitness2Witness – 12 Week Challenge"
+    }
+  ],
+  "messages": [],
+  "stdout": "groupId\tgroupName\tchallengeId\tchallengeName\n1\tPilot Group\t1\tFitness2Witness – 12 Week Challenge\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}
