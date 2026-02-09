@@ -168,3 +168,16 @@ export const bodyMetrics = mysqlTable("bodyMetrics", {
 
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
 export type InsertBodyMetric = typeof bodyMetrics.$inferInsert;
+
+// User badges table for achievement tracking
+export const userBadges = mysqlTable("userBadges", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  badgeType: varchar("badgeType", { length: 100 }).notNull(), // e.g., "7_day_streak", "perfect_week", "weight_loss_10"
+  badgeName: varchar("badgeName", { length: 255 }).notNull(), // e.g., "7-Day Streak"
+  badgeDescription: text("badgeDescription"),
+  earnedAt: timestamp("earnedAt").defaultNow().notNull(),
+});
+
+export type UserBadge = typeof userBadges.$inferSelect;
+export type InsertUserBadge = typeof userBadges.$inferInsert;

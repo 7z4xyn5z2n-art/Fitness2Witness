@@ -880,6 +880,16 @@ If a metric is not visible or cannot be determined, use null. Do not include any
         }
       }),
   }),
+
+  badges: router({
+    getMyBadges: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserBadges(ctx.user.id);
+    }),
+
+    checkAndAward: protectedProcedure.mutation(async ({ ctx }) => {
+      return db.checkAndAwardBadges(ctx.user.id);
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

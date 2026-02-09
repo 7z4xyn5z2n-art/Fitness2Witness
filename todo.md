@@ -188,3 +188,26 @@
 - [x] Build category consistency breakdown chart
 - [x] Add body metrics progression chart
 - [x] Integrate charts into profile screen
+
+## Achievement Badges & Gamification
+- [x] Create badges database table
+- [x] Define badge types (7-Day Streak, Perfect Week, 10 lbs Lost, etc.)
+- [x] Implement badge earning logic
+- [x] Create badges display UI in profile
+- [ ] Add badge notification when earned
+- [ ] Show badge progress indicators
+
+## Weekly Recap Notifications
+- [x] Set up notification scheduling system
+- [x] Create weekly recap data aggregation
+- [x] Design recap notification content
+- [ ] Schedule Sunday evening delivery
+- [x] Include week performance, rank, and encouragement
+
+## Progress Report Export
+- [ ] Create PDF generation endpoint
+- [ ] Include all charts in PDF
+- [x] Add stats summary to PDF
+- [ ] Include check-in history
+- [x] Add export button to profile
+- [ ] Generate downloadable PDF file

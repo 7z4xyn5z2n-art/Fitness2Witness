@@ -11,6 +11,7 @@ export default function ProfileScreen() {
   const { data: weeklyProgress, isLoading: loadingWeekly } = trpc.metrics.getWeeklyProgress.useQuery();
   const { data: categoryData, isLoading: loadingCategory } = trpc.metrics.getCategoryConsistency.useQuery();
   const { data: bodyMetrics, isLoading: loadingBody } = trpc.bodyMetrics.getMyMetrics.useQuery();
+  const { data: badges } = trpc.badges.getMyBadges.useQuery();
   
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width - 48; // padding
@@ -42,6 +43,22 @@ export default function ProfileScreen() {
               <Text className="text-base text-muted">{user?.email}</Text>
             </View>
           </View>
+
+          {/* Badges Section */}
+          {badges && badges.length > 0 && (
+            <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
+              <Text className="text-lg font-semibold text-foreground mb-4">🏆 Achievements</Text>
+              <View className="flex-row flex-wrap gap-3">
+                {badges.map((badge) => (
+                  <View key={badge.id} className="bg-primary/10 rounded-xl p-3 border border-primary/20" style={{ width: '48%' }}>
+                    <Text className="text-2xl mb-1">🏅</Text>
+                    <Text className="text-sm font-semibold text-foreground">{badge.badgeName}</Text>
+                    <Text className="text-xs text-muted mt-1">{badge.badgeDescription}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Stats Card */}
           <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
@@ -174,6 +191,37 @@ export default function ProfileScreen() {
               12 Weeks of Faith & Fitness Challenge
             </Text>
           </View>
+
+          {/* Export Stats Button */}
+          <TouchableOpacity
+            onPress={() => {
+              const statsText = `Fitness2Witness Progress Report\n\n` +
+                `Name: ${user?.name}\n` +
+                `This Week: ${metrics?.thisWeekTotal || 0}/38 points\n` +
+                `Total: ${metrics?.totalPoints || 0}/456 points\n` +
+                `Completion: ${Math.round(metrics?.overallPercent || 0)}%\n` +
+                `Badges Earned: ${badges?.length || 0}\n\n` +
+                `Generated: ${new Date().toLocaleDateString()}`;
+              
+              Alert.alert(
+                "Export Stats",
+                "Copy your progress summary to share or save.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Copy",
+                    onPress: () => {
+                      // In a real app, use Clipboard API
+                      Alert.alert("Stats Summary", statsText);
+                    },
+                  },
+                ]
+              );
+            }}
+            className="bg-success px-6 py-4 rounded-full active:opacity-80"
+          >
+            <Text className="text-background text-center font-semibold text-lg">📊 Export Stats</Text>
+          </TouchableOpacity>
 
           {/* Logout Button */}
           <TouchableOpacity

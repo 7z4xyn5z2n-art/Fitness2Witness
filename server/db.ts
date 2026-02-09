@@ -9,6 +9,7 @@ import {
   groups,
   pointAdjustments,
   postComments,
+  userBadges,
   users,
   weeklyAttendance,
   type BodyMetric,
@@ -26,8 +27,10 @@ import {
   type InsertPointAdjustment,
   type InsertPostComment,
   type InsertUser,
+  type InsertUserBadge,
   type InsertWeeklyAttendance,
   type PointAdjustment,
+  type UserBadge,
   type PostComment,
   type User,
   type WeeklyAttendance,
@@ -620,4 +623,138 @@ export async function deleteBodyMetric(metricId: number): Promise<void> {
   if (!db) throw new Error("Database not available");
 
   await db.delete(bodyMetrics).where(eq(bodyMetrics.id, metricId));
+}
+
+// ============================================================================
+// User Badges Functions
+// ============================================================================
+
+export async function getUserBadges(userId: number): Promise<UserBadge[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.select().from(userBadges).where(eq(userBadges.userId, userId)).orderBy(desc(userBadges.earnedAt));
+}
+
+export async function awardBadge(data: InsertUserBadge): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if user already has this badge
+  const existing = await db
+    .select()
+    .from(userBadges)
+    .where(and(eq(userBadges.userId, data.userId), eq(userBadges.badgeType, data.badgeType)));
+
+  if (existing.length > 0) {
+    return existing[0].id; // Already has badge
+  }
+
+  const result = await db.insert(userBadges).values(data);
+  return result[0].insertId;
+}
+
+export async function checkAndAwardBadges(userId: number): Promise<UserBadge[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const newBadges: UserBadge[] = [];
+
+  // Get user's check-ins
+  const checkins = await db.select().from(dailyCheckins).where(eq(dailyCheckins.userId, userId));
+
+  // Badge: First Check-in
+  if (checkins.length === 1) {
+    const badgeId = await awardBadge({
+      userId,
+      badgeType: "first_checkin",
+      badgeName: "First Step",
+      badgeDescription: "Completed your first daily check-in!",
+    });
+    const badge = await db.select().from(userBadges).where(eq(userBadges.id, badgeId));
+    if (badge.length > 0) newBadges.push(badge[0]);
+  }
+
+  // Badge: 7-Day Streak
+  const last7Days = checkins.slice(-7);
+  if (last7Days.length === 7) {
+    const badgeId = await awardBadge({
+      userId,
+      badgeType: "7_day_streak",
+      badgeName: "Week Warrior",
+      badgeDescription: "Checked in for 7 days straight!",
+    });
+    const badge = await db.select().from(userBadges).where(eq(userBadges.id, badgeId));
+    if (badge.length > 0) newBadges.push(badge[0]);
+  }
+
+  // Badge: Perfect Week (38/38 points)
+  const weeklyScores = await db
+    .select()
+    .from(dailyCheckins)
+    .where(eq(dailyCheckins.userId, userId))
+    .orderBy(desc(dailyCheckins.date));
+
+  // Check if any week had 38 points (4 points/day * 7 days + 10 attendance)
+  // Simplified: check if user has 7 consecutive days with 4 points each
+  let consecutivePerfectDays = 0;
+  for (const checkin of weeklyScores) {
+    const points =
+      (checkin.nutritionDone ? 1 : 0) +
+      (checkin.hydrationDone ? 1 : 0) +
+      (checkin.movementDone ? 1 : 0) +
+      (checkin.scriptureDone ? 1 : 0);
+    if (points === 4) {
+      consecutivePerfectDays++;
+      if (consecutivePerfectDays === 7) {
+        const badgeId = await awardBadge({
+          userId,
+          badgeType: "perfect_week",
+          badgeName: "Perfect Week",
+          badgeDescription: "Scored 28/28 daily points in one week!",
+        });
+        const badge = await db.select().from(userBadges).where(eq(userBadges.id, badgeId));
+        if (badge.length > 0) newBadges.push(badge[0]);
+        break;
+      }
+    } else {
+      consecutivePerfectDays = 0;
+    }
+  }
+
+  // Badge: 30-Day Milestone
+  if (checkins.length >= 30) {
+    const badgeId = await awardBadge({
+      userId,
+      badgeType: "30_day_milestone",
+      badgeName: "30-Day Champion",
+      badgeDescription: "Completed 30 days of check-ins!",
+    });
+    const badge = await db.select().from(userBadges).where(eq(userBadges.id, badgeId));
+    if (badge.length > 0) newBadges.push(badge[0]);
+  }
+
+  // Badge: Weight Loss (10 lbs)
+  const metrics = await db
+    .select()
+    .from(bodyMetrics)
+    .where(eq(bodyMetrics.userId, userId))
+    .orderBy(bodyMetrics.date);
+
+  if (metrics.length >= 2) {
+    const firstWeight = metrics[0].weight;
+    const latestWeight = metrics[metrics.length - 1].weight;
+    if (firstWeight && latestWeight && firstWeight - latestWeight >= 10) {
+      const badgeId = await awardBadge({
+        userId,
+        badgeType: "weight_loss_10",
+        badgeName: "10 Pounds Down",
+        badgeDescription: "Lost 10 pounds or more!",
+      });
+      const badge = await db.select().from(userBadges).where(eq(userBadges.id, badgeId));
+      if (badge.length > 0) newBadges.push(badge[0]);
+    }
+  }
+
+  return newBadges;
 }

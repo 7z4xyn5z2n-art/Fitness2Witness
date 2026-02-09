@@ -45,6 +45,22 @@ export default function DashboardScreen() {
             <Text className="text-base text-muted">Track your faith & fitness journey</Text>
           </View>
 
+          {/* Weekly Summary Card */}
+          <View className="bg-primary/10 rounded-2xl p-4 border border-primary/20">
+            <Text className="text-sm font-semibold text-foreground mb-2">📊 This Week's Summary</Text>
+            <View className="gap-1">
+              <Text className="text-xs text-muted">Points: {metrics?.thisWeekTotal || 0}/38 ({Math.round(metrics?.weeklyPercent || 0)}%)</Text>
+              <Text className="text-xs text-muted">Daily Avg: {metrics?.thisWeekTotal ? (metrics.thisWeekTotal / 7).toFixed(1) : '0.0'} points</Text>
+              <Text className="text-xs text-muted">
+                {metrics?.weeklyPercent && metrics.weeklyPercent >= 80
+                  ? "🔥 Great week! Keep it up!"
+                  : metrics?.weeklyPercent && metrics.weeklyPercent >= 50
+                  ? "💪 Good progress! Push harder!"
+                  : "📈 Let's finish strong this week!"}
+              </Text>
+            </View>
+          </View>
+
           {/* Points Summary Card */}
           <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border">
             <Text className="text-lg font-semibold text-foreground mb-4">Your Progress</Text>

@@ -20,10 +20,22 @@ export default function CheckinScreen() {
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [workoutLog, setWorkoutLog] = useState("");
 
+  const checkBadgesMutation = trpc.badges.checkAndAward.useMutation();
+
   const submitMutation = trpc.checkins.submit.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       utils.checkins.getTodayCheckin.invalidate();
       utils.metrics.getMyMetrics.invalidate();
+      
+      // Check for new badges
+      try {
+        const newBadges = await checkBadgesMutation.mutateAsync();
+        if (newBadges && newBadges.length > 0) {
+          utils.badges.getMyBadges.invalidate();
+        }
+      } catch (error) {
+        // Silently fail badge check
+      }
 
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
