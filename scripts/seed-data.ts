@@ -4,10 +4,15 @@
  */
 
 import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { challenges, groups, users } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 async function seed() {
-  const db = drizzle(process.env.DATABASE_URL!);
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL!,
+  });
+  const db = drizzle(pool);
 
   console.log("🌱 Seeding database...");
 
@@ -17,22 +22,19 @@ async function seed() {
     startDate: new Date("2026-02-08"),
     endDate: new Date("2026-05-02"), // 12 weeks later
     active: true,
-  });
+  }).returning();
 
-  const challengeId = Number(challengeResult[0].insertId);
+  const challengeId = challengeResult[0].id;
   console.log(`✅ Created challenge (ID: ${challengeId})`);
 
   // Create pilot group
   const groupResult = await db.insert(groups).values({
     groupName: "Pilot Group",
     challengeId,
-  });
+  }).returning();
 
-  const groupId = Number(groupResult[0].insertId);
+  const groupId = groupResult[0].id;
   console.log(`✅ Created group (ID: ${groupId})`);
-
-  // Update group with leader (we'll assign the first user as leader)
-  // This will be updated after creating users
 
   // Create test users
   const testUsers = [
@@ -58,9 +60,9 @@ async function seed() {
       loginMethod: "test",
       role: user.role,
       groupId,
-    });
+    }).returning();
 
-    const userId = Number(userResult[0].insertId);
+    const userId = userResult[0].id;
     console.log(`✅ Created user: ${user.name} (ID: ${userId}, Role: ${user.role})`);
 
     if (user.role === "leader" && !leaderId) {
@@ -70,11 +72,12 @@ async function seed() {
 
   // Update group with leader
   if (leaderId) {
-    await db.update(groups).set({ leaderUserId: leaderId }).where({ id: groupId } as any);
+    await db.update(groups).set({ leaderUserId: leaderId }).where(eq(groups.id, groupId));
     console.log(`✅ Assigned leader (ID: ${leaderId}) to group`);
   }
 
   console.log("🎉 Seeding complete!");
+  await pool.end();
   process.exit(0);
 }
 

@@ -304,7 +304,7 @@ export const appRouter = router({
           const existing = await db.getWeeklyAttendance(userId, weekStart);
 
           if (existing) {
-            await db.updateWeeklyAttendance(existing.id, { attendedWednesday: true });
+            await db.updateWeeklyAttendance(userId, weekStart, true);
           } else {
             await db.createWeeklyAttendance({
               weekStartDate: weekStart,
