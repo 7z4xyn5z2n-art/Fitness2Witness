@@ -718,6 +718,64 @@ export const appRouter = router({
       await db.deleteBodyMetric(input.id);
       return { success: true };
     }),
+
+    analyzeInBodyScan: protectedProcedure
+      .input(z.object({ imageBase64: z.string() }))
+      .mutation(async ({ input }) => {
+        // Use AI to analyze InBody scan image
+        const { invokeLLM } = await import("./_core/llm.js");
+
+        const prompt = `You are analyzing an InBody body composition analysis scan. Extract the following metrics if visible:
+- Weight (in pounds or kg)
+- Body Fat Percentage (%)
+- Muscle Mass (in pounds or kg)
+- Visceral Fat Level
+- BMR (Basal Metabolic Rate)
+
+Respond ONLY with a JSON object in this exact format:
+{
+  "weight": number or null,
+  "bodyFatPercent": number or null,
+  "muscleMass": number or null,
+  "visceralFat": number or null,
+  "bmr": number or null
+}
+
+If a metric is not visible or cannot be determined, use null. Do not include any other text.`;
+
+        const result = await invokeLLM({
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${input.imageBase64}`,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        const messageContent = result.choices[0]?.message?.content;
+        const responseText = typeof messageContent === "string" ? messageContent : "";
+
+        try {
+          const parsed = JSON.parse(responseText);
+          return {
+            weight: parsed.weight,
+            bodyFatPercent: parsed.bodyFatPercent,
+            muscleMass: parsed.muscleMass,
+            visceralFat: parsed.visceralFat,
+            bmr: parsed.bmr,
+          };
+        } catch (error) {
+          throw new Error("Failed to parse InBody scan results. Please try again or enter manually.");
+        }
+      }),
   }),
 });
 

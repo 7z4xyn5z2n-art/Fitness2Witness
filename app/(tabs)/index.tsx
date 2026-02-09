@@ -1,4 +1,5 @@
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View, Platform } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View, Platform, RefreshControl } from "react-native";
+import * as React from "react";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
@@ -9,8 +10,15 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const isAdminOrLeader = user?.role === "admin" || user?.role === "leader";
-  const { data: metrics, isLoading: metricsLoading } = trpc.metrics.getMyMetrics.useQuery();
-  const { data: todayCheckin, isLoading: checkinLoading } = trpc.checkins.getTodayCheckin.useQuery();
+  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = trpc.metrics.getMyMetrics.useQuery();
+  const { data: todayCheckin, isLoading: checkinLoading, refetch: refetchCheckin } = trpc.checkins.getTodayCheckin.useQuery();
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchMetrics(), refetchCheckin()]);
+    setRefreshing(false);
+  };
 
   const isLoading = metricsLoading || checkinLoading;
 
@@ -26,7 +34,10 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer className="p-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View className="flex-1 gap-6">
           {/* Header */}
           <View className="items-center gap-2">

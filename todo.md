@@ -162,3 +162,13 @@
 - [x] Implement post commenting API
 - [x] Add comment UI to community posts
 - [x] Add comment input and display
+
+## Latest Feature Requests
+- [x] Add InBody scan photo upload to body metrics screen
+- [x] Implement AI analysis to extract metrics from InBody scan photos
+- [x] Auto-populate body metrics form with AI-extracted data
+- [ ] Create line charts for body composition trends (12-week view)
+- [ ] Add weekly check-in pattern charts to dashboard
+- [x] Implement pull-to-refresh on dashboard
+- [x] Implement pull-to-refresh on leaderboard
+- [x] Implement pull-to-refresh on community feed

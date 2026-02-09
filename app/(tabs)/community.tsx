@@ -1,11 +1,19 @@
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
+import { useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
 
 export default function CommunityScreen() {
   const router = useRouter();
-  const { data: posts, isLoading } = trpc.community.getPosts.useQuery();
+  const { data: posts, isLoading, refetch } = trpc.community.getPosts.useQuery();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   return (
     <ScreenContainer className="p-6">
@@ -35,6 +43,7 @@ export default function CommunityScreen() {
           <FlatList
             data={posts}
             keyExtractor={(item) => item.id.toString()}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() => router.push(`/post/${item.id}` as any)}

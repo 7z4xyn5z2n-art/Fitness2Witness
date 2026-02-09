@@ -14,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 
 export default function BodyMetricsScreen() {
   const router = useRouter();
@@ -25,6 +26,25 @@ export default function BodyMetricsScreen() {
   const [bodyFat, setBodyFat] = useState("");
   const [muscleMass, setMuscleMass] = useState("");
   const [notes, setNotes] = useState("");
+  const [inBodyPhoto, setInBodyPhoto] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const analyzeInBodyMutation = trpc.bodyMetrics.analyzeInBodyScan.useMutation({
+    onSuccess: (data: any) => {
+      if (data.weight) setWeight(data.weight.toString());
+      if (data.bodyFatPercent) setBodyFat(data.bodyFatPercent.toString());
+      if (data.muscleMass) setMuscleMass(data.muscleMass.toString());
+      setIsAnalyzing(false);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Alert.alert("Success", "InBody scan analyzed! Review the extracted metrics and save.");
+    },
+    onError: (error: any) => {
+      setIsAnalyzing(false);
+      Alert.alert("Error", error.message || "Failed to analyze InBody scan");
+    },
+  });
 
   const createMetricMutation = trpc.bodyMetrics.create.useMutation({
     onSuccess: () => {
@@ -37,6 +57,7 @@ export default function BodyMetricsScreen() {
       setBodyFat("");
       setMuscleMass("");
       setNotes("");
+      setInBodyPhoto(null);
     },
     onError: (error) => {
       Alert.alert("Error", error.message);
@@ -58,6 +79,44 @@ export default function BodyMetricsScreen() {
     });
   };
 
+  const handlePickInBodyPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Please allow access to your photo library.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images" as any,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setInBodyPhoto(result.assets[0].uri);
+    }
+  };
+
+  const handleAnalyzeInBodyScan = async () => {
+    if (!inBodyPhoto) {
+      Alert.alert("No Photo", "Please upload an InBody scan photo first.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    // Convert image to base64
+    const response = await fetch(inBodyPhoto);
+    const blob = await response.blob();
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      const base64Data = base64.split(",")[1];
+      analyzeInBodyMutation.mutate({ imageBase64: base64Data });
+    };
+  };
+
   return (
     <ScreenContainer className="p-6">
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
@@ -70,6 +129,49 @@ export default function BodyMetricsScreen() {
               </TouchableOpacity>
               <Text className="text-3xl font-bold text-foreground">Body Metrics</Text>
               <Text className="text-base text-muted mt-2">Track your body composition progress</Text>
+            </View>
+
+            {/* InBody Scan Upload */}
+            <View className="bg-surface rounded-2xl p-6 border border-border">
+              <Text className="text-lg font-semibold text-foreground mb-4">📸 Upload InBody Scan</Text>
+              <Text className="text-sm text-muted mb-4">
+                Take a photo of your InBody analysis results and we'll automatically extract your metrics!
+              </Text>
+
+              {inBodyPhoto ? (
+                <View className="mb-4">
+                  <View className="bg-border rounded-xl h-48 items-center justify-center mb-3">
+                    <Text className="text-muted">🖼️ InBody Scan Photo</Text>
+                  </View>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity
+                      onPress={handleAnalyzeInBodyScan}
+                      disabled={isAnalyzing}
+                      className="flex-1 bg-primary px-4 py-3 rounded-full active:opacity-80"
+                    >
+                      {isAnalyzing ? (
+                        <ActivityIndicator color="#ffffff" />
+                      ) : (
+                        <Text className="text-background text-center font-semibold">Analyze with AI</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setInBodyPhoto(null)}
+                      className="bg-error px-4 py-3 rounded-full active:opacity-80"
+                    >
+                      <Text className="text-background text-center font-semibold">Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={handlePickInBodyPhoto}
+                  className="bg-primary/10 border-2 border-dashed border-primary rounded-xl p-6 items-center active:opacity-80"
+                >
+                  <Text className="text-4xl mb-2">📷</Text>
+                  <Text className="text-primary font-semibold">Upload InBody Scan Photo</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Entry Form */}
@@ -184,3 +286,4 @@ export default function BodyMetricsScreen() {
     </ScreenContainer>
   );
 }
+

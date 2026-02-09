@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
@@ -8,7 +8,14 @@ type Period = "week" | "overall";
 export default function LeaderboardScreen() {
   const [period, setPeriod] = useState<Period>("week");
 
-  const { data: leaderboard, isLoading } = trpc.metrics.getGroupLeaderboard.useQuery({ period });
+  const { data: leaderboard, isLoading, refetch } = trpc.metrics.getGroupLeaderboard.useQuery({ period });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   return (
     <ScreenContainer className="p-6">
@@ -48,6 +55,7 @@ export default function LeaderboardScreen() {
           <FlatList
             data={leaderboard}
             keyExtractor={(item, index) => `${item.userId}-${index}`}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             renderItem={({ item, index }) => {
               const percentage = (item.points / item.maxPoints) * 100;
               const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
