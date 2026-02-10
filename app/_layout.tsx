@@ -29,6 +29,30 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+// Separate component that uses useAuth (must be inside tRPC provider)
+function AuthenticatedApp() {
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="oauth/callback" />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
@@ -81,24 +105,11 @@ export default function RootLayout() {
     };
   }, [initialInsets, initialFrame]);
 
-  const { user, loading: authLoading } = useAuth();
-
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          {authLoading ? (
-            <View className="flex-1 items-center justify-center bg-background">
-              <ActivityIndicator size="large" />
-            </View>
-          ) : !user ? (
-            <LoginScreen />
-          ) : (
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="oauth/callback" />
-            </Stack>
-          )}
+          <AuthenticatedApp />
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>
