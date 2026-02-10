@@ -328,7 +328,10 @@
 - [x] Clear existing test users from database
 - [x] Add phoneNumber column directly to database
 - [x] Remove db:push from Railway start command
-- [x] Delete all SQL migration files and meta snapshots from drizzle directory
+- [x] Delete all SQL migration files and meta snapshots from drizzle directory (AGAIN)
+- [x] Connect to Railway database and add phoneNumber column manually
+- [x] Create __drizzle_migrations table and mark migration as complete
+- [ ] Push changes to GitHub and redeploy Railway
 - [ ] Verify Railway deployment succeeds
 - [ ] Test registration with phone number
 
@@ -344,3 +347,9 @@
 - [x] Set correct publish directory
 - [ ] Push to GitHub to trigger Netlify rebuild
 - [ ] Verify website loads on fitness2witness.netlify.app
+
+## Fix tRPC Context Error on Netlify (CRITICAL)
+- [ ] Make tRPC provider optional/conditional
+- [ ] Remove tRPC calls from dashboard and other screens
+- [ ] Use mock/local data instead of backend calls
+- [ ] Deploy to Netlify and verify page loads
