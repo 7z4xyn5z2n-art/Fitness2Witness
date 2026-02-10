@@ -520,3 +520,10 @@
 - [ ] Verify admin tab appears for admin users after deployment
 - [ ] Test logout button works properly
 - [ ] Test export button works properly
+
+## Critical: Automatic Database Migration on Render
+- [x] Create startup script that runs migrations only in production
+- [x] Update package.json start command to use startup script
+- [ ] Deploy to GitHub and verify Render runs migrations automatically
+- [ ] Confirm all database tables are created
+- [ ] Test all endpoints work without 500 errors
