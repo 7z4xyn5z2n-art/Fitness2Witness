@@ -3,6 +3,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useState } from "react";
 import { router } from "expo-router";
 import { trpc } from "@/lib/trpc";
+import * as SecureStore from "expo-secure-store";
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -49,16 +50,36 @@ export default function AuthScreen() {
       if (isLogin) {
         const result = await loginMutation.mutateAsync({ phoneNumber });
         console.log("Login successful:", result);
-        // Small delay to ensure session cookie is set
-        await new Promise(resolve => setTimeout(resolve, 300));
-        // Navigate immediately without waiting for loading state
+        
+        // Store auth token
+        if (result.token) {
+          if (Platform.OS === "web") {
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem("auth_token", result.token);
+            }
+          } else {
+            await SecureStore.setItemAsync("auth_token", result.token);
+          }
+        }
+        
+        // Navigate to dashboard
         router.replace("/(tabs)");
       } else {
         const result = await registerMutation.mutateAsync({ name: name.trim(), phoneNumber });
         console.log("Registration successful:", result);
-        // Small delay to ensure session cookie is set
-        await new Promise(resolve => setTimeout(resolve, 300));
-        // Navigate immediately without waiting for loading state
+        
+        // Store auth token
+        if (result.token) {
+          if (Platform.OS === "web") {
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem("auth_token", result.token);
+            }
+          } else {
+            await SecureStore.setItemAsync("auth_token", result.token);
+          }
+        }
+        
+        // Navigate to dashboard
         router.replace("/(tabs)");
       }
     } catch (error: any) {

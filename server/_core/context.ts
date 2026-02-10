@@ -17,21 +17,29 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
   let user: User | null = null;
 
   try {
-    // Parse cookies from request
-    const cookieHeader = opts.req.headers.cookie;
-    console.log('[Auth Debug] Cookie header:', cookieHeader ? 'present' : 'missing');
-    
-    if (!cookieHeader) {
-      console.log('[Auth Debug] No cookie header found');
-      return { req: opts.req, res: opts.res, user: null };
+    let sessionToken: string | undefined;
+
+    // Try to get token from Authorization header first (for token-based auth)
+    const authHeader = opts.req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      sessionToken = authHeader.substring(7);
+      console.log('[Auth Debug] Token from Authorization header');
     }
 
-    const cookies = parseCookieHeader(cookieHeader);
-    const sessionToken = cookies[COOKIE_NAME];
-    console.log('[Auth Debug] Session token:', sessionToken ? 'found' : 'missing');
+    // Fallback to cookie-based auth if no Authorization header
+    if (!sessionToken) {
+      const cookieHeader = opts.req.headers.cookie;
+      console.log('[Auth Debug] Cookie header:', cookieHeader ? 'present' : 'missing');
+      
+      if (cookieHeader) {
+        const cookies = parseCookieHeader(cookieHeader);
+        sessionToken = cookies[COOKIE_NAME];
+        console.log('[Auth Debug] Session token from cookie:', sessionToken ? 'found' : 'missing');
+      }
+    }
 
     if (!sessionToken) {
-      console.log('[Auth Debug] No session token in cookies');
+      console.log('[Auth Debug] No session token found');
       return { req: opts.req, res: opts.res, user: null };
     }
 

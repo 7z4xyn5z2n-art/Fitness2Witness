@@ -469,3 +469,12 @@
 - [ ] Ensure session cookies are properly set and sent with SameSite=None; Secure
 - [ ] Verify auth.me query returns user data after successful login
 - [ ] Test login flow redirects to dashboard instead of staying on auth page
+
+## Critical Bug: Login Redirect Issue (Updated)
+- [x] Fix cross-origin cookie authentication between Netlify frontend and Render backend
+- [ ] Switch from cookie-based to token-based authentication (browsers block third-party cookies)
+- [ ] Return JWT token in login response body instead of cookie
+- [ ] Store token in localStorage/SecureStore on frontend
+- [ ] Send token in Authorization header with all API requests
+- [ ] Update backend to read token from Authorization header
+- [ ] Test login flow redirects to dashboard successfully

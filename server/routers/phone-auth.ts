@@ -86,6 +86,7 @@ export const phoneAuthRouter = router({
 
       return {
         success: true,
+        token: sessionToken,
         user: {
           id: newUser.id,
           name: newUser.name,
@@ -154,6 +155,7 @@ export const phoneAuthRouter = router({
 
       return {
         success: true,
+        token: sessionToken,
         user: {
           id: user.id,
           name: user.name,

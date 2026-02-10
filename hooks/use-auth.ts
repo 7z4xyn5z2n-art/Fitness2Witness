@@ -13,14 +13,14 @@ export function useAuth() {
       // Call backend logout endpoint via tRPC
       await logoutMutation.mutateAsync();
 
-      // Clear session token from secure storage
+      // Clear auth token from secure storage
       if (Platform.OS !== "web") {
-        await SecureStore.deleteItemAsync("session_token");
+        await SecureStore.deleteItemAsync("auth_token");
       } else {
         // For web, clear from localStorage
         if (typeof window !== "undefined") {
-          window.localStorage.removeItem("session_token");
-          // Also clear cookies
+          window.localStorage.removeItem("auth_token");
+          // Also clear cookies for backward compatibility
           document.cookie.split(";").forEach((c) => {
             document.cookie = c
               .replace(/^ +/, "")
@@ -41,9 +41,9 @@ export function useAuth() {
       }
     } catch (error) {
       console.error("Logout error:", error);
-      // Even if backend call fails, still clear local session
+      // Even if backend call fails, still clear local token
       if (Platform.OS !== "web") {
-        await SecureStore.deleteItemAsync("session_token");
+        await SecureStore.deleteItemAsync("auth_token");
       }
       router.replace("/auth");
     }

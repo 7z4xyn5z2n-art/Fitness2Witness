@@ -3,6 +3,8 @@ import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@/server/routers";
 import { getApiBaseUrl } from "@/constants/oauth";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 /**
  * tRPC React client for type-safe API calls.
@@ -12,6 +14,20 @@ import { getApiBaseUrl } from "@/constants/oauth";
  * use the same serialization format (superjson).
  */
 export const trpc = createTRPCReact<AppRouter>();
+
+/**
+ * Get the stored auth token from secure storage or localStorage
+ */
+async function getAuthToken(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("auth_token");
+    }
+    return null;
+  } else {
+    return await SecureStore.getItemAsync("auth_token");
+  }
+}
 
 /**
  * Creates the tRPC client with proper configuration.
@@ -24,8 +40,12 @@ export function createTRPCClient() {
         url: `${getApiBaseUrl()}/api/trpc`,
         // tRPC v11: transformer MUST be inside httpBatchLink, not at root
         transformer: superjson,
-        // No custom headers needed - using cookie-based auth
-        // Custom fetch to include credentials for cookie-based auth
+        // Custom headers to include Authorization token
+        async headers() {
+          const token = await getAuthToken();
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        },
+        // Custom fetch to include credentials for backward compatibility
         fetch(url, options) {
           return fetch(url, {
             ...options,
