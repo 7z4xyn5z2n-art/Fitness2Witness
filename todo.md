@@ -321,3 +321,10 @@
 - [x] Make phoneNumber column nullable in database
 - [ ] Verify Railway deployment is running
 - [ ] Test that registration endpoint works
+
+## Fix Railway Migration Crash (CRITICAL)
+- [x] Delete old migration files that reference NOT NULL phoneNumber
+- [x] Generate fresh migration from current schema
+- [x] Clear existing test users from database
+- [ ] Verify Railway deployment succeeds
+- [ ] Test registration with phone number
