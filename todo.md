@@ -580,7 +580,13 @@
 - [x] Delete drizzle.config.ts (imports from missing drizzle-kit)
 - [x] Remove old drizzle-kit generated migration files (meta/, 0000_*.sql, etc.)
 - [x] Verify TypeScript compilation works without drizzle-kit (SUCCESS)
-- [ ] Push cleanup to GitHub
-- [ ] Re-deploy to both platforms
+- [x] Push cleanup to GitHub
+- [ ] Monitor Netlify deployment
+- [ ] Monitor Render deployment
 - [ ] Verify migrations run on Render
 - [ ] Test app functionality
+
+## Lockfile Out of Sync
+- [x] Regenerate pnpm-lock.yaml (removed 184 packages including drizzle-kit)
+- [ ] Push updated lockfile to GitHub
+- [ ] Verify deployments succeed
