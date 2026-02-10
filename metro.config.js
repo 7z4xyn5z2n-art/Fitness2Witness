@@ -13,11 +13,13 @@ config.resolver = {
   },
 };
 
-// Add watcher configuration to include NativeWind cache
-config.watchFolders = [
-  ...(config.watchFolders || []),
-  path.resolve(__dirname, "node_modules/react-native-css-interop/.cache"),
-];
+// Add watcher configuration to include NativeWind cache (only in development)
+if (process.env.NODE_ENV === "development") {
+  config.watchFolders = [
+    ...(config.watchFolders || []),
+    path.resolve(__dirname, "node_modules/react-native-css-interop/.cache"),
+  ];
+}
 
 module.exports = withNativeWind(config, {
   input: "./global.css",
