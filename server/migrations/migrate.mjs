@@ -64,21 +64,35 @@ CREATE INDEX IF NOT EXISTS idx_groups_challenge ON groups(challenge_id);
 `,
 
   '002_setup_initial_data': `
--- Create default challenge
-INSERT INTO challenges (id, name, description, start_date, end_date)
-VALUES (1, 'Fitness Challenge 2026', 'Track your fitness journey', '2026-02-01', '2026-12-31')
-ON CONFLICT (id) DO NOTHING;
+-- Create default challenge (12 weeks)
+INSERT INTO "challenges" ("id", "name", "startDate", "endDate", "active")
+VALUES (
+  1,
+  'Fitness2Witness Challenge',
+  '2026-02-10'::TIMESTAMP,
+  '2026-05-04'::TIMESTAMP,
+  true
+)
+ON CONFLICT ("id") DO NOTHING;
 
--- Create pilot group
-INSERT INTO groups (id, name, challenge_id)
-VALUES (1, 'Pilot Group', 1)
-ON CONFLICT (id) DO NOTHING;
+-- Create default pilot group
+INSERT INTO "groups" ("id", "groupName", "challengeId")
+VALUES (
+  1,
+  'Pilot Group',
+  1
+)
+ON CONFLICT ("id") DO NOTHING;
 
--- Assign all users with null groupId to pilot group
-UPDATE users SET group_id = 1 WHERE group_id IS NULL;
+-- Update existing users to assign them to the pilot group
+UPDATE "users"
+SET "groupId" = 1
+WHERE "groupId" IS NULL;
 
--- Set user ID 2 as admin
-UPDATE users SET role = 'admin' WHERE id = 2;
+-- Set user ID 2 (Quay Merida) as admin
+UPDATE "users"
+SET "role" = 'admin'
+WHERE "id" = 2;
 `
 };
 

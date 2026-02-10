@@ -345,7 +345,7 @@
 - [x] Create netlify.toml configuration file
 - [x] Configure proper build command for Expo web
 - [x] Set correct publish directory
-- [ ] Push to GitHub to trigger Netlify rebuild
+- [x] Push to GitHub to trigger Netlify rebuild
 - [ ] Verify website loads on fitness2witness.netlify.app
 
 ## Fix tRPC Context Error on Netlify (CRITICAL)
@@ -654,7 +654,7 @@
 - [x] Discovered Netlify frontend not using correct API URL
 - [x] EXPO_PUBLIC_API_BASE_URL not set in Netlify build environment
 - [x] Added API URL to netlify.toml build environment
-- [ ] Push to GitHub to trigger Netlify rebuild
+- [x] Push to GitHub to trigger Netlify rebuild
 - [ ] Verify frontend connects to https://fitness2witness.onrender.com
 
 ## Migration System Issues (FIXED)
@@ -662,6 +662,17 @@
 - [x] Migration files not copied to dist/ folder during build
 - [x] Created production-ready migrate.mjs that embeds SQL (no file reading)
 - [x] Added migrate:deploy script that uses node (not tsx)
-- [ ] Push to GitHub
+- [x] Push to GitHub
 - [ ] Set Render Pre-Deploy Command to: pnpm run migrate:deploy
 - [ ] Verify migrations run on next deployment
+
+## PostgreSQL Migration Errors (CURRENT FIX)
+- [x] Identified schema mismatch between migration 001 and 002
+- [x] Migration 002 used wrong column names (isActive, type, name vs groupName, active)
+- [x] Fixed migration 002 SQL to match actual schema from migration 001
+- [x] Updated both .sql file and migrate.mjs with correct column names
+- [ ] Save checkpoint and push to GitHub
+- [ ] Redeploy to Render with Pre-Deploy Command: pnpm run migrate:deploy
+- [ ] Verify migrations complete successfully
+- [ ] Test check-in submission works
+- [ ] Verify admin role is set correctly
