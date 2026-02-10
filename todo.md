@@ -478,3 +478,9 @@
 - [ ] Send token in Authorization header with all API requests
 - [ ] Update backend to read token from Authorization header
 - [ ] Test login flow redirects to dashboard successfully
+
+## Critical Bug: Check-In Submission Not Working
+- [ ] Investigate why check-in submission doesn't register when clicking submit
+- [ ] Fix navigation issue - should go to next page after submission
+- [ ] Ensure check-in data is properly saved to database
+- [ ] Test all four categories (Nutrition, Hydration, Movement, Scripture)

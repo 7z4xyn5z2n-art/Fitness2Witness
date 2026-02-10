@@ -158,10 +158,11 @@ export default function CheckinScreen() {
       workoutLog = `Type: ${workoutType || "Not specified"}, Duration: ${workoutDuration || "Not specified"} min, Intensity: ${workoutIntensity}`;
     }
 
-    // Build nutrition details
-    let nutritionDetails = "";
+    // Build combined notes with nutrition details
+    let combinedNotes = notes;
     if (carbCount) {
-      nutritionDetails = `Carbs: ${carbCount}g`;
+      const nutritionNote = `Carbs: ${carbCount}g`;
+      combinedNotes = combinedNotes ? `${combinedNotes}\n${nutritionNote}` : nutritionNote;
     }
 
     submitMutation.mutate({
@@ -170,13 +171,11 @@ export default function CheckinScreen() {
       hydrationDone,
       movementDone,
       scriptureDone,
-      notes: notes || undefined,
+      notes: combinedNotes || undefined,
       // For now, send the first available photo (we'll need to update backend to support multiple photos)
       proofPhotoBase64: categoryPhotos.nutrition?.base64 || categoryPhotos.hydration?.base64 || categoryPhotos.movement?.base64 || categoryPhotos.scripture?.base64 || undefined,
       workoutLog: workoutLog || undefined,
-      // Store nutrition details in notes for now
-      nutritionDetails: nutritionDetails || undefined,
-    } as any);
+    });
   };
 
   return (
