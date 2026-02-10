@@ -575,3 +575,12 @@
 - [x] Update migrate script to use new runner
 - [ ] Deploy to production and verify migrations run
 - [ ] Test check-in submission works
+
+## CRITICAL: Deployment Still Failing on Both Platforms
+- [x] Delete drizzle.config.ts (imports from missing drizzle-kit)
+- [x] Remove old drizzle-kit generated migration files (meta/, 0000_*.sql, etc.)
+- [x] Verify TypeScript compilation works without drizzle-kit (SUCCESS)
+- [ ] Push cleanup to GitHub
+- [ ] Re-deploy to both platforms
+- [ ] Verify migrations run on Render
+- [ ] Test app functionality
