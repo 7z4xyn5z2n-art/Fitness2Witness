@@ -1,11 +1,30 @@
 -- Initial schema migration for Fitness2Witness
 -- This creates all tables needed for the application
 
--- Create enums
-CREATE TYPE "role" AS ENUM ('user', 'leader', 'admin');
-CREATE TYPE "postType" AS ENUM ('Encouragement', 'Testimony', 'Photo', 'Video', 'Announcement');
-CREATE TYPE "visibility" AS ENUM ('GroupOnly', 'LeadersOnly');
-CREATE TYPE "challengeType" AS ENUM ('running', 'steps', 'workouts', 'custom');
+-- Create enums (idempotent - safe to run multiple times)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') THEN
+    CREATE TYPE "role" AS ENUM ('user', 'leader', 'admin');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'postType') THEN
+    CREATE TYPE "postType" AS ENUM ('Encouragement', 'Testimony', 'Photo', 'Video', 'Announcement');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'visibility') THEN
+    CREATE TYPE "visibility" AS ENUM ('GroupOnly', 'LeadersOnly');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'challengeType') THEN
+    CREATE TYPE "challengeType" AS ENUM ('running', 'steps', 'workouts', 'custom');
+  END IF;
+END $$;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS "users" (
