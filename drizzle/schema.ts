@@ -20,7 +20,7 @@ export const users = pgTable("users", {
   /** User's full name (displayed publicly in leaderboards, community, etc.) */
   name: text("name").notNull(),
   /** Phone number used for login and tracking (private, not displayed) */
-  phoneNumber: varchar("phoneNumber", { length: 20 }).unique().notNull(),
+  phoneNumber: varchar("phoneNumber", { length: 20 }).unique(),
   /** User role for access control */
   role: roleEnum("role").default("user").notNull(),
   /** Group assignment */

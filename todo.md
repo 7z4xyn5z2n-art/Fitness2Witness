@@ -316,3 +316,8 @@
 - [ ] Test login with existing phone number
 - [ ] Verify user tracking works across all features
 - [ ] Create first admin user account via phone registration
+
+## Railway Crash Fix (URGENT)
+- [x] Make phoneNumber column nullable in database
+- [ ] Verify Railway deployment is running
+- [ ] Test that registration endpoint works
