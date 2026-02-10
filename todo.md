@@ -328,5 +328,6 @@
 - [x] Clear existing test users from database
 - [x] Add phoneNumber column directly to database
 - [x] Remove db:push from Railway start command
+- [x] Delete all SQL migration files and meta snapshots from drizzle directory
 - [ ] Verify Railway deployment succeeds
 - [ ] Test registration with phone number

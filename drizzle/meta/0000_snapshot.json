@@ -1,5 +1,5 @@
 {
-  "id": "7431ce03-6f55-49c0-8269-3e9505f09398",
+  "id": "cb46fbfa-0914-4b22-87aa-de48aa0f89a5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1004,27 +1004,15 @@
             "cycle": false
           }
         },
-        "openId": {
-          "name": "openId",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "email": {
-          "name": "email",
-          "type": "varchar(320)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "loginMethod": {
-          "name": "loginMethod",
-          "type": "varchar(64)",
+        "phoneNumber": {
+          "name": "phoneNumber",
+          "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
         },
@@ -1068,11 +1056,11 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_openId_unique": {
-          "name": "users_openId_unique",
+        "users_phoneNumber_unique": {
+          "name": "users_phoneNumber_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "openId"
+            "phoneNumber"
           ]
         }
       },
