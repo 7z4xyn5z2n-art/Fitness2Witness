@@ -527,3 +527,27 @@
 - [ ] Deploy to GitHub and verify Render runs migrations automatically
 - [ ] Confirm all database tables are created
 - [ ] Test all endpoints work without 500 errors
+
+## Critical: drizzle-kit Missing in Production
+- [x] Move drizzle-kit from devDependencies to dependencies in package.json
+- [ ] Deploy and verify migrations run successfully on Render
+- [ ] Confirm all database tables are created (bodyMetrics, userTargets, etc.)
+- [ ] Test all endpoints work without 500 errors
+
+## Critical: Session Timeout Implementation
+- [ ] Add JWT token expiration (7 days or configurable)
+- [ ] Frontend auto-logout when token expires
+- [ ] Refresh token mechanism or re-login prompt
+- [ ] Stop keeping users logged in indefinitely
+
+## Critical: Check-In Submission Flow
+- [ ] Fix check-in submission to save data correctly
+- [ ] Redirect to community feed (/community) after successful submission
+- [ ] Show success message with points earned
+- [ ] Verify photo upload works correctly
+
+## Critical: Data Calculations and Leaderboard
+- [ ] Verify points are calculated correctly for each check-in category
+- [ ] Confirm leaderboard updates in real-time
+- [ ] Test weekly totals calculation
+- [ ] Verify all metrics display correctly on dashboard
