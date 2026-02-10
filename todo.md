@@ -557,3 +557,10 @@
 - [x] Configure Netlify to skip backend dependencies (moved to optionalDependencies)
 - [ ] Verify Netlify deployment succeeds
 - [ ] Verify Render deployment still works with migrations
+
+## CRITICAL: Both Netlify AND Render Failing
+- [x] Move drizzle-kit back to devDependencies
+- [x] Configure Render to install devDependencies via start script
+- [x] Update start.sh to install devDeps before running migrations
+- [ ] Verify Netlify build succeeds (frontend doesn't install devDeps)
+- [ ] Verify Render build succeeds (backend installs devDeps and runs migrations)
