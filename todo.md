@@ -428,3 +428,11 @@
 - [x] Add authentication gate to app layout (redirect to login if not authenticated)
 - [x] Fix 401 Unauthorized errors by ensuring proper session handling
 - [x] Updated logout to redirect to /auth screen instead of /
+
+## Leaderboard Enhancement (2026-02-10)
+
+- [x] Make top 3 performers highly visible with bold text and special styling
+- [x] Increase card size for top 3 (larger badges, text, padding)
+- [x] Add trophy emojis (🥇🥈🥉) and colored borders for top 3
+- [x] Add descriptive labels (Top Performer, Runner Up, Bronze Medal)
+- [x] Ensure all users can see the full leaderboard ranked by points

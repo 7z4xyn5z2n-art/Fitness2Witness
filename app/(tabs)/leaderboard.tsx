@@ -18,6 +18,39 @@ export default function LeaderboardScreen() {
     setRefreshing(false);
   };
 
+  const getTopThreeStyle = (index: number) => {
+    if (index === 0) {
+      return {
+        badge: "bg-yellow-500",
+        border: "border-yellow-500 border-2",
+        trophy: "🥇",
+        shadow: "shadow-lg",
+      };
+    }
+    if (index === 1) {
+      return {
+        badge: "bg-gray-400",
+        border: "border-gray-400 border-2",
+        trophy: "🥈",
+        shadow: "shadow-md",
+      };
+    }
+    if (index === 2) {
+      return {
+        badge: "bg-orange-600",
+        border: "border-orange-600 border-2",
+        trophy: "🥉",
+        shadow: "shadow-md",
+      };
+    }
+    return {
+      badge: "bg-muted",
+      border: "border-border",
+      trophy: "",
+      shadow: "",
+    };
+  };
+
   return (
     <ScreenContainer className="p-6">
       <View className="flex-1 gap-6">
@@ -66,25 +99,49 @@ export default function LeaderboardScreen() {
               </View>
             ) : (
               <View className="gap-3">
-                {leaderboard.map((entry, index) => (
-                  <View
-                    key={entry.userId}
-                    className="bg-surface rounded-2xl p-4 border border-border flex-row items-center justify-between"
-                  >
-                    <View className="flex-row items-center gap-4">
-                      <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                        index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-orange-600" : "bg-muted"
-                      }`}>
-                        <Text className="text-lg font-bold text-background">{index + 1}</Text>
+                {leaderboard.map((entry, index) => {
+                  const style = getTopThreeStyle(index);
+                  const isTopThree = index < 3;
+
+                  return (
+                    <View
+                      key={entry.userId}
+                      className={`bg-surface rounded-2xl ${isTopThree ? "p-5" : "p-4"} border ${style.border} ${style.shadow} flex-row items-center justify-between`}
+                    >
+                      <View className="flex-row items-center gap-4">
+                        {/* Rank Badge */}
+                        <View className={`${isTopThree ? "w-14 h-14" : "w-10 h-10"} rounded-full items-center justify-center ${style.badge}`}>
+                          <Text className={`${isTopThree ? "text-2xl" : "text-lg"} font-bold text-background`}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        
+                        {/* Name with Trophy */}
+                        <View>
+                          <View className="flex-row items-center gap-2">
+                            {style.trophy && <Text className="text-2xl">{style.trophy}</Text>}
+                            <Text className={`${isTopThree ? "text-lg" : "text-base"} font-bold text-foreground`}>
+                              {entry.name}
+                            </Text>
+                          </View>
+                          {isTopThree && (
+                            <Text className="text-xs text-muted mt-1">
+                              {index === 0 ? "🏆 Top Performer" : index === 1 ? "🌟 Runner Up" : "💪 Bronze Medal"}
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                      <Text className="text-base font-semibold text-foreground">{entry.name}</Text>
+                      
+                      {/* Points */}
+                      <View className="items-end">
+                        <Text className={`${isTopThree ? "text-2xl" : "text-lg"} font-bold text-primary`}>
+                          {entry.points}
+                        </Text>
+                        <Text className="text-xs text-muted">of {entry.maxPoints} pts</Text>
+                      </View>
                     </View>
-                    <View className="items-end">
-                      <Text className="text-lg font-bold text-primary">{entry.points} pts</Text>
-                      <Text className="text-xs text-muted">of {entry.maxPoints}</Text>
-                    </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
           </ScrollView>
