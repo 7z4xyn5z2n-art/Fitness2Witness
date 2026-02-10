@@ -601,6 +601,33 @@
 ## Migration Failing: Duplicate Enum Types
 - [x] Add IF NOT EXISTS logic for CREATE TYPE statements
 - [x] Use DO $$ block with conditional enum creation
-- [ ] Deploy fix to GitHub
-- [ ] Verify migrations complete successfully
-- [ ] Confirm all tables created
+- [x] Deploy fix to GitHub
+- [x] Verify migrations complete successfully (✓ 001_initial_schema completed)
+- [x] Confirm all tables created (Successfully ran 1 migration(s))
+
+## 500 Errors Still Happening on Check-in Submission
+- [x] Check where API_URL is configured for production (EXPO_PUBLIC_API_BASE_URL)
+- [x] Verify Netlify environment variables (correctly set to https://fitness2witness.onrender.com)
+- [x] Check Render logs for errors (no check-in requests appearing)
+- [ ] Analyze browser console Network tab for actual request URL
+- [ ] Identify why requests aren't reaching backend
+- [ ] Fix root cause
+- [ ] Test check-in submission after fix
+
+## tRPC METHOD_NOT_SUPPORTED Error
+- [x] Find why mutations are using GET instead of POST (was a red herring)
+- [x] Requests ARE reaching backend now
+- [x] Real issue: "User must be assigned to a group" error
+
+## 500 Error on Check-in Submission - No Error Logs
+- [x] Verified request reaches backend (auth logs show user loaded)
+- [x] No error message in Render logs (errors being swallowed)
+- [x] Add console.error logging to checkins.submit endpoint
+- [ ] Deploy and test to see actual error
+- [ ] Fix the identified issue
+
+## User Group Assignment Missing (for metrics)
+- [ ] Create default challenge in database
+- [ ] Create default group linked to challenge
+- [ ] Assign user (Quay Merida, ID: 2) to group
+- [ ] Test metrics endpoint

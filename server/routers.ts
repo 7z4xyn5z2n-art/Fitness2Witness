@@ -73,15 +73,21 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const user = await db.getUserById(ctx.user.id);
-        if (!user || !user.groupId) {
-          throw new Error("User must be assigned to a group");
-        }
+        try {
+          console.log('[Check-in Submit] Starting submission for user:', ctx.user.id);
+          const user = await db.getUserById(ctx.user.id);
+          if (!user || !user.groupId) {
+            console.error('[Check-in Submit] ERROR: User not found or missing groupId:', { userId: ctx.user.id, user });
+            throw new Error("User must be assigned to a group");
+          }
+          console.log('[Check-in Submit] User found:', { userId: user.id, groupId: user.groupId });
 
-        const group = await db.getGroupById(user.groupId);
-        if (!group || !group.challengeId) {
-          throw new Error("Group must be assigned to a challenge");
-        }
+          const group = await db.getGroupById(user.groupId);
+          if (!group || !group.challengeId) {
+            console.error('[Check-in Submit] ERROR: Group not found or missing challengeId:', { groupId: user.groupId, group });
+            throw new Error("Group must be assigned to a challenge");
+          }
+          console.log('[Check-in Submit] Group found:', { groupId: group.id, challengeId: group.challengeId });
 
         const date = new Date(input.date);
         const existing = await db.getDailyCheckin(ctx.user.id, date);
@@ -113,7 +119,12 @@ export const appRouter = router({
           workoutAnalysis: input.workoutLog ? await analyzeWorkout(input.workoutLog) : undefined,
         });
 
-        return { success: true, checkinId };
+          console.log('[Check-in Submit] SUCCESS: Check-in created:', checkinId);
+          return { success: true, checkinId };
+        } catch (error) {
+          console.error('[Check-in Submit] FATAL ERROR:', error);
+          throw error;
+        }
       }),
   }),
 
