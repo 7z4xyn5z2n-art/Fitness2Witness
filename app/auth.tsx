@@ -50,13 +50,15 @@ export default function AuthScreen() {
         const result = await loginMutation.mutateAsync({ phoneNumber });
         console.log("Login successful:", result);
         // Small delay to ensure session cookie is set
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
+        // Navigate immediately without waiting for loading state
         router.replace("/(tabs)");
       } else {
         const result = await registerMutation.mutateAsync({ name: name.trim(), phoneNumber });
         console.log("Registration successful:", result);
         // Small delay to ensure session cookie is set
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
+        // Navigate immediately without waiting for loading state
         router.replace("/(tabs)");
       }
     } catch (error: any) {
