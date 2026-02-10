@@ -331,3 +331,9 @@
 - [x] Delete all SQL migration files and meta snapshots from drizzle directory
 - [ ] Verify Railway deployment succeeds
 - [ ] Test registration with phone number
+
+## Remove Authentication Gate (IMMEDIATE)
+- [x] Remove authentication check from app/_layout.tsx
+- [x] Skip login screen and load app directly
+- [ ] Deploy to Netlify without authentication blocking
+- [x] Test that app loads and all screens are accessible
