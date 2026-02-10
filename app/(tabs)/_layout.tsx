@@ -5,7 +5,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { trpc } from "@/lib/trpc";
+
 
 export default function TabLayout() {
   const colors = useColors();
@@ -13,9 +13,8 @@ export default function TabLayout() {
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
   
-  const { data: user } = trpc.auth.me.useQuery();
-  const isLeaderOrAdmin = user?.role === "leader" || user?.role === "admin";
-  const isAdmin = user?.role === "admin";
+  const isLeaderOrAdmin = false;
+  const isAdmin = false;
 
   return (
     <Tabs

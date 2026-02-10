@@ -353,3 +353,14 @@
 - [ ] Remove tRPC calls from dashboard and other screens
 - [ ] Use mock/local data instead of backend calls
 - [ ] Deploy to Netlify and verify page loads
+
+## Make Frontend Independent (STEP 1)
+- [ ] Remove tRPC calls from dashboard screen
+- [ ] Remove tRPC calls from leaderboard screen
+- [ ] Remove tRPC calls from community screen
+- [ ] Remove tRPC calls from challenges screen
+- [ ] Remove tRPC calls from profile screen
+- [ ] Add mock data for all screens
+- [ ] Make tRPC provider optional in app layout
+- [ ] Test frontend loads without backend
+- [ ] Deploy to Netlify and verify

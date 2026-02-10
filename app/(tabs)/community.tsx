@@ -1,17 +1,18 @@
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
 import { useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
-import { trpc } from "@/lib/trpc";
+
 import { useRouter } from "expo-router";
 
 export default function CommunityScreen() {
   const router = useRouter();
-  const { data: posts, isLoading, refetch } = trpc.community.getPosts.useQuery();
+  const posts: any[] = [];
+  const isLoading = false;
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setRefreshing(false);
   };
 

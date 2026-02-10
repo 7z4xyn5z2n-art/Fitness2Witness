@@ -1,27 +1,25 @@
-import { trpc } from "@/lib/trpc";
 import type { User } from "@/lib/_core/auth";
 
+// Mock user data for frontend independence
+const mockUser: User = {
+  id: 1,
+  name: "Demo User",
+  phoneNumber: "5551234567",
+  role: "user",
+  groupId: 1,
+};
+
 export function useAuth() {
-  const { data: user, isLoading, error, refetch } = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
   const logout = () => {
-    logoutMutation.mutate();
+    // Mock logout - just show alert
+    console.log("Logout called");
   };
 
   return {
-    user: user as User | null,
-    loading: isLoading,
-    error: error ? new Error(error.message) : null,
-    refetch,
+    user: mockUser,
+    loading: false,
+    error: null,
+    refetch: async () => {},
     logout,
   };
 }

@@ -1,21 +1,27 @@
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, FlatList } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 
 type Period = "week" | "overall";
 
+// Mock leaderboard data
+const mockLeaderboard = [
+  { id: 1, name: "Demo User 1", points: 38, rank: 1 },
+  { id: 2, name: "Demo User 2", points: 35, rank: 2 },
+  { id: 3, name: "Demo User 3", points: 32, rank: 3 },
+];
+
 export default function LeaderboardScreen() {
   const [period, setPeriod] = useState<Period>("week");
-
-  const { data: leaderboard, isLoading, refetch } = trpc.metrics.getGroupLeaderboard.useQuery({ period });
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setRefreshing(false);
   };
+
+  const leaderboard = mockLeaderboard;
 
   return (
     <ScreenContainer className="p-6">
@@ -29,60 +35,48 @@ export default function LeaderboardScreen() {
         {/* Period Selector */}
         <View className="flex-row bg-surface rounded-full p-1">
           <TouchableOpacity
-            onPress={() => setPeriod("week")}
             className={`flex-1 py-3 rounded-full ${period === "week" ? "bg-primary" : ""}`}
+            onPress={() => setPeriod("week")}
           >
-            <Text className={`text-center font-semibold ${period === "week" ? "text-background" : "text-foreground"}`}>
+            <Text className={`text-center font-semibold ${period === "week" ? "text-background" : "text-muted"}`}>
               This Week
             </Text>
           </TouchableOpacity>
+          
           <TouchableOpacity
-            onPress={() => setPeriod("overall")}
             className={`flex-1 py-3 rounded-full ${period === "overall" ? "bg-primary" : ""}`}
+            onPress={() => setPeriod("overall")}
           >
-            <Text className={`text-center font-semibold ${period === "overall" ? "text-background" : "text-foreground"}`}>
+            <Text className={`text-center font-semibold ${period === "overall" ? "text-background" : "text-muted"}`}>
               Overall
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Leaderboard List */}
-        {isLoading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" />
-          </View>
-        ) : (
-          <FlatList
-            data={leaderboard}
-            keyExtractor={(item, index) => `${item.userId}-${index}`}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            renderItem={({ item, index }) => {
-              const percentage = (item.points / item.maxPoints) * 100;
-              const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
-
-              return (
-                <View className="bg-surface rounded-2xl p-4 mb-3 border border-border">
-                  <View className="flex-row items-center mb-2">
-                    <Text className="text-2xl font-bold text-muted w-10">#{index + 1}</Text>
-                    {medal && <Text className="text-2xl mr-2">{medal}</Text>}
-                    <Text className="flex-1 text-lg font-semibold text-foreground">{item.name}</Text>
-                    <Text className="text-lg font-bold text-primary">
-                      {item.points} <Text className="text-sm text-muted">/ {item.maxPoints}</Text>
-                    </Text>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          <View className="gap-3">
+            {leaderboard.map((entry, index) => (
+              <View
+                key={entry.id}
+                className="bg-surface rounded-2xl p-4 border border-border flex-row items-center justify-between"
+              >
+                <View className="flex-row items-center gap-4">
+                  <View className={`w-10 h-10 rounded-full items-center justify-center ${
+                    index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-orange-600" : "bg-muted"
+                  }`}>
+                    <Text className="text-lg font-bold text-background">{entry.rank}</Text>
                   </View>
-                  <View className="h-2 bg-border rounded-full overflow-hidden">
-                    <View className="h-full bg-primary" style={{ width: `${Math.min(100, percentage)}%` }} />
-                  </View>
+                  <Text className="text-base font-semibold text-foreground">{entry.name}</Text>
                 </View>
-              );
-            }}
-            ListEmptyComponent={
-              <View className="items-center justify-center py-12">
-                <Text className="text-muted text-center">No data available</Text>
+                <Text className="text-lg font-bold text-primary">{entry.points} pts</Text>
               </View>
-            }
-          />
-        )}
+            ))}
+          </View>
+        </ScrollView>
       </View>
     </ScreenContainer>
   );

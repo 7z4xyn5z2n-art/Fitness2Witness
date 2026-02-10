@@ -1,17 +1,20 @@
 import { Alert, ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
-import { trpc } from "@/lib/trpc";
+
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { useColors } from "@/hooks/use-colors";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const { data: metrics } = trpc.metrics.getMyMetrics.useQuery();
-  const { data: weeklyProgress, isLoading: loadingWeekly } = trpc.metrics.getWeeklyProgress.useQuery();
-  const { data: categoryData, isLoading: loadingCategory } = trpc.metrics.getCategoryConsistency.useQuery();
-  const { data: bodyMetrics, isLoading: loadingBody } = trpc.bodyMetrics.getMyMetrics.useQuery();
-  const { data: badges } = trpc.badges.getMyBadges.useQuery();
+  const metrics = { thisWeekTotal: 0, totalPoints: 0, overallPercent: 0 };
+  const weeklyProgress: any[] = [];
+  const loadingWeekly = false;
+  const categoryData: any[] = [];
+  const loadingCategory = false;
+  const bodyMetrics: any[] = [];
+  const loadingBody = false;
+  const badges: any[] = [];
   
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width - 48; // padding
