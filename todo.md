@@ -676,3 +676,37 @@
 - [ ] Verify migrations complete successfully
 - [ ] Test check-in submission works
 - [ ] Verify admin role is set correctly
+
+## Launch Blockers (CRITICAL - Fix in Order)
+
+### A) Check-in 500 Error - AI Dependency
+- [x] Move AI analysis AFTER check-in DB insert
+- [x] Wrap AI call in try/catch to never block check-in
+- [x] Return success even if AI fails
+- [x] Log AI errors as warnings, not fatal
+
+### B) Auth/Logout Issues - Dual Auth Methods
+- [ ] Choose single auth method (Bearer token recommended)
+- [ ] Remove cookie-based auth if using Bearer
+- [ ] Fix logout to clear token + cookies + tRPC cache
+- [ ] Test login works on first attempt
+- [ ] Test logout redirects to login screen
+
+### C) Admin Attendance 400 Error - Input Validation
+- [ ] Check Zod schema allows null for optional fields
+- [ ] Fix frontend to send null instead of undefined
+- [ ] Ensure date is ISO string format
+- [ ] Verify type enum matches backend exactly
+- [ ] Test admin can add attendance without 400 error
+
+### D) Admin User Management (Missing Features)
+- [ ] Add admin.removeUser or soft-delete (active=false)
+- [ ] Add admin.setUserRole
+- [ ] Add admin.setUserGroup
+- [ ] Hide inactive users in UI
+
+### E) Share/Export Features (Missing)
+- [ ] Add Web Share API for mobile sharing
+- [ ] Add WhatsApp deep link
+- [ ] Add SMS deep link
+- [ ] Add CSV export for stats

@@ -194,6 +194,22 @@ export async function createDailyCheckin(checkin: InsertDailyCheckin) {
   return result[0];
 }
 
+// Update a daily check-in (for AI analysis updates)
+export async function updateDailyCheckin(checkinId: number, updates: Partial<InsertDailyCheckin>) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update check-in: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .update(dailyCheckins)
+    .set(updates)
+    .where(eq(dailyCheckins.id, checkinId))
+    .returning();
+  return result[0];
+}
+
 // Get check-ins by user ID
 export async function getCheckinsByUserId(userId: number) {
   const db = await getDb();

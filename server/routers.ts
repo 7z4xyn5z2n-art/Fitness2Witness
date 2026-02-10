@@ -104,7 +104,8 @@ export const appRouter = router({
           proofPhotoUrl = result.url;
         }
 
-        const checkinId = await db.createDailyCheckin({
+        // 1) Save check-in to database FIRST (never let AI block this)
+        const checkin = await db.createDailyCheckin({
           date,
           userId: ctx.user.id,
           groupId: user.groupId,
@@ -116,11 +117,30 @@ export const appRouter = router({
           notes: input.notes,
           proofPhotoUrl,
           workoutLog: input.workoutLog,
-          workoutAnalysis: input.workoutLog ? await analyzeWorkout(input.workoutLog) : undefined,
+          workoutAnalysis: undefined, // Will be updated after AI analysis
         });
 
-          console.log('[Check-in Submit] SUCCESS: Check-in created:', checkinId);
-          return { success: true, checkinId };
+        if (!checkin) {
+          throw new Error("Failed to create check-in");
+        }
+
+        console.log('[Check-in Submit] SUCCESS: Check-in created:', checkin.id);
+
+        // 2) Optional AI analysis (never block check-in success)
+        let workoutAnalysis: string | undefined;
+        if (input.workoutLog) {
+          try {
+            workoutAnalysis = await analyzeWorkout(input.workoutLog);
+            // Update check-in with AI analysis
+            await db.updateDailyCheckin(checkin.id, { workoutAnalysis });
+            console.log('[Check-in Submit] AI analysis completed');
+          } catch (error) {
+            console.warn('[Check-in Submit] AI analysis skipped:', error instanceof Error ? error.message : error);
+            // Continue anyway - check-in is already saved
+          }
+        }
+
+        return { success: true, checkinId: checkin.id, workoutAnalysis };
         } catch (error) {
           console.error('[Check-in Submit] FATAL ERROR:', error);
           throw error;
