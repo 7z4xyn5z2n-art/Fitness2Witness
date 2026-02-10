@@ -498,3 +498,9 @@
 - [ ] Deploy to production (push to GitHub)
 - [ ] Test registration creates user with groupId
 - [ ] Verify check-in submission works after registration
+
+## Critical Bug: Invalid Token Handling
+- [x] Add error handling to useAuth to detect invalid tokens
+- [x] Automatically clear invalid tokens from localStorage/SecureStore
+- [x] Force redirect to login when token is invalid
+- [ ] Test logout properly clears all auth state
