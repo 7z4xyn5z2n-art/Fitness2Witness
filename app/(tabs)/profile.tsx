@@ -1,4 +1,4 @@
-import { Alert, ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from "react-native";
+import { Text, View, ScrollView, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Share, Platform } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
 import { LineChart, BarChart } from "react-native-chart-kit";
@@ -200,29 +200,41 @@ export default function ProfileScreen() {
 
           {/* Export Stats Button */}
           <TouchableOpacity
-            onPress={() => {
-              const statsText = `Fitness2Witness Progress Report\n\n` +
-                `Name: ${user?.name}\n` +
-                `This Week: ${metrics?.thisWeekTotal || 0}/38 points\n` +
-                `Total: ${metrics?.totalPoints || 0}/456 points\n` +
-                `Completion: ${Math.round(metrics?.overallPercent || 0)}%\n` +
-                `Badges Earned: ${badges?.length || 0}\n\n` +
-                `Generated: ${new Date().toLocaleDateString()}`;
-              
-              Alert.alert(
-                "Export Stats",
-                "Copy your progress summary to share or save.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Copy",
-                    onPress: () => {
-                      // In a real app, use Clipboard API
-                      Alert.alert("Stats Summary", statsText);
-                    },
-                  },
-                ]
-              );
+            onPress={async () => {
+              try {
+                const statsText = `Fitness2Witness Progress Report\n\n` +
+                  `Name: ${user?.name}\n` +
+                  `Phone: ${user?.phoneNumber}\n` +
+                  `Role: ${user?.role}\n\n` +
+                  `📊 Current Progress:\n` +
+                  `This Week: ${metrics?.thisWeekTotal || 0}/38 points (${Math.round(metrics?.weeklyPercent || 0)}%)\n` +
+                  `Overall: ${metrics?.totalPoints || 0}/456 points (${Math.round(metrics?.overallPercent || 0)}%)\n\n` +
+                  `🏆 Achievements:\n` +
+                  `Badges Earned: ${badges?.length || 0}\n` +
+                  (badges && badges.length > 0 ? badges.map(b => `  • ${b.badgeName}`).join('\n') + '\n\n' : '\n') +
+                  `📈 Body Metrics:\n` +
+                  (bodyMetrics && bodyMetrics.length > 0 ? 
+                    `Latest Weight: ${bodyMetrics[0].weight || 'N/A'} lbs\n` +
+                    `Body Fat: ${bodyMetrics[0].bodyFatPercent || 'N/A'}%\n` +
+                    `Muscle Mass: ${bodyMetrics[0].muscleMass || 'N/A'} lbs\n\n` 
+                    : 'No body metrics recorded yet\n\n') +
+                  `Generated: ${new Date().toLocaleString()}`;
+                
+                if (Platform.OS === 'web') {
+                  // For web, copy to clipboard
+                  await navigator.clipboard.writeText(statsText);
+                  Alert.alert("Success", "Stats copied to clipboard!");
+                } else {
+                  // For mobile, use Share API
+                  await Share.share({
+                    message: statsText,
+                    title: "My Fitness2Witness Progress",
+                  });
+                }
+              } catch (error) {
+                console.error('Export error:', error);
+                Alert.alert("Error", "Failed to export stats. Please try again.");
+              }
             }}
             className="bg-success px-6 py-4 rounded-full active:opacity-80"
           >

@@ -412,3 +412,11 @@
 - [ ] Add insights dashboard showing how daily actions impact InBody metrics
 - [ ] Display average daily carbs vs target over time
 - [ ] Show workout frequency trends and correlation with weight/body fat changes
+
+## Critical Bug Fixes (Reported 2026-02-10 - After Production Testing)
+
+- [x] Move challenge creation to Admin/Leader dashboard only (already restricted - only leaders/admins see create button)
+- [x] Users can view and join challenges, only admins/leaders can create them
+- [x] Fix logout button (now properly calls backend logout endpoint and clears session)
+- [x] Fix auth session issues (clarified: use LOGIN for existing accounts, not REGISTER)
+- [x] Fix export stats button (now uses Share API on mobile, clipboard on web)
