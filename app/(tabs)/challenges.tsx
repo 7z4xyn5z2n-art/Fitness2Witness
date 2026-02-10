@@ -1,44 +1,48 @@
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, Alert } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, RefreshControl, Alert, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-
 import { useState } from "react";
 import { router } from "expo-router";
+import { trpc } from "@/lib/trpc";
 
 export default function ChallengesScreen() {
   const [refreshing, setRefreshing] = useState(false);
-  const user: any = null;
-  const challenges: any[] = [];
+  
+  const { data: user } = trpc.auth.me.useQuery();
+  const { data: challenges, isLoading, refetch } = trpc.groupChallenges.getAll.useQuery();
+  const joinChallengeMutation = trpc.groupChallenges.join.useMutation();
 
   const isLeaderOrAdmin = user?.role === "leader" || user?.role === "admin";
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refetch();
     setRefreshing(false);
   };
 
   const handleJoinChallenge = async (challengeId: number) => {
     try {
+      await joinChallengeMutation.mutateAsync({ challengeId });
       Alert.alert("Success", "You've joined the challenge!");
+      refetch();
     } catch (error) {
       Alert.alert("Error", "Failed to join challenge");
     }
   };
 
-  const activeChallenges = challenges.filter((c) => {
+  const activeChallenges = (challenges || []).filter((c) => {
     const now = new Date();
     const start = new Date(c.startDate);
     const end = new Date(c.endDate);
     return now >= start && now <= end;
   });
 
-  const upcomingChallenges = challenges.filter((c) => {
+  const upcomingChallenges = (challenges || []).filter((c) => {
     const now = new Date();
     const start = new Date(c.startDate);
     return now < start;
   });
 
-  const pastChallenges = challenges.filter((c) => {
+  const pastChallenges = (challenges || []).filter((c) => {
     const now = new Date();
     const end = new Date(c.endDate);
     return now > end;
@@ -67,57 +71,66 @@ export default function ChallengesScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Active Challenges */}
-        {activeChallenges.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-xl font-bold text-foreground mb-3">🔥 Active Challenges</Text>
-            {activeChallenges.map((challenge) => (
-              <ChallengeCard
-                key={challenge.id}
-                challenge={challenge}
-                onJoin={handleJoinChallenge}
-                status="active"
-              />
-            ))}
+        {isLoading && !challenges ? (
+          <View className="flex-1 items-center justify-center py-12">
+            <ActivityIndicator size="large" />
+            <Text className="text-base text-muted mt-4">Loading challenges...</Text>
           </View>
-        )}
+        ) : (
+          <>
+            {/* Active Challenges */}
+            {activeChallenges.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-xl font-bold text-foreground mb-3">🔥 Active Challenges</Text>
+                {activeChallenges.map((challenge) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    onJoin={handleJoinChallenge}
+                    status="active"
+                  />
+                ))}
+              </View>
+            )}
 
-        {/* Upcoming Challenges */}
-        {upcomingChallenges.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-xl font-bold text-foreground mb-3">📅 Upcoming Challenges</Text>
-            {upcomingChallenges.map((challenge) => (
-              <ChallengeCard
-                key={challenge.id}
-                challenge={challenge}
-                onJoin={handleJoinChallenge}
-                status="upcoming"
-              />
-            ))}
-          </View>
-        )}
+            {/* Upcoming Challenges */}
+            {upcomingChallenges.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-xl font-bold text-foreground mb-3">📅 Upcoming Challenges</Text>
+                {upcomingChallenges.map((challenge) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    onJoin={handleJoinChallenge}
+                    status="upcoming"
+                  />
+                ))}
+              </View>
+            )}
 
-        {/* Past Challenges */}
-        {pastChallenges.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-xl font-bold text-foreground mb-3">✅ Past Challenges</Text>
-            {pastChallenges.map((challenge) => (
-              <ChallengeCard key={challenge.id} challenge={challenge} status="past" />
-            ))}
-          </View>
-        )}
+            {/* Past Challenges */}
+            {pastChallenges.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-xl font-bold text-foreground mb-3">✅ Past Challenges</Text>
+                {pastChallenges.map((challenge) => (
+                  <ChallengeCard key={challenge.id} challenge={challenge} status="past" />
+                ))}
+              </View>
+            )}
 
-        {/* Empty State */}
-        {challenges.length === 0 && (
-          <View className="items-center justify-center py-12">
-            <Text className="text-6xl mb-4">🏆</Text>
-            <Text className="text-xl font-semibold text-foreground mb-2">No Challenges Yet</Text>
-            <Text className="text-base text-muted text-center">
-              {isLeaderOrAdmin
-                ? "Create the first challenge to get your group motivated!"
-                : "Check back soon for upcoming challenges"}
-            </Text>
-          </View>
+            {/* Empty State */}
+            {(!challenges || challenges.length === 0) && (
+              <View className="items-center justify-center py-12">
+                <Text className="text-6xl mb-4">🏆</Text>
+                <Text className="text-xl font-semibold text-foreground mb-2">No Challenges Yet</Text>
+                <Text className="text-base text-muted text-center">
+                  {isLeaderOrAdmin
+                    ? "Create the first challenge to get your group motivated!"
+                    : "Check back soon for upcoming challenges"}
+                </Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </ScreenContainer>

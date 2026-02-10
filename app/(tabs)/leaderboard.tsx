@@ -1,27 +1,22 @@
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, FlatList } from "react-native";
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 
 type Period = "week" | "overall";
 
-// Mock leaderboard data
-const mockLeaderboard = [
-  { id: 1, name: "Demo User 1", points: 38, rank: 1 },
-  { id: 2, name: "Demo User 2", points: 35, rank: 2 },
-  { id: 3, name: "Demo User 3", points: 32, rank: 3 },
-];
-
 export default function LeaderboardScreen() {
   const [period, setPeriod] = useState<Period>("week");
+
+  const { data: leaderboard, isLoading, refetch } = trpc.metrics.getGroupLeaderboard.useQuery({ period });
+
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refetch();
     setRefreshing(false);
   };
-
-  const leaderboard = mockLeaderboard;
 
   return (
     <ScreenContainer className="p-6">
@@ -54,29 +49,46 @@ export default function LeaderboardScreen() {
         </View>
 
         {/* Leaderboard List */}
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <View className="gap-3">
-            {leaderboard.map((entry, index) => (
-              <View
-                key={entry.id}
-                className="bg-surface rounded-2xl p-4 border border-border flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center gap-4">
-                  <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                    index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-orange-600" : "bg-muted"
-                  }`}>
-                    <Text className="text-lg font-bold text-background">{entry.rank}</Text>
-                  </View>
-                  <Text className="text-base font-semibold text-foreground">{entry.name}</Text>
-                </View>
-                <Text className="text-lg font-bold text-primary">{entry.points} pts</Text>
-              </View>
-            ))}
+        {isLoading && !leaderboard ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" />
+            <Text className="text-base text-muted mt-4">Loading leaderboard...</Text>
           </View>
-        </ScrollView>
+        ) : (
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          >
+            {!leaderboard || leaderboard.length === 0 ? (
+              <View className="flex-1 items-center justify-center py-12">
+                <Text className="text-xl font-semibold text-muted">No rankings yet</Text>
+                <Text className="text-sm text-muted mt-2">Complete check-ins to appear on the leaderboard!</Text>
+              </View>
+            ) : (
+              <View className="gap-3">
+                {leaderboard.map((entry, index) => (
+                  <View
+                    key={entry.userId}
+                    className="bg-surface rounded-2xl p-4 border border-border flex-row items-center justify-between"
+                  >
+                    <View className="flex-row items-center gap-4">
+                      <View className={`w-10 h-10 rounded-full items-center justify-center ${
+                        index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-orange-600" : "bg-muted"
+                      }`}>
+                        <Text className="text-lg font-bold text-background">{index + 1}</Text>
+                      </View>
+                      <Text className="text-base font-semibold text-foreground">{entry.name}</Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-lg font-bold text-primary">{entry.points} pts</Text>
+                      <Text className="text-xs text-muted">of {entry.maxPoints}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        )}
       </View>
     </ScreenContainer>
   );

@@ -1,20 +1,18 @@
 import { Alert, ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
-
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const metrics = { thisWeekTotal: 0, totalPoints: 0, overallPercent: 0 };
-  const weeklyProgress: any[] = [];
-  const loadingWeekly = false;
-  const categoryData: any[] = [];
-  const loadingCategory = false;
-  const bodyMetrics: any[] = [];
-  const loadingBody = false;
-  const badges: any[] = [];
+  
+  const { data: metrics } = trpc.metrics.getMyMetrics.useQuery();
+  const { data: weeklyProgress, isLoading: loadingWeekly } = trpc.metrics.getWeeklyProgress.useQuery();
+  const { data: categoryData, isLoading: loadingCategory } = trpc.metrics.getCategoryConsistency.useQuery();
+  const { data: bodyMetrics, isLoading: loadingBody } = trpc.bodyMetrics.getMyMetrics.useQuery();
+  const { data: badges } = trpc.badges.getMyBadges.useQuery();
   
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width - 48; // padding
@@ -44,6 +42,11 @@ export default function ProfileScreen() {
             <View className="items-center">
               <Text className="text-2xl font-bold text-foreground">{user?.name || "User"}</Text>
               <Text className="text-base text-muted">{user?.phoneNumber ? `(${user.phoneNumber.slice(0,3)}) ${user.phoneNumber.slice(3,6)}-${user.phoneNumber.slice(6)}` : ''}</Text>
+              {user?.role && user.role !== "user" && (
+                <View className="bg-primary/20 px-3 py-1 rounded-full mt-2">
+                  <Text className="text-xs text-primary font-semibold uppercase">{user.role}</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -115,7 +118,7 @@ export default function ProfileScreen() {
                 style={{ marginVertical: 8, borderRadius: 16 }}
               />
             ) : (
-              <Text className="text-sm text-muted text-center">No data yet</Text>
+              <Text className="text-sm text-muted text-center">Complete check-ins to see your progress!</Text>
             )}
           </View>
 
@@ -147,7 +150,7 @@ export default function ProfileScreen() {
                 style={{ marginVertical: 8, borderRadius: 16 }}
               />
             ) : (
-              <Text className="text-sm text-muted text-center">No data yet</Text>
+              <Text className="text-sm text-muted text-center">Complete check-ins to see category breakdown!</Text>
             )}
           </View>
 

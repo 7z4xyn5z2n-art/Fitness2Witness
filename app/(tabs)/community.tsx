@@ -1,18 +1,18 @@
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
 import { useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
-
 import { useRouter } from "expo-router";
+import { trpc } from "@/lib/trpc";
 
 export default function CommunityScreen() {
   const router = useRouter();
-  const posts: any[] = [];
-  const isLoading = false;
+  
+  const { data: posts, isLoading, refetch } = trpc.community.getPosts.useQuery();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refetch();
     setRefreshing(false);
   };
 
@@ -28,7 +28,7 @@ export default function CommunityScreen() {
 
           {/* Create Post Button */}
           <TouchableOpacity
-            onPress={() => router.push("/create-post" as any)}
+            onPress={() => router.push("/(modals)/create-post")}
             className="bg-primary px-6 py-3 rounded-full active:opacity-80"
           >
             <Text className="text-background text-center font-semibold">✏️ Create Post</Text>
@@ -36,20 +36,18 @@ export default function CommunityScreen() {
         </View>
 
         {/* Posts List */}
-        {isLoading ? (
+        {isLoading && !posts ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" />
+            <Text className="text-base text-muted mt-4">Loading posts...</Text>
           </View>
         ) : (
           <FlatList
-            data={posts}
+            data={posts || []}
             keyExtractor={(item) => item.id.toString()}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() => router.push(`/post/${item.id}` as any)}
-                className="bg-surface rounded-2xl p-4 mb-3 border border-border active:opacity-80"
-              >
+              <View className="bg-surface rounded-2xl p-4 mb-3 border border-border">
                 {/* Post Header */}
                 <View className="flex-row items-center mb-3">
                   <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mr-3">
@@ -90,15 +88,16 @@ export default function CommunityScreen() {
                   </View>
                 )}
 
-                {/* Comment Count */}
+                {/* Footer */}
                 <View className="mt-2 pt-2 border-t border-border">
                   <Text className="text-xs text-muted">💬 Tap to view and comment</Text>
                 </View>
-              </TouchableOpacity>
+              </View>
             )}
             ListEmptyComponent={
               <View className="items-center justify-center py-12">
-                <Text className="text-muted text-center">No posts yet. Be the first to share!</Text>
+                <Text className="text-xl font-semibold text-muted">No posts yet</Text>
+                <Text className="text-sm text-muted mt-2">Be the first to share!</Text>
               </View>
             }
           />
