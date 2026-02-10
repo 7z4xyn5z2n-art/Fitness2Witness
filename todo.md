@@ -484,3 +484,17 @@
 - [ ] Fix navigation issue - should go to next page after submission
 - [ ] Ensure check-in data is properly saved to database
 - [ ] Test all four categories (Nutrition, Hydration, Movement, Scripture)
+
+## Critical Bug: Database Not Properly Initialized
+- [ ] Database is empty - no users, groups, or challenges
+- [ ] Create default challenge "Fitness2Witness – 12 Week Challenge"
+- [ ] Create pilot group
+- [ ] Assign users to group
+- [ ] Link group to challenge
+- [ ] Verify check-in submission works after setup
+
+## Critical Fix: Auto-Assign Users to Group
+- [x] Modify registration endpoint to auto-assign new users to pilot group (ID 1)
+- [ ] Deploy to production (push to GitHub)
+- [ ] Test registration creates user with groupId
+- [ ] Verify check-in submission works after registration

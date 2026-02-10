@@ -47,13 +47,14 @@ export const phoneAuthRouter = router({
         });
       }
 
-      // Create new user
+      // Create new user and assign to pilot group (ID 1)
       const [newUser] = await db
         .insert(users)
         .values({
           name,
           phoneNumber,
           role: "user",
+          groupId: 1, // Auto-assign to pilot group
           lastSignedIn: new Date(),
         })
         .returning();
