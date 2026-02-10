@@ -32,8 +32,8 @@ export function useAuth() {
       // Invalidate all queries
       utils.invalidate();
 
-      // Redirect to home/welcome screen
-      router.replace("/");
+      // Redirect to auth screen
+      router.replace("/auth");
       
       // Force reload to clear all cached data (web only)
       if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -45,7 +45,7 @@ export function useAuth() {
       if (Platform.OS !== "web") {
         await SecureStore.deleteItemAsync("session_token");
       }
-      router.replace("/");
+      router.replace("/auth");
     }
   };
 

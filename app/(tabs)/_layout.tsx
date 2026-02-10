@@ -1,20 +1,34 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { useEffect } from "react";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 
 
 export default function TabLayout() {
+  const { user, loading } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
   
-  const isLeaderOrAdmin = false;
-  const isAdmin = false;
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth");
+    }
+  }, [user, loading]);
+
+  // Show nothing while checking auth
+  if (loading || !user) {
+    return null;
+  }
+  
+  const isLeaderOrAdmin = user.role === "leader" || user.role === "admin";
+  const isAdmin = user.role === "admin";
 
   return (
     <Tabs

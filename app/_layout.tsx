@@ -87,7 +87,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="oauth/callback" />
+            <Stack.Screen name="auth" />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

@@ -420,3 +420,11 @@
 - [x] Fix logout button (now properly calls backend logout endpoint and clears session)
 - [x] Fix auth session issues (clarified: use LOGIN for existing accounts, not REGISTER)
 - [x] Fix export stats button (now uses Share API on mobile, clipboard on web)
+
+## Authentication Flow Fix (URGENT - 2026-02-10)
+
+- [x] Remove oauth/callback route reference causing layout error
+- [x] Create login/register screen with phone number input
+- [x] Add authentication gate to app layout (redirect to login if not authenticated)
+- [x] Fix 401 Unauthorized errors by ensuring proper session handling
+- [x] Updated logout to redirect to /auth screen instead of /
