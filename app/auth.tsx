@@ -62,8 +62,13 @@ export default function AuthScreen() {
           }
         }
         
-        // Navigate to dashboard
+        // Navigate to dashboard and reload to ensure tRPC client picks up new token
         router.replace("/(tabs)");
+        
+        // Force reload on web to reinitialize tRPC client with new token
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          setTimeout(() => window.location.reload(), 100);
+        }
       } else {
         const result = await registerMutation.mutateAsync({ name: name.trim(), phoneNumber });
         console.log("Registration successful:", result);
@@ -79,8 +84,13 @@ export default function AuthScreen() {
           }
         }
         
-        // Navigate to dashboard
+        // Navigate to dashboard and reload to ensure tRPC client picks up new token
         router.replace("/(tabs)");
+        
+        // Force reload on web to reinitialize tRPC client with new token
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          setTimeout(() => window.location.reload(), 100);
+        }
       }
     } catch (error: any) {
       console.error("Auth error:", error);

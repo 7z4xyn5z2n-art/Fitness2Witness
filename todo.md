@@ -641,3 +641,11 @@
   - Auto-assign all users with null groupId to pilot group
   - Set user ID 2 (Quay Merida) as admin role
 - [x] Pushed migration to GitHub for automatic deployment on Render
+
+## Double-Login Bug (COMPLETED)
+- [x] Investigate why login requires entering phone number twice
+- [x] Check authentication flow in login screen
+- [x] Check session token storage and retrieval
+- [x] Fix authentication to work on first attempt (added page reload after login)
+- [x] Test login flow works on first try
+- [ ] Deploy fix to production (ready to push)
