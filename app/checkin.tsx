@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
@@ -9,6 +9,13 @@ import { Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { BadgeNotification } from "@/components/badge-notification";
 
+type CategoryPhotos = {
+  nutrition: { uri: string; base64: string } | null;
+  hydration: { uri: string; base64: string } | null;
+  movement: { uri: string; base64: string } | null;
+  scripture: { uri: string; base64: string } | null;
+};
+
 export default function CheckinScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -17,10 +24,23 @@ export default function CheckinScreen() {
   const [hydrationDone, setHydrationDone] = useState(false);
   const [movementDone, setMovementDone] = useState(false);
   const [scriptureDone, setScriptureDone] = useState(false);
+  
+  // Enhanced nutrition tracking
+  const [carbCount, setCarbCount] = useState("");
+  
+  // Enhanced movement tracking
+  const [workoutType, setWorkoutType] = useState("");
+  const [workoutDuration, setWorkoutDuration] = useState("");
+  const [workoutIntensity, setWorkoutIntensity] = useState<"low" | "moderate" | "high">("moderate");
+  
   const [notes, setNotes] = useState("");
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
-  const [workoutLog, setWorkoutLog] = useState("");
+  const [categoryPhotos, setCategoryPhotos] = useState<CategoryPhotos>({
+    nutrition: null,
+    hydration: null,
+    movement: null,
+    scripture: null,
+  });
+  
   const [showBadgeNotification, setShowBadgeNotification] = useState(false);
   const [earnedBadge, setEarnedBadge] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -38,7 +58,6 @@ export default function CheckinScreen() {
         const newBadges = await checkBadgesMutation.mutateAsync();
         if (newBadges && newBadges.length > 0) {
           utils.badges.getMyBadges.invalidate();
-          // Show badge notification for the first new badge
           const badge = newBadges[0];
           setEarnedBadge(badge);
           setShowBadgeNotification(true);
@@ -46,7 +65,7 @@ export default function CheckinScreen() {
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
-          return; // Don't show success alert, badge notification will handle it
+          return;
         }
       } catch (error) {
         // Silently fail badge check
@@ -77,7 +96,7 @@ export default function CheckinScreen() {
     setter(!currentValue);
   };
 
-  const handleTakePhoto = async () => {
+  const handleTakePhoto = async (category: keyof CategoryPhotos) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Permission needed", "Camera permission is required to take photos.");
@@ -93,12 +112,17 @@ export default function CheckinScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoBase64(result.assets[0].base64 || null);
+      setCategoryPhotos(prev => ({
+        ...prev,
+        [category]: {
+          uri: result.assets[0].uri,
+          base64: result.assets[0].base64 || "",
+        }
+      }));
     }
   };
 
-  const handleChoosePhoto = async () => {
+  const handleChoosePhoto = async (category: keyof CategoryPhotos) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Permission needed", "Photo library permission is required.");
@@ -114,12 +138,29 @@ export default function CheckinScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoBase64(result.assets[0].base64 || null);
+      setCategoryPhotos(prev => ({
+        ...prev,
+        [category]: {
+          uri: result.assets[0].uri,
+          base64: result.assets[0].base64 || "",
+        }
+      }));
     }
   };
 
   const handleSubmit = () => {
+    // Build workout log from detailed inputs
+    let workoutLog = "";
+    if (workoutType || workoutDuration || workoutIntensity) {
+      workoutLog = `Type: ${workoutType || "Not specified"}, Duration: ${workoutDuration || "Not specified"} min, Intensity: ${workoutIntensity}`;
+    }
+
+    // Build nutrition details
+    let nutritionDetails = "";
+    if (carbCount) {
+      nutritionDetails = `Carbs: ${carbCount}g`;
+    }
+
     submitMutation.mutate({
       date: selectedDate.toISOString(),
       nutritionDone,
@@ -127,9 +168,12 @@ export default function CheckinScreen() {
       movementDone,
       scriptureDone,
       notes: notes || undefined,
-      proofPhotoBase64: photoBase64 || undefined,
+      // For now, send the first available photo (we'll need to update backend to support multiple photos)
+      proofPhotoBase64: categoryPhotos.nutrition?.base64 || categoryPhotos.hydration?.base64 || categoryPhotos.movement?.base64 || categoryPhotos.scripture?.base64 || undefined,
       workoutLog: workoutLog || undefined,
-    });
+      // Store nutrition details in notes for now
+      nutritionDetails: nutritionDetails || undefined,
+    } as any);
   };
 
   return (
@@ -165,67 +209,199 @@ export default function CheckinScreen() {
             )}
           </View>
 
-          {/* Categories */}
-          <View className="bg-surface rounded-2xl p-6 shadow-sm border border-border gap-4">
+          {/* Categories with Photos */}
+          <View className="gap-6">
             {/* Nutrition */}
-            <TouchableOpacity
-              onPress={() => handleToggle(setNutritionDone, nutritionDone)}
-              className={`flex-row items-center p-4 rounded-xl border-2 ${nutritionDone ? "border-primary bg-primary/10" : "border-border"}`}
-            >
-              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${nutritionDone ? "border-primary bg-primary" : "border-muted"}`}>
-                {nutritionDone && <Text className="text-background text-sm">✓</Text>}
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">Nutrition</Text>
-                <Text className="text-sm text-muted">Healthy eating today</Text>
-              </View>
-              <Text className="text-sm font-bold text-primary">1 pt</Text>
-            </TouchableOpacity>
+            <View className="bg-surface rounded-2xl p-4 border border-border">
+              <TouchableOpacity
+                onPress={() => handleToggle(setNutritionDone, nutritionDone)}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${nutritionDone ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${nutritionDone ? "border-primary bg-primary" : "border-muted"}`}>
+                  {nutritionDone && <Text className="text-background text-sm">✓</Text>}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-foreground">🥗 Nutrition</Text>
+                  <Text className="text-sm text-muted">Healthy eating today</Text>
+                </View>
+                <Text className="text-sm font-bold text-primary">1 pt</Text>
+              </TouchableOpacity>
+
+              {nutritionDone && (
+                <View className="mt-4 gap-3">
+                  <View>
+                    <Text className="text-sm font-semibold text-foreground mb-2">Carb Count (Optional)</Text>
+                    <TextInput
+                      value={carbCount}
+                      onChangeText={setCarbCount}
+                      placeholder="Enter carbs in grams..."
+                      placeholderTextColor="#9BA1A6"
+                      keyboardType="numeric"
+                      className="bg-background border border-border rounded-xl p-3 text-foreground"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-sm font-semibold text-foreground mb-2">Proof Photo</Text>
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity onPress={() => handleTakePhoto('nutrition')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                        <Text className="text-foreground text-sm">📷 Camera</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleChoosePhoto('nutrition')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                        <Text className="text-foreground text-sm">🖼️ Gallery</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {categoryPhotos.nutrition && (
+                      <Image source={{ uri: categoryPhotos.nutrition.uri }} className="w-full h-32 rounded-xl mt-2" resizeMode="cover" />
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
 
             {/* Hydration */}
-            <TouchableOpacity
-              onPress={() => handleToggle(setHydrationDone, hydrationDone)}
-              className={`flex-row items-center p-4 rounded-xl border-2 ${hydrationDone ? "border-primary bg-primary/10" : "border-border"}`}
-            >
-              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${hydrationDone ? "border-primary bg-primary" : "border-muted"}`}>
-                {hydrationDone && <Text className="text-background text-sm">✓</Text>}
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">Hydration</Text>
-                <Text className="text-sm text-muted">Adequate water intake</Text>
-              </View>
-              <Text className="text-sm font-bold text-primary">1 pt</Text>
-            </TouchableOpacity>
+            <View className="bg-surface rounded-2xl p-4 border border-border">
+              <TouchableOpacity
+                onPress={() => handleToggle(setHydrationDone, hydrationDone)}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${hydrationDone ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${hydrationDone ? "border-primary bg-primary" : "border-muted"}`}>
+                  {hydrationDone && <Text className="text-background text-sm">✓</Text>}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-foreground">💧 Hydration</Text>
+                  <Text className="text-sm text-muted">Adequate water intake</Text>
+                </View>
+                <Text className="text-sm font-bold text-primary">1 pt</Text>
+              </TouchableOpacity>
+
+              {hydrationDone && (
+                <View className="mt-4">
+                  <Text className="text-sm font-semibold text-foreground mb-2">Proof Photo</Text>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity onPress={() => handleTakePhoto('hydration')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                      <Text className="text-foreground text-sm">📷 Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleChoosePhoto('hydration')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                      <Text className="text-foreground text-sm">🖼️ Gallery</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {categoryPhotos.hydration && (
+                    <Image source={{ uri: categoryPhotos.hydration.uri }} className="w-full h-32 rounded-xl mt-2" resizeMode="cover" />
+                  )}
+                </View>
+              )}
+            </View>
 
             {/* Movement */}
-            <TouchableOpacity
-              onPress={() => handleToggle(setMovementDone, movementDone)}
-              className={`flex-row items-center p-4 rounded-xl border-2 ${movementDone ? "border-primary bg-primary/10" : "border-border"}`}
-            >
-              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${movementDone ? "border-primary bg-primary" : "border-muted"}`}>
-                {movementDone && <Text className="text-background text-sm">✓</Text>}
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">Movement/Fitness</Text>
-                <Text className="text-sm text-muted">Exercise or activity</Text>
-              </View>
-              <Text className="text-sm font-bold text-primary">1 pt</Text>
-            </TouchableOpacity>
+            <View className="bg-surface rounded-2xl p-4 border border-border">
+              <TouchableOpacity
+                onPress={() => handleToggle(setMovementDone, movementDone)}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${movementDone ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${movementDone ? "border-primary bg-primary" : "border-muted"}`}>
+                  {movementDone && <Text className="text-background text-sm">✓</Text>}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-foreground">🏃 Movement</Text>
+                  <Text className="text-sm text-muted">Exercise or activity</Text>
+                </View>
+                <Text className="text-sm font-bold text-primary">1 pt</Text>
+              </TouchableOpacity>
+
+              {movementDone && (
+                <View className="mt-4 gap-3">
+                  <View>
+                    <Text className="text-sm font-semibold text-foreground mb-2">Workout Type</Text>
+                    <TextInput
+                      value={workoutType}
+                      onChangeText={setWorkoutType}
+                      placeholder="e.g., Running, Weightlifting, Yoga..."
+                      placeholderTextColor="#9BA1A6"
+                      className="bg-background border border-border rounded-xl p-3 text-foreground"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-sm font-semibold text-foreground mb-2">Duration (minutes)</Text>
+                    <TextInput
+                      value={workoutDuration}
+                      onChangeText={setWorkoutDuration}
+                      placeholder="e.g., 30"
+                      placeholderTextColor="#9BA1A6"
+                      keyboardType="numeric"
+                      className="bg-background border border-border rounded-xl p-3 text-foreground"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-sm font-semibold text-foreground mb-2">Intensity</Text>
+                    <View className="flex-row gap-2">
+                      {(["low", "moderate", "high"] as const).map((intensity) => (
+                        <TouchableOpacity
+                          key={intensity}
+                          onPress={() => setWorkoutIntensity(intensity)}
+                          className={`flex-1 p-3 rounded-xl border-2 ${workoutIntensity === intensity ? "border-primary bg-primary/10" : "border-border bg-background"}`}
+                        >
+                          <Text className={`text-center text-sm font-semibold ${workoutIntensity === intensity ? "text-primary" : "text-muted"}`}>
+                            {intensity.charAt(0).toUpperCase() + intensity.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View>
+                    <Text className="text-sm font-semibold text-foreground mb-2">Proof Photo</Text>
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity onPress={() => handleTakePhoto('movement')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                        <Text className="text-foreground text-sm">📷 Camera</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleChoosePhoto('movement')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                        <Text className="text-foreground text-sm">🖼️ Gallery</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {categoryPhotos.movement && (
+                      <Image source={{ uri: categoryPhotos.movement.uri }} className="w-full h-32 rounded-xl mt-2" resizeMode="cover" />
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
 
             {/* Scripture */}
-            <TouchableOpacity
-              onPress={() => handleToggle(setScriptureDone, scriptureDone)}
-              className={`flex-row items-center p-4 rounded-xl border-2 ${scriptureDone ? "border-primary bg-primary/10" : "border-border"}`}
-            >
-              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${scriptureDone ? "border-primary bg-primary" : "border-muted"}`}>
-                {scriptureDone && <Text className="text-background text-sm">✓</Text>}
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">Scripture/Prayer</Text>
-                <Text className="text-sm text-muted">Devotional time</Text>
-              </View>
-              <Text className="text-sm font-bold text-primary">1 pt</Text>
-            </TouchableOpacity>
+            <View className="bg-surface rounded-2xl p-4 border border-border">
+              <TouchableOpacity
+                onPress={() => handleToggle(setScriptureDone, scriptureDone)}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${scriptureDone ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${scriptureDone ? "border-primary bg-primary" : "border-muted"}`}>
+                  {scriptureDone && <Text className="text-background text-sm">✓</Text>}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-foreground">📖 Scripture/Prayer</Text>
+                  <Text className="text-sm text-muted">Devotional time</Text>
+                </View>
+                <Text className="text-sm font-bold text-primary">1 pt</Text>
+              </TouchableOpacity>
+
+              {scriptureDone && (
+                <View className="mt-4">
+                  <Text className="text-sm font-semibold text-foreground mb-2">Proof Photo</Text>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity onPress={() => handleTakePhoto('scripture')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                      <Text className="text-foreground text-sm">📷 Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleChoosePhoto('scripture')} className="flex-1 bg-background border border-border rounded-xl p-3 items-center">
+                      <Text className="text-foreground text-sm">🖼️ Gallery</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {categoryPhotos.scripture && (
+                    <Image source={{ uri: categoryPhotos.scripture.uri }} className="w-full h-32 rounded-xl mt-2" resizeMode="cover" />
+                  )}
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Points Summary */}
@@ -235,9 +411,9 @@ export default function CheckinScreen() {
             </Text>
           </View>
 
-          {/* Notes */}
+          {/* General Notes */}
           <View>
-            <Text className="text-base font-semibold text-foreground mb-2">Notes (Optional)</Text>
+            <Text className="text-base font-semibold text-foreground mb-2">General Notes (Optional)</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
@@ -248,40 +424,6 @@ export default function CheckinScreen() {
               className="bg-surface border border-border rounded-xl p-4 text-foreground"
               style={{ textAlignVertical: "top" }}
             />
-          </View>
-
-          {/* Workout Log */}
-          <View>
-            <Text className="text-base font-semibold text-foreground mb-2">Workout Details (Optional)</Text>
-            <Text className="text-sm text-muted mb-2">Describe your workout for AI analysis (e.g., "30 min run, 5 miles" or "Bench press 3x10 @ 185lbs, squats 4x8 @ 225lbs")</Text>
-            <TextInput
-              value={workoutLog}
-              onChangeText={setWorkoutLog}
-              placeholder="Describe your workout..."
-              placeholderTextColor="#9BA1A6"
-              multiline
-              numberOfLines={4}
-              className="bg-surface border border-border rounded-xl p-4 text-foreground"
-              style={{ textAlignVertical: "top" }}
-            />
-          </View>
-
-          {/* Photo Upload */}
-          <View>
-            <Text className="text-base font-semibold text-foreground mb-2">Proof Photo (Optional)</Text>
-            <View className="flex-row gap-3">
-              <TouchableOpacity onPress={handleTakePhoto} className="flex-1 bg-surface border border-border rounded-xl p-4 items-center">
-                <Text className="text-foreground font-semibold">📷 Take Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleChoosePhoto} className="flex-1 bg-surface border border-border rounded-xl p-4 items-center">
-                <Text className="text-foreground font-semibold">🖼️ Choose Photo</Text>
-              </TouchableOpacity>
-            </View>
-            {photoUri && (
-              <View className="mt-3">
-                <Image source={{ uri: photoUri }} className="w-full h-48 rounded-xl" resizeMode="cover" />
-              </View>
-            )}
           </View>
 
           {/* Submit Button */}

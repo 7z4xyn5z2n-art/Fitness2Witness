@@ -364,3 +364,38 @@
 - [ ] Make tRPC provider optional in app layout
 - [ ] Test frontend loads without backend
 - [ ] Deploy to Netlify and verify
+
+## Enhanced Check-In System (Phase 2)
+- [ ] Update check-in screen to allow ONE PHOTO PER CATEGORY (Nutrition, Hydration, Movement, Scripture)
+- [ ] Add carb count input field to Nutrition category
+- [ ] Add workout details input field to Movement category (type, duration, intensity)
+- [ ] Store detailed nutrition and movement data in database
+- [ ] Display detailed inputs in check-in history
+
+## AI-Powered Body Metrics Analysis (Phase 3)
+- [ ] Enhance InBody scan AI analysis to extract all available metrics
+- [ ] Add trend analysis and projections based on historical data
+- [ ] Calculate weight loss/gain velocity
+- [ ] Project future body composition based on current trends
+- [ ] Correlate nutrition/workout data with body composition changes
+- [ ] Display AI insights and recommendations on body metrics screen
+- [ ] Add 12-week projection charts with confidence intervals
+
+## Challenge Creation & Invitation System (Phase 4)
+- [ ] Build challenge creation modal for users, leaders, and admins
+- [ ] Add challenge invitation system (send invites to group members)
+- [ ] Create challenge acceptance/decline flow
+- [ ] Add challenge notification system
+- [ ] Build challenge management screen (edit, delete, end early)
+- [ ] Add challenge visibility settings (public to group, private invite-only)
+- [ ] Implement challenge rewards/badges system
+- [ ] Create challenge templates for common challenge types
+
+## Body Metrics Workflow Clarification
+- [ ] Simplify body metrics screen to focus on photo-first workflow
+- [ ] Primary action: Take photo or upload InBody scan printout
+- [ ] AI automatically extracts ALL metrics from the scan (no manual entry needed)
+- [ ] Store baseline from first scan
+- [ ] Track progress by comparing subsequent scans to baseline
+- [ ] Display trend charts showing changes over time
+- [ ] Optional: Allow manual entry only if AI extraction fails

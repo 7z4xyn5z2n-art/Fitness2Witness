@@ -95,7 +95,7 @@ export default function DashboardScreen() {
               className="bg-primary rounded-2xl p-5 items-center"
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(modals)/checkin");
+                router.push("/checkin");
               }}
             >
               <Text className="text-lg font-bold text-background">
@@ -107,7 +107,7 @@ export default function DashboardScreen() {
               className="bg-surface border-2 border-primary rounded-2xl p-5 items-center"
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(modals)/checkin-history");
+                router.push("/checkin-history");
               }}
             >
               <Text className="text-base font-semibold text-primary">📋 View Check-In History</Text>
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
               className="bg-success rounded-2xl p-5 items-center"
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(modals)/body-metrics");
+                router.push("/body-metrics");
               }}
             >
               <Text className="text-lg font-bold text-background">📊 Track Body Metrics</Text>

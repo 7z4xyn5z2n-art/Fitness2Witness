@@ -28,7 +28,7 @@ export default function CommunityScreen() {
 
           {/* Create Post Button */}
           <TouchableOpacity
-            onPress={() => router.push("/(modals)/create-post")}
+            onPress={() => router.push("/create-post")}
             className="bg-primary px-6 py-3 rounded-full active:opacity-80"
           >
             <Text className="text-background text-center font-semibold">✏️ Create Post</Text>
