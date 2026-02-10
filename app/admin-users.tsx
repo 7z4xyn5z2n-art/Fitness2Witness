@@ -103,7 +103,7 @@ export default function AdminUsersScreen() {
                     <Text className="text-lg font-semibold text-foreground">
                       {user.name}
                     </Text>
-                    <Text className="text-sm text-muted">{user.email}</Text>
+                    <Text className="text-sm text-muted">{user.phoneNumber ? `(${user.phoneNumber.slice(0,3)}) ${user.phoneNumber.slice(3,6)}-${user.phoneNumber.slice(6)}` : 'No phone'}</Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => handleRoleChange(String(user.id), user.role as UserRole)}

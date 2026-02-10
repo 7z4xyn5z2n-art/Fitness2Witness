@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { router, publicProcedure, protectedProcedure } from "./_core/trpc";
-import { emailAuthRouter } from "./routers/email-auth";
+import { phoneAuthRouter } from "./routers/phone-auth";
 import * as db from "./db";
 import { storagePut } from "./storage";
 
@@ -44,11 +44,9 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
-    // Email/password authentication
-    register: emailAuthRouter.register,
-    login: emailAuthRouter.login,
-    requestPasswordReset: emailAuthRouter.requestPasswordReset,
-    resetPassword: emailAuthRouter.resetPassword,
+    // Phone-based authentication
+    register: phoneAuthRouter.register,
+    login: phoneAuthRouter.login,
   }),
 
   // Daily Check-ins

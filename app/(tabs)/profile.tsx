@@ -40,7 +40,7 @@ export default function ProfileScreen() {
             </View>
             <View className="items-center">
               <Text className="text-2xl font-bold text-foreground">{user?.name || "User"}</Text>
-              <Text className="text-base text-muted">{user?.email}</Text>
+              <Text className="text-base text-muted">{user?.phoneNumber ? `(${user.phoneNumber.slice(0,3)}) ${user.phoneNumber.slice(3,6)}-${user.phoneNumber.slice(6)}` : ''}</Text>
             </View>
           </View>
 

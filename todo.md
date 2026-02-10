@@ -289,3 +289,30 @@
 - [x] Add view/delete challenge comments functionality
 - [x] Create admin API endpoints for user management
 - [x] Create admin API endpoints for content moderation
+
+## Phone-Based Authentication Redesign (CURRENT PRIORITY)
+
+### Backend Changes
+- [x] Update database schema to use phone number as primary identifier
+- [x] Remove email and password hash fields from users table
+- [x] Create phone-based registration endpoint
+- [x] Create phone-based login endpoint  
+- [x] Remove OAuth dependencies from authentication middleware
+- [x] Update session management to use phone number
+- [x] Simplify context creation to skip OAuth checks
+
+### Frontend Changes
+- [x] Update registration screen to collect name + phone number only
+- [x] Update login screen to only ask for phone number
+- [x] Remove all password input fields
+- [x] Update form validation for phone numbers (US format)
+- [ ] Test registration flow end-to-end
+- [ ] Test login flow end-to-end
+
+### Deployment & Testing
+- [ ] Deploy backend changes to Railway
+- [ ] Deploy frontend changes to Netlify
+- [ ] Test registration with real phone number
+- [ ] Test login with existing phone number
+- [ ] Verify user tracking works across all features
+- [ ] Create first admin user account via phone registration

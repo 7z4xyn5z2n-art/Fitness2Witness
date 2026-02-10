@@ -54,10 +54,8 @@ async function seed() {
 
   for (const user of testUsers) {
     const userResult = await db.insert(users).values({
-      openId: `test-${user.email}`,
+      phoneNumber: user.email.replace('@', '').replace(/\D/g, '').slice(0, 10).padEnd(10, '0'),
       name: user.name,
-      email: user.email,
-      loginMethod: "test",
       role: user.role,
       groupId,
     }).returning();

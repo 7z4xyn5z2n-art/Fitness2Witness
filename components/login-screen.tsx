@@ -1,109 +1,76 @@
-import { ActivityIndicator, Text, TextInput, TouchableOpacity, View, Alert } from "react-native";
 import { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "./screen-container";
-import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
 
 export function LoginScreen() {
   const colors = useColors();
-  const [mode, setMode] = useState<"login" | "register" | "reset">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [name, setName] = useState("");
-  const [resetToken, setResetToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const utils = trpc.useUtils();
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
+      setIsLoading(false);
       utils.auth.me.invalidate();
     },
     onError: (error) => {
-      Alert.alert("Login Failed", error.message);
       setIsLoading(false);
+      Alert.alert("Login Failed", error.message);
     },
   });
 
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: () => {
+      setIsLoading(false);
       utils.auth.me.invalidate();
     },
     onError: (error) => {
+      setIsLoading(false);
       Alert.alert("Registration Failed", error.message);
-      setIsLoading(false);
     },
   });
 
-  const resetRequestMutation = trpc.auth.requestPasswordReset.useMutation({
-    onSuccess: (data) => {
-      Alert.alert(
-        "Reset Email Sent",
-        data.message + (data.resetToken ? `\n\nToken: ${data.resetToken}` : "")
-      );
-      setIsLoading(false);
-    },
-    onError: (error) => {
-      Alert.alert("Reset Failed", error.message);
-      setIsLoading(false);
-    },
-  });
-
-  const resetPasswordMutation = trpc.auth.resetPassword.useMutation({
-    onSuccess: (data) => {
-      Alert.alert("Success", data.message);
-      setMode("login");
-      setIsLoading(false);
-    },
-    onError: (error) => {
-      Alert.alert("Reset Failed", error.message);
-      setIsLoading(false);
-    },
-  });
+  const formatPhoneNumber = (text: string) => {
+    // Remove all non-digits
+    const digits = text.replace(/\D/g, "");
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    setPhoneNumber(limited);
+  };
 
   const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+    if (!phoneNumber) {
+      Alert.alert("Error", "Please enter your phone number");
+      return;
+    }
+    if (phoneNumber.length !== 10) {
+      Alert.alert("Error", "Phone number must be 10 digits");
       return;
     }
     setIsLoading(true);
-    loginMutation.mutate({ email, password });
+    loginMutation.mutate({ phoneNumber });
   };
 
   const handleRegister = () => {
-    if (!email || !password || !name) {
+    if (!phoneNumber || !name) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-    if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+    if (phoneNumber.length !== 10) {
+      Alert.alert("Error", "Phone number must be 10 digits");
+      return;
+    }
+    if (name.trim().length < 2) {
+      Alert.alert("Error", "Please enter your full name");
       return;
     }
     setIsLoading(true);
-    registerMutation.mutate({ email, password, name });
-  };
-
-  const handleRequestReset = () => {
-    if (!email) {
-      Alert.alert("Error", "Please enter your email");
-      return;
-    }
-    setIsLoading(true);
-    resetRequestMutation.mutate({ email });
-  };
-
-  const handleResetPassword = () => {
-    if (!resetToken || !newPassword) {
-      Alert.alert("Error", "Please enter reset token and new password");
-      return;
-    }
-    if (newPassword.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
-      return;
-    }
-    setIsLoading(true);
-    resetPasswordMutation.mutate({ token: resetToken, newPassword });
+    registerMutation.mutate({ phoneNumber, name: name.trim() });
   };
 
   return (
@@ -125,22 +92,13 @@ export function LoginScreen() {
           <View className="w-full gap-4">
             <TextInput
               className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="Email"
+              placeholder="Phone Number (10 digits)"
               placeholderTextColor={colors.muted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              value={phoneNumber}
+              onChangeText={formatPhoneNumber}
+              keyboardType="phone-pad"
               editable={!isLoading}
-            />
-            <TextInput
-              className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="Password"
-              placeholderTextColor={colors.muted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
+              maxLength={10}
             />
             <TouchableOpacity
               onPress={handleLogin}
@@ -154,14 +112,9 @@ export function LoginScreen() {
                 <Text className="text-background text-center font-semibold text-lg">Sign In</Text>
               )}
             </TouchableOpacity>
-            <View className="flex-row justify-between">
-              <TouchableOpacity onPress={() => setMode("register")} disabled={isLoading}>
-                <Text className="text-primary text-sm">Create Account</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setMode("reset")} disabled={isLoading}>
-                <Text className="text-primary text-sm">Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => setMode("register")} disabled={isLoading}>
+              <Text className="text-primary text-sm text-center">Create Account</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -174,26 +127,18 @@ export function LoginScreen() {
               placeholderTextColor={colors.muted}
               value={name}
               onChangeText={setName}
+              autoCapitalize="words"
               editable={!isLoading}
             />
             <TextInput
               className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="Email"
+              placeholder="Phone Number (10 digits)"
               placeholderTextColor={colors.muted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              value={phoneNumber}
+              onChangeText={formatPhoneNumber}
+              keyboardType="phone-pad"
               editable={!isLoading}
-            />
-            <TextInput
-              className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="Password (min 8 characters)"
-              placeholderTextColor={colors.muted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
+              maxLength={10}
             />
             <TouchableOpacity
               onPress={handleRegister}
@@ -209,82 +154,6 @@ export function LoginScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setMode("login")}
-              disabled={isLoading}
-              className="items-center"
-            >
-              <Text className="text-primary text-sm">Back to Sign In</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Password Reset Form */}
-        {mode === "reset" && (
-          <View className="w-full gap-4">
-            <Text className="text-sm text-muted text-center">
-              Enter your email to receive a password reset token
-            </Text>
-            <TextInput
-              className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="Email"
-              placeholderTextColor={colors.muted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
-            <TouchableOpacity
-              onPress={handleRequestReset}
-              disabled={isLoading}
-              className="w-full bg-primary px-6 py-4 rounded-full active:opacity-80"
-              style={{ opacity: isLoading ? 0.6 : 1 }}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text className="text-background text-center font-semibold text-lg">
-                  Send Reset Token
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <Text className="text-sm text-muted text-center mt-4">
-              Have a reset token? Enter it below:
-            </Text>
-            <TextInput
-              className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="Reset Token"
-              placeholderTextColor={colors.muted}
-              value={resetToken}
-              onChangeText={setResetToken}
-              editable={!isLoading}
-            />
-            <TextInput
-              className="w-full bg-surface px-4 py-3 rounded-lg text-foreground"
-              placeholder="New Password (min 8 characters)"
-              placeholderTextColor={colors.muted}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              editable={!isLoading}
-            />
-            <TouchableOpacity
-              onPress={handleResetPassword}
-              disabled={isLoading}
-              className="w-full bg-primary px-6 py-4 rounded-full active:opacity-80"
-              style={{ opacity: isLoading ? 0.6 : 1 }}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text className="text-background text-center font-semibold text-lg">
-                  Reset Password
-                </Text>
-              )}
-            </TouchableOpacity>
-
             <TouchableOpacity
               onPress={() => setMode("login")}
               disabled={isLoading}

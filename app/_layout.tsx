@@ -81,7 +81,7 @@ export default function RootLayout() {
     };
   }, [initialInsets, initialFrame]);
 
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -91,7 +91,7 @@ export default function RootLayout() {
             <View className="flex-1 items-center justify-center bg-background">
               <ActivityIndicator size="large" />
             </View>
-          ) : !isAuthenticated ? (
+          ) : !user ? (
             <LoginScreen />
           ) : (
             <Stack screenOptions={{ headerShown: false }}>
