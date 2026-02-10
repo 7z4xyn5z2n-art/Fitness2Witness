@@ -55,7 +55,25 @@ export async function getDb() {
       _pool = new Pool({
         connectionString: process.env.DATABASE_URL,
       });
-      _db = drizzle(_pool);
+      _db = drizzle(_pool, {
+        schema: {
+          users,
+          groups,
+          challenges,
+          dailyCheckins,
+          weeklyAttendance,
+          pointAdjustments,
+          communityPosts,
+          postComments,
+          groupChatMessages,
+          groupChallenges,
+          challengeParticipants,
+          challengeProgress,
+          challengeComments,
+          bodyMetrics,
+          userBadges,
+        },
+      });
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

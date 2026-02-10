@@ -17,10 +17,16 @@ export const users = pgTable("users", {
    * Use this for relations between tables.
    */
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. Optional for email/password auth. */
+  openId: varchar("openId", { length: 64 }).unique(),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
+  email: varchar("email", { length: 320 }).unique(),
+  /** Hashed password for email/password authentication */
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  /** Password reset token */
+  resetToken: varchar("resetToken", { length: 255 }),
+  /** Password reset token expiration */
+  resetTokenExpiry: timestamp("resetTokenExpiry"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: roleEnum("role").default("user").notNull(),
   groupId: integer("groupId"),
