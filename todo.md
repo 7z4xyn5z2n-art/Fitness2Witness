@@ -590,3 +590,10 @@
 - [x] Regenerate pnpm-lock.yaml (removed 184 packages including drizzle-kit)
 - [ ] Push updated lockfile to GitHub
 - [ ] Verify deployments succeed
+
+## Migration SSL Error on Render
+- [x] Add SSL configuration to migration script (rejectUnauthorized: false)
+- [ ] Deploy fix to GitHub
+- [ ] Verify migrations complete successfully
+- [ ] Confirm all 17 tables created
+- [ ] Test check-in submission

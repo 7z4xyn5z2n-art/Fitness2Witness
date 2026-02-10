@@ -18,7 +18,10 @@ async function runMigrations() {
     process.exit(1);
   }
 
-  const pool = new Pool({ connectionString: DATABASE_URL });
+  const pool = new Pool({ 
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Required for Render PostgreSQL
+  });
   
   try {
     console.log('Starting database migrations...');
