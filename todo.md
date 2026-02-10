@@ -551,3 +551,9 @@
 - [ ] Confirm leaderboard updates in real-time
 - [ ] Test weekly totals calculation
 - [ ] Verify all metrics display correctly on dashboard
+
+## Critical: Netlify Build Failure
+- [x] Fix Netlify build failing due to drizzle-kit installation
+- [x] Configure Netlify to skip backend dependencies (moved to optionalDependencies)
+- [ ] Verify Netlify deployment succeeds
+- [ ] Verify Render deployment still works with migrations

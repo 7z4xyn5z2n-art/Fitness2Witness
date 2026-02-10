@@ -34,7 +34,6 @@
     "clsx": "^2.1.1",
     "cookie": "^1.1.1",
     "dotenv": "^16.6.1",
-    "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.44.7",
     "expo": "~54.0.29",
     "expo-audio": "~1.1.0",
@@ -74,6 +73,9 @@
     "superjson": "^1.13.3",
     "tailwind-merge": "^2.6.0",
     "zod": "^4.2.1"
+  },
+  "optionalDependencies": {
+    "drizzle-kit": "^0.31.8"
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
