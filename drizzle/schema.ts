@@ -244,3 +244,21 @@ export const challengeComments = pgTable("challengeComments", {
 
 export type ChallengeComment = typeof challengeComments.$inferSelect;
 export type InsertChallengeComment = typeof challengeComments.$inferInsert;
+
+// User targets table for storing InBody recommended/target values
+export const userTargets = pgTable("userTargets", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("userId").notNull().unique(), // One set of targets per user (latest InBody scan)
+  targetWeight: real("targetWeight"), // Target weight in lbs
+  targetBodyFat: real("targetBodyFat"), // Target body fat %
+  recommendedCalories: integer("recommendedCalories"), // Daily calorie target
+  recommendedCarbs: integer("recommendedCarbs"), // Daily carbs in grams
+  recommendedProtein: integer("recommendedProtein"), // Daily protein in grams
+  recommendedFat: integer("recommendedFat"), // Daily fat in grams
+  sourceDate: timestamp("sourceDate").notNull(), // Date of InBody scan that generated these targets
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type UserTarget = typeof userTargets.$inferSelect;
+export type InsertUserTarget = typeof userTargets.$inferInsert;

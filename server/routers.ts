@@ -902,6 +902,10 @@ export const appRouter = router({
       return db.getUserBodyMetrics(ctx.user.id);
     }),
 
+    getMyTargets: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserTargets(ctx.user.id);
+    }),
+
     getMetricsByDateRange: protectedProcedure
       .input(
         z.object({
@@ -984,16 +988,26 @@ export const appRouter = router({
 
     analyzeInBodyScan: protectedProcedure
       .input(z.object({ imageBase64: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         // Use AI to analyze InBody scan image
         const { invokeLLM } = await import("./_core/llm.js");
 
-        const prompt = `You are analyzing an InBody body composition analysis scan. Extract the following metrics if visible:
+        const prompt = `You are analyzing an InBody body composition analysis scan. Extract ALL visible metrics including current values AND recommended/target values:
+
+CURRENT METRICS:
 - Weight (in pounds or kg)
 - Body Fat Percentage (%)
 - Muscle Mass (in pounds or kg)
 - Visceral Fat Level
 - BMR (Basal Metabolic Rate)
+
+RECOMMENDED/TARGET VALUES (often shown as goals or ranges):
+- Target Weight
+- Target Body Fat %
+- Recommended Daily Calories
+- Recommended Carbs (grams per day)
+- Recommended Protein (grams per day)
+- Recommended Fat (grams per day)
 
 Respond ONLY with a JSON object in this exact format:
 {
@@ -1001,7 +1015,13 @@ Respond ONLY with a JSON object in this exact format:
   "bodyFatPercent": number or null,
   "muscleMass": number or null,
   "visceralFat": number or null,
-  "bmr": number or null
+  "bmr": number or null,
+  "targetWeight": number or null,
+  "targetBodyFat": number or null,
+  "recommendedCalories": number or null,
+  "recommendedCarbs": number or null,
+  "recommendedProtein": number or null,
+  "recommendedFat": number or null
 }
 
 If a metric is not visible or cannot be determined, use null. Do not include any other text.`;
@@ -1028,15 +1048,63 @@ If a metric is not visible or cannot be determined, use null. Do not include any
 
         try {
           const parsed = JSON.parse(responseText);
+          
+          // Get user and group info
+          const user = await db.getUserById(ctx.user.id);
+          if (!user || !user.groupId) {
+            throw new Error("User must be assigned to a group");
+          }
+
+          const activeChallenges = await db.getActiveChallenges();
+          if (activeChallenges.length === 0) {
+            throw new Error("No active challenge found");
+          }
+
+          // Save the body metrics automatically
+          await db.createBodyMetric({
+            userId: ctx.user.id,
+            groupId: user.groupId,
+            challengeId: activeChallenges[0].id,
+            date: new Date(),
+            weight: parsed.weight,
+            bodyFatPercent: parsed.bodyFatPercent,
+            muscleMass: parsed.muscleMass,
+            visceralFat: parsed.visceralFat,
+            bmr: parsed.bmr,
+            notes: "InBody scan",
+          });
+
+          // Save recommended targets if any were extracted
+          if (parsed.targetWeight || parsed.recommendedCalories || parsed.recommendedCarbs) {
+            await db.upsertUserTargets({
+              userId: ctx.user.id,
+              targetWeight: parsed.targetWeight,
+              targetBodyFat: parsed.targetBodyFat,
+              recommendedCalories: parsed.recommendedCalories,
+              recommendedCarbs: parsed.recommendedCarbs,
+              recommendedProtein: parsed.recommendedProtein,
+              recommendedFat: parsed.recommendedFat,
+              sourceDate: new Date(),
+            });
+          }
+          
           return {
             weight: parsed.weight,
             bodyFatPercent: parsed.bodyFatPercent,
             muscleMass: parsed.muscleMass,
             visceralFat: parsed.visceralFat,
             bmr: parsed.bmr,
+            targets: {
+              targetWeight: parsed.targetWeight,
+              targetBodyFat: parsed.targetBodyFat,
+              recommendedCalories: parsed.recommendedCalories,
+              recommendedCarbs: parsed.recommendedCarbs,
+              recommendedProtein: parsed.recommendedProtein,
+              recommendedFat: parsed.recommendedFat,
+            },
           };
         } catch (error) {
-          throw new Error("Failed to parse InBody scan results. Please try again or enter manually.");
+          throw new Error("Failed to parse InBody scan results. Please try again or ensure the photo is clear.");
         }
       }),
   }),

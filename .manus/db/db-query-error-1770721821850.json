@@ -1,0 +1,19 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS \"userTargets\" (\n  \"id\" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  \"userId\" integer NOT NULL UNIQUE,\n  \"targetWeight\" real,\n  \"targetBodyFat\" real,\n  \"recommendedCalories\" integer,\n  \"recommendedCarbs\" integer,\n  \"recommendedProtein\" integer,\n  \"recommendedFat\" integer,\n  \"sourceDate\" timestamp NOT NULL,\n  \"createdAt\" timestamp DEFAULT now() NOT NULL,\n  \"updatedAt\" timestamp DEFAULT now() NOT NULL\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 49jrixUryxHWuBR.root --database mxmNzPwB3sbD83nhfzUWBi --execute CREATE TABLE IF NOT EXISTS \"userTargets\" (\n  \"id\" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  \"userId\" integer NOT NULL UNIQUE,\n  \"targetWeight\" real,\n  \"targetBodyFat\" real,\n  \"recommendedCalories\" integer,\n  \"recommendedCarbs\" integer,\n  \"recommendedProtein\" integer,\n  \"recommendedFat\" integer,\n  \"sourceDate\" timestamp NOT NULL,\n  \"createdAt\" timestamp DEFAULT now() NOT NULL,\n  \"updatedAt\" timestamp DEFAULT now() NOT NULL\n);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 40 near \"\"userTargets\" (",
+    "  \"id\" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,",
+    "  \"userId\" integer NOT NULL UNIQUE,",
+    "  \"targetWeight\" real,",
+    "  \"targetBodyFat\" real,",
+    "  \"recommendedCalories\" integer,",
+    "  \"recommendedCarbs\" integer,",
+    "  \"recommendedProtein\" integer,",
+    "  \"recommendedFat\" integer,",
+    "  \"sourceDate\" timestamp NOT NULL,",
+    "  \"createdAt\" timestamp DEFAULT now() NOT NULL,",
+    "  \"up"
+  ]
+}

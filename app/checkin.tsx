@@ -19,6 +19,9 @@ type CategoryPhotos = {
 export default function CheckinScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
+  
+  // Fetch user targets from InBody scan
+  const { data: targets } = trpc.bodyMetrics.getMyTargets.useQuery();
 
   const [nutritionDone, setNutritionDone] = useState(false);
   const [hydrationDone, setHydrationDone] = useState(false);
@@ -230,15 +233,35 @@ export default function CheckinScreen() {
               {nutritionDone && (
                 <View className="mt-4 gap-3">
                   <View>
-                    <Text className="text-sm font-semibold text-foreground mb-2">Carb Count (Optional)</Text>
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text className="text-sm font-semibold text-foreground">Carb Count (Optional)</Text>
+                      {targets?.recommendedCarbs && carbCount && (
+                        <Text className="text-xs text-primary font-semibold">
+                          {carbCount}g / {targets.recommendedCarbs}g target
+                        </Text>
+                      )}
+                    </View>
                     <TextInput
                       value={carbCount}
                       onChangeText={setCarbCount}
-                      placeholder="Enter carbs in grams..."
+                      placeholder={targets?.recommendedCarbs ? `Target: ${targets.recommendedCarbs}g per day` : "Enter carbs in grams..."}
                       placeholderTextColor="#9BA1A6"
                       keyboardType="numeric"
                       className="bg-background border border-border rounded-xl p-3 text-foreground"
                     />
+                    {targets?.recommendedCarbs && carbCount && (
+                      <View className="mt-2">
+                        <View className="h-2 bg-border rounded-full overflow-hidden">
+                          <View 
+                            className="h-full bg-primary rounded-full"
+                            style={{ width: `${Math.min((parseFloat(carbCount) / targets.recommendedCarbs) * 100, 100)}%` }}
+                          />
+                        </View>
+                        <Text className="text-xs text-muted mt-1">
+                          {((parseFloat(carbCount) / targets.recommendedCarbs) * 100).toFixed(0)}% of daily target
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   <View>

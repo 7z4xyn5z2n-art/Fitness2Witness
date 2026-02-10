@@ -15,6 +15,7 @@ import {
   pointAdjustments,
   postComments,
   userBadges,
+  userTargets,
   users,
   weeklyAttendance,
   type BodyMetric,
@@ -36,7 +37,9 @@ import {
   type InsertPostComment,
   type InsertUser,
   type InsertUserBadge,
+  type InsertUserTarget,
   type InsertWeeklyAttendance,
+  type UserTarget,
   type PointAdjustment,
   type UserBadge,
   type PostComment,
@@ -1291,4 +1294,41 @@ export async function createPost(post: InsertCommunityPost) {
 // Get daily check-in (alias for getCheckinByUserIdAndDate)
 export async function getDailyCheckin(userId: number, date: Date) {
   return getCheckinByUserIdAndDate(userId, date);
+}
+
+// User Targets functions
+export async function getUserTargets(userId: number): Promise<UserTarget | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user targets: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(userTargets).where(eq(userTargets.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function upsertUserTargets(targets: InsertUserTarget): Promise<UserTarget | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot upsert user targets: database not available");
+    return undefined;
+  }
+
+  // Check if targets already exist for this user
+  const existing = await getUserTargets(targets.userId);
+
+  if (existing) {
+    // Update existing targets
+    const result = await db
+      .update(userTargets)
+      .set({ ...targets, updatedAt: new Date() })
+      .where(eq(userTargets.userId, targets.userId))
+      .returning();
+    return result[0];
+  } else {
+    // Insert new targets
+    const result = await db.insert(userTargets).values(targets).returning();
+    return result[0];
+  }
 }

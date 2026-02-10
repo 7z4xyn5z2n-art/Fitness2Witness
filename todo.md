@@ -399,3 +399,16 @@
 - [ ] Track progress by comparing subsequent scans to baseline
 - [ ] Display trend charts showing changes over time
 - [ ] Optional: Allow manual entry only if AI extraction fails
+
+## InBody Target Tracking System
+- [ ] Enhance AI InBody extraction to capture recommended targets (carbs, calories, protein, etc.)
+- [ ] Store InBody baseline targets in database (linked to user)
+- [ ] Update check-in screen to display carb progress (e.g., "150g / 200g target")
+- [ ] Show visual progress indicators for nutrition targets
+- [ ] Compile all workout entries from check-ins into aggregated view
+- [ ] Calculate total workout volume (minutes, frequency, intensity distribution)
+- [ ] Build correlation analysis: nutrition adherence vs body composition changes
+- [ ] Build correlation analysis: workout consistency vs body composition changes
+- [ ] Add insights dashboard showing how daily actions impact InBody metrics
+- [ ] Display average daily carbs vs target over time
+- [ ] Show workout frequency trends and correlation with weight/body fat changes
