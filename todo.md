@@ -436,3 +436,30 @@
 - [x] Add trophy emojis (🥇🥈🥉) and colored borders for top 3
 - [x] Add descriptive labels (Top Performer, Runner Up, Bronze Medal)
 - [x] Ensure all users can see the full leaderboard ranked by points
+
+## Profile Pictures & Avatars (2026-02-10)
+
+- [ ] Add profile picture upload functionality to profile screen
+- [ ] Add avatar selection option (preset avatars for users who don't want to upload)
+- [ ] Store profile picture URL in user database
+- [ ] Display profile pictures on leaderboard next to names
+- [ ] Display profile pictures on community posts
+- [ ] Display profile picture on profile screen header
+- [ ] Add default avatar for users without uploaded pictures
+
+## Weekly Winner Celebration System (2026-02-10)
+
+- [ ] Create backend cron job to detect week end (Sunday 11:59 PM)
+- [ ] Identify #1 performer for the week
+- [ ] Generate AI congratulations message (authentic, personalized with stats)
+- [ ] Post celebration message to community feed automatically
+- [ ] Send text message to winner with celebration message
+- [ ] Include winner's weekly stats in message (points, check-ins completed, achievements)
+- [ ] Add celebration badge/icon to winner's profile for the week
+
+## URGENT: Login Not Working (2026-02-10)
+
+- [x] User enters phone number but stays on auth page (doesn't redirect to app)
+- [x] Removed blocking Alert that prevented redirect
+- [x] Added 500ms delay to ensure session cookie is set
+- [x] Fixed loading state to persist during redirect

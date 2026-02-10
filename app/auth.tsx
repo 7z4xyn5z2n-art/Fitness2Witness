@@ -1,4 +1,4 @@
-import { Text, View, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Text, View, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useState } from "react";
 import { router } from "expo-router";
@@ -47,22 +47,25 @@ export default function AuthScreen() {
 
     try {
       if (isLogin) {
-        await loginMutation.mutateAsync({ phoneNumber });
-        Alert.alert("Success", "Logged in successfully!");
+        const result = await loginMutation.mutateAsync({ phoneNumber });
+        console.log("Login successful:", result);
+        // Small delay to ensure session cookie is set
+        await new Promise(resolve => setTimeout(resolve, 500));
         router.replace("/(tabs)");
       } else {
-        await registerMutation.mutateAsync({ name: name.trim(), phoneNumber });
-        Alert.alert("Success", "Account created successfully!");
+        const result = await registerMutation.mutateAsync({ name: name.trim(), phoneNumber });
+        console.log("Registration successful:", result);
+        // Small delay to ensure session cookie is set
+        await new Promise(resolve => setTimeout(resolve, 500));
         router.replace("/(tabs)");
       }
     } catch (error: any) {
       console.error("Auth error:", error);
+      setLoading(false);
       Alert.alert(
         "Error",
         error.message || (isLogin ? "Login failed. Please check your phone number." : "Registration failed. This number may already be registered.")
       );
-    } finally {
-      setLoading(false);
     }
   };
 
