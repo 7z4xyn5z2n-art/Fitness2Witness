@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "22"
   EXPO_USE_METRO_WORKSPACE_ROOT = "1"
+  EXPO_PUBLIC_API_BASE_URL = "https://fitness2witness.onrender.com"
 
 [[redirects]]
   from = "/*"

@@ -648,4 +648,20 @@
 - [x] Check session token storage and retrieval
 - [x] Fix authentication to work on first attempt (added page reload after login)
 - [x] Test login flow works on first try
-- [ ] Deploy fix to production (ready to push)
+- [x] Deploy fix to production (pushed to GitHub)
+
+## Frontend Not Connected to Correct Backend (ROOT CAUSE)
+- [x] Discovered Netlify frontend not using correct API URL
+- [x] EXPO_PUBLIC_API_BASE_URL not set in Netlify build environment
+- [x] Added API URL to netlify.toml build environment
+- [ ] Push to GitHub to trigger Netlify rebuild
+- [ ] Verify frontend connects to https://fitness2witness.onrender.com
+
+## Migration System Issues (FIXED)
+- [x] Identified tsx not available in production (devDependency)
+- [x] Migration files not copied to dist/ folder during build
+- [x] Created production-ready migrate.mjs that embeds SQL (no file reading)
+- [x] Added migrate:deploy script that uses node (not tsx)
+- [ ] Push to GitHub
+- [ ] Set Render Pre-Deploy Command to: pnpm run migrate:deploy
+- [ ] Verify migrations run on next deployment
