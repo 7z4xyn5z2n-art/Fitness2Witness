@@ -1,0 +1,12 @@
+[build]
+  command = "pnpm install && npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  EXPO_USE_METRO_WORKSPACE_ROOT = "1"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
