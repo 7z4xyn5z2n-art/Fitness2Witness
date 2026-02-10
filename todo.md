@@ -504,3 +504,19 @@
 - [x] Automatically clear invalid tokens from localStorage/SecureStore
 - [x] Force redirect to login when token is invalid
 - [ ] Test logout properly clears all auth state
+
+## Critical Bug: 500 Error After Login
+- [ ] Login succeeds but 500 error prevents redirect to dashboard
+- [ ] Investigate what API call is failing after login
+- [ ] Check Render logs for actual error message
+- [ ] Fix backend error causing 500 response
+- [ ] Test login redirects to dashboard successfully
+
+## Critical Bug: Backend Endpoint 500 Errors
+- [x] Fix metrics.getMyMetrics endpoint (500 Internal Server Error) - added postbuild migration
+- [x] Fix bodyMetrics.getMyTargets endpoint (500 Internal Server Error) - added postbuild migration
+- [x] Fix checkins.submit endpoint (500 Internal Server Error) - added postbuild migration
+- [x] Set user role to admin in database
+- [ ] Verify admin tab appears for admin users after deployment
+- [ ] Test logout button works properly
+- [ ] Test export button works properly
