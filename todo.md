@@ -631,3 +631,13 @@
 - [ ] Create default group linked to challenge
 - [ ] Assign user (Quay Merida, ID: 2) to group
 - [ ] Test metrics endpoint
+
+## 500 Error Fix - Database Setup (COMPLETED)
+- [x] Added console.error logging to identify exact error
+- [x] Discovered user has groupId: null causing check-in failures
+- [x] Created migration 002_setup_initial_data.sql to:
+  - Create default challenge (Fitness2Witness Challenge, Feb 10 - May 4, 2026)
+  - Create default pilot group linked to challenge
+  - Auto-assign all users with null groupId to pilot group
+  - Set user ID 2 (Quay Merida) as admin role
+- [x] Pushed migration to GitHub for automatic deployment on Render
