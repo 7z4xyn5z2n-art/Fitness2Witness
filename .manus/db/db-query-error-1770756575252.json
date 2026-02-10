@@ -1,0 +1,18 @@
+{
+  "query": "-- Create a default challenge (12 weeks from now)\nINSERT INTO challenges (name, description, \"startDate\", \"endDate\", type, \"isActive\")\nVALUES (\n  'Fitness2Witness Challenge',\n  '12-week group fitness and faith challenge',\n  '2026-02-10',\n  '2026-05-04',\n  'custom',\n  true\n)\nON CONFLICT DO NOTHING\nRETURNING id;\n\n-- Create a default group linked to the challenge\nINSERT INTO groups (name, \"challengeId\", \"isActive\")\nVALUES (\n  'Pilot Group',\n  1,  -- Assuming the challenge ID is 1\n  true\n)\nON CONFLICT DO NOTHING\nRETURNING id;\n\n-- Assign user ID 2 (Quay Merida) to the group\nUPDATE users\nSET \"groupId\" = 1  -- Assuming the group ID is 1\nWHERE id = 2;\n\n-- Verify the update\nSELECT id, name, \"groupId\", role FROM users WHERE id = 2;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 49jrixUryxHWuBR.root --database mxmNzPwB3sbD83nhfzUWBi --execute -- Create a default challenge (12 weeks from now)\nINSERT INTO challenges (name, description, \"startDate\", \"endDate\", type, \"isActive\")\nVALUES (\n  'Fitness2Witness Challenge',\n  '12-week group fitness and faith challenge',\n  '2026-02-10',\n  '2026-05-04',\n  'custom',\n  true\n)\nON CONFLICT DO NOTHING\nRETURNING id;\n\n-- Create a default group linked to the challenge\nINSERT INTO groups (name, \"challengeId\", \"isActive\")\nVALUES (\n  'Pilot Group',\n  1,  -- Assuming the challenge ID is 1\n  true\n)\nON CONFLICT DO NOTHING\nRETURNING id;\n\n-- Assign user ID 2 (Quay Merida) to the group\nUPDATE users\nSET \"groupId\" = 1  -- Assuming the group ID is 1\nWHERE id = 2;\n\n-- Verify the update\nSELECT id, name, \"groupId\", role FROM users WHERE id = 2;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 2: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 54 near \"\"startDate\", \"endDate\", type, \"isActive\")",
+    "VALUES (",
+    "  'Fitness2Witness Challenge',",
+    "  '12-week group fitness and faith challenge',",
+    "  '2026-02-10',",
+    "  '2026-05-04',",
+    "  'custom',",
+    "  true",
+    ")",
+    "ON CONFLICT DO NOTHING",
+    "RETURNING id\""
+  ]
+}

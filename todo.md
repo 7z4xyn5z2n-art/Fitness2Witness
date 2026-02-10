@@ -623,7 +623,7 @@
 - [x] Verified request reaches backend (auth logs show user loaded)
 - [x] No error message in Render logs (errors being swallowed)
 - [x] Add console.error logging to checkins.submit endpoint
-- [ ] Deploy and test to see actual error
+- [x] Deploy and test to see actual error (pushed to GitHub)
 - [ ] Fix the identified issue
 
 ## User Group Assignment Missing (for metrics)
