@@ -326,5 +326,7 @@
 - [x] Delete old migration files that reference NOT NULL phoneNumber
 - [x] Generate fresh migration from current schema
 - [x] Clear existing test users from database
+- [x] Add phoneNumber column directly to database
+- [x] Remove db:push from Railway start command
 - [ ] Verify Railway deployment succeeds
 - [ ] Test registration with phone number

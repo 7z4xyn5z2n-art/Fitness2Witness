@@ -1,0 +1,45 @@
+{
+  "query": "SELECT * FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 49jrixUryxHWuBR.root --database mxmNzPwB3sbD83nhfzUWBi --execute SELECT * FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "1591317",
+      "hash": "83478106ee0b79c262a9140418fb388fddaee60f04b459d9f4579b912216a2a9",
+      "created_at": "1770651748575"
+    },
+    {
+      "id": "1591316",
+      "hash": "fac17443ecc8f8620d2b060a5efc8c797ff88b99c74d62de8b384597ea862f33",
+      "created_at": "1770651043678"
+    },
+    {
+      "id": "1349602",
+      "hash": "d661c2eb2199b6c5b14dd8db5511f6803c6b1ba7858144660bbe46c5cc706b2f",
+      "created_at": "1770644147422"
+    },
+    {
+      "id": "4",
+      "hash": "ce4e429dd2bc8fbd026c16b99276462f3cd8af9a45abe74a4da8f068fe0769e5",
+      "created_at": "1770613506097"
+    },
+    {
+      "id": "3",
+      "hash": "ea07430e453c224747fe56724e8a7d1b7f8bcce45fa7d768f3452df8996ebd04",
+      "created_at": "1770612614844"
+    },
+    {
+      "id": "2",
+      "hash": "27da38b56f3ac18928169b01cc04041292e0a251df3f0d6466835fe24cfa067b",
+      "created_at": "1770608721936"
+    },
+    {
+      "id": "1",
+      "hash": "814a08e40d7fc2bcfd458759d18319198ca8ae394f2fa15617a78678e9c9c93b",
+      "created_at": "1763372440610"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\thash\tcreated_at\n1591317\t83478106ee0b79c262a9140418fb388fddaee60f04b459d9f4579b912216a2a9\t1770651748575\n1591316\tfac17443ecc8f8620d2b060a5efc8c797ff88b99c74d62de8b384597ea862f33\t1770651043678\n1349602\td661c2eb2199b6c5b14dd8db5511f6803c6b1ba7858144660bbe46c5cc706b2f\t1770644147422\n4\tce4e429dd2bc8fbd026c16b99276462f3cd8af9a45abe74a4da8f068fe0769e5\t1770613506097\n3\tea07430e453c224747fe56724e8a7d1b7f8bcce45fa7d768f3452df8996ebd04\t1770612614844\n2\t27da38b56f3ac18928169b01cc04041292e0a251df3f0d6466835fe24cfa067b\t1770608721936\n1\t814a08e40d7fc2bcfd458759d18319198ca8ae394f2fa15617a78678e9c9c93b\t1763372440610\n",
+  "stderr": "",
+  "execution_time_ms": 65
+}
