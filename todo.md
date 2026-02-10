@@ -463,3 +463,9 @@
 - [x] Removed blocking Alert that prevented redirect
 - [x] Added 500ms delay to ensure session cookie is set
 - [x] Fixed loading state to persist during redirect
+
+## Critical Bug: Login Redirect Issue
+- [ ] Fix cross-origin cookie authentication between Netlify frontend and Render backend
+- [ ] Ensure session cookies are properly set and sent with SameSite=None; Secure
+- [ ] Verify auth.me query returns user data after successful login
+- [ ] Test login flow redirects to dashboard instead of staying on auth page

@@ -77,10 +77,12 @@ export const phoneAuthRouter = router({
 
       // Set session cookie
       const cookieOptions = getSessionCookieOptions(ctx.req);
+      console.log('[Login] Setting cookie with options:', JSON.stringify(cookieOptions));
       ctx.res.cookie(COOKIE_NAME, sessionToken, {
         ...cookieOptions,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
+      console.log('[Login] Cookie set successfully');
 
       return {
         success: true,
@@ -143,10 +145,12 @@ export const phoneAuthRouter = router({
 
       // Set session cookie
       const cookieOptions = getSessionCookieOptions(ctx.req);
+      console.log('[Login] Setting cookie with options:', JSON.stringify(cookieOptions));
       ctx.res.cookie(COOKIE_NAME, sessionToken, {
         ...cookieOptions,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
+      console.log('[Login] Cookie set successfully');
 
       return {
         success: true,

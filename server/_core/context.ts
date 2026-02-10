@@ -19,14 +19,19 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
   try {
     // Parse cookies from request
     const cookieHeader = opts.req.headers.cookie;
+    console.log('[Auth Debug] Cookie header:', cookieHeader ? 'present' : 'missing');
+    
     if (!cookieHeader) {
+      console.log('[Auth Debug] No cookie header found');
       return { req: opts.req, res: opts.res, user: null };
     }
 
     const cookies = parseCookieHeader(cookieHeader);
     const sessionToken = cookies[COOKIE_NAME];
+    console.log('[Auth Debug] Session token:', sessionToken ? 'found' : 'missing');
 
     if (!sessionToken) {
+      console.log('[Auth Debug] No session token in cookies');
       return { req: opts.req, res: opts.res, user: null };
     }
 
@@ -35,13 +40,16 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
     const userId = payload.userId as number;
 
     if (!userId) {
+      console.log('[Auth Debug] No userId in token payload');
       return { req: opts.req, res: opts.res, user: null };
     }
 
     // Get user from database
     user = await db.getUserById(userId) ?? null;
+    console.log('[Auth Debug] User loaded:', user ? `${user.name} (ID: ${user.id})` : 'not found');
   } catch (error) {
     // Authentication is optional for public procedures
+    console.log('[Auth Debug] Error:', error instanceof Error ? error.message : 'Unknown error');
     user = null;
   }
 

@@ -48,13 +48,19 @@ export function getSessionCookieOptions(
   req: Request,
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   const hostname = req.hostname;
+  
+  // For cross-origin requests (frontend on different domain), don't set domain
+  // This ensures cookie stays on backend domain and is sent via credentials: include
   const domain = getParentDomain(hostname);
 
   return {
-    domain,
+    // Don't set domain for cross-origin - let browser handle it
+    domain: undefined,
     httpOnly: true,
     path: "/",
+    // SameSite=None required for cross-origin cookies
     sameSite: "none",
-    secure: isSecureRequest(req),
+    // Secure=true required when SameSite=None
+    secure: true,
   };
 }
