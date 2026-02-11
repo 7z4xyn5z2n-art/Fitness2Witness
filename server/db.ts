@@ -1348,3 +1348,27 @@ export async function upsertUserTargets(targets: InsertUserTarget): Promise<User
     return result[0];
   }
 }
+
+// Meal Suggestions Cache (in-memory for simplicity)
+const mealSuggestionsCache = new Map<string, { data: any; timestamp: string }>();
+
+export async function getMealSuggestionsCache(userId: number, date: string): Promise<any | null> {
+  const key = `${userId}-${date}`;
+  const cached = mealSuggestionsCache.get(key);
+  
+  if (cached && cached.timestamp === date) {
+    return cached.data;
+  }
+  
+  return null;
+}
+
+export async function saveMealSuggestionsCache(userId: number, date: string, data: any): Promise<void> {
+  const key = `${userId}-${date}`;
+  mealSuggestionsCache.set(key, { data, timestamp: date });
+}
+
+export async function clearMealSuggestionsCache(userId: number, date: string): Promise<void> {
+  const key = `${userId}-${date}`;
+  mealSuggestionsCache.delete(key);
+}

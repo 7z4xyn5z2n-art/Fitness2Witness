@@ -19,6 +19,115 @@ import * as ImagePicker from "expo-image-picker";
 import { LineChart } from "react-native-chart-kit";
 import { useColors } from "@/hooks/use-colors";
 
+// Meal Suggestions Component
+function MealSuggestionsSection() {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const colors = useColors();
+
+  const { data: suggestions, refetch } = trpc.nutrition.getMealSuggestions.useQuery(undefined, {
+    enabled: showSuggestions,
+  });
+
+  const regenerateMutation = trpc.nutrition.regenerateMealSuggestions.useMutation({
+    onSuccess: () => {
+      refetch();
+      setIsGenerating(false);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+    onError: (error: any) => {
+      setIsGenerating(false);
+      Alert.alert("Error", error.message || "Unable to generate meal suggestions. Please try again later.");
+    },
+  });
+
+  const handleGenerateSuggestions = () => {
+    setShowSuggestions(true);
+  };
+
+  const handleRegenerate = () => {
+    setIsGenerating(true);
+    regenerateMutation.mutate();
+  };
+
+  if (!showSuggestions) {
+    return (
+      <TouchableOpacity
+        onPress={handleGenerateSuggestions}
+        className="bg-primary px-6 py-4 rounded-full active:opacity-80"
+      >
+        <Text className="text-background text-center font-semibold text-base">🤖 Generate Meal Suggestions</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  if (!suggestions) {
+    return (
+      <View className="items-center py-4">
+        <ActivityIndicator size="large" />
+        <Text className="text-sm text-muted mt-2">Generating personalized meal suggestions...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="gap-4">
+      {/* Macro Guidance */}
+      {suggestions.macroGuidance && (
+        <View className="bg-primary/10 rounded-xl p-4 border border-primary/20">
+          <Text className="text-sm text-foreground">{suggestions.macroGuidance}</Text>
+        </View>
+      )}
+
+      {/* Meals */}
+      {suggestions.meals && suggestions.meals.length > 0 && (
+        <View className="gap-3">
+          {suggestions.meals.map((meal: any, index: number) => (
+            <View key={index} className="bg-background rounded-xl p-4 border border-border">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-semibold text-foreground">{meal.name}</Text>
+                <View className="bg-primary/10 px-2 py-1 rounded-full">
+                  <Text className="text-xs text-primary font-semibold">{meal.mealType}</Text>
+                </View>
+              </View>
+              <Text className="text-sm text-muted mb-3">{meal.description}</Text>
+              <View className="flex-row flex-wrap gap-2">
+                <View className="bg-surface px-2 py-1 rounded-full">
+                  <Text className="text-xs text-foreground">{meal.calories} cal</Text>
+                </View>
+                <View className="bg-surface px-2 py-1 rounded-full">
+                  <Text className="text-xs text-foreground">{meal.protein}g protein</Text>
+                </View>
+                <View className="bg-surface px-2 py-1 rounded-full">
+                  <Text className="text-xs text-foreground">{meal.carbs}g carbs</Text>
+                </View>
+                <View className="bg-surface px-2 py-1 rounded-full">
+                  <Text className="text-xs text-foreground">{meal.fat}g fat</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Regenerate Button */}
+      <TouchableOpacity
+        onPress={handleRegenerate}
+        disabled={isGenerating}
+        className="bg-surface border-2 border-primary px-6 py-3 rounded-full active:opacity-80"
+      >
+        {isGenerating ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <Text className="text-primary text-center font-semibold text-base">🔄 Regenerate Suggestions</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function BodyMetricsScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -101,7 +210,6 @@ export default function BodyMetricsScreen() {
 
   const analyzeInBodyMutation = trpc.bodyMetrics.analyzeInBodyScan.useMutation({
     onSuccess: (data: any) => {
-      // AI has extracted metrics and saved them automatically
       utils.bodyMetrics.getMyMetrics.invalidate();
       setIsAnalyzing(false);
       setInBodyPhoto(null);
@@ -110,15 +218,25 @@ export default function BodyMetricsScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       
-      Alert.alert(
-        "Success!", 
-        `InBody scan analyzed and saved!\n\nExtracted metrics:\n• Weight: ${data.weight || 'N/A'} lbs\n• Body Fat: ${data.bodyFatPercent || 'N/A'}%\n• Muscle Mass: ${data.muscleMass || 'N/A'} lbs`,
-        [{ text: "OK" }]
-      );
+      if (data.parsingFailed) {
+        // Parsing failed but image was saved
+        Alert.alert(
+          "Image Saved", 
+          data.message || "Image saved but couldn't extract metrics automatically. Please enter your values manually using the form below.",
+          [{ text: "OK" }]
+        );
+      } else {
+        // Success - metrics extracted
+        Alert.alert(
+          "Success!", 
+          `InBody scan analyzed and saved!\n\nExtracted metrics:\n• Weight: ${data.weight || 'N/A'} lbs\n• Body Fat: ${data.bodyFatPercent || 'N/A'}%\n• Muscle Mass: ${data.muscleMass || 'N/A'} lbs`,
+          [{ text: "OK" }]
+        );
+      }
     },
     onError: (error: any) => {
       setIsAnalyzing(false);
-      Alert.alert("Error", error.message || "Failed to analyze InBody scan. Please try again or ensure the photo is clear.");
+      Alert.alert("Error", error.message || "Failed to upload InBody scan. Please try again.");
     },
   });
 
@@ -270,6 +388,14 @@ export default function BodyMetricsScreen() {
                     <Text key={i} className="text-sm text-foreground mb-2 last:mb-0">{rec}</Text>
                   ))}
                 </View>
+              </View>
+            )}
+
+            {/* AI Meal Suggestions */}
+            {metrics && metrics.length > 0 && (
+              <View className="bg-surface rounded-2xl p-6 border border-border">
+                <Text className="text-lg font-semibold text-foreground mb-4">🍽️ Nutrition Suggestions</Text>
+                <MealSuggestionsSection />
               </View>
             )}
 

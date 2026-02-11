@@ -1198,9 +1198,183 @@ If a metric is not visible or cannot be determined, use null. Do not include any
             },
           };
         } catch (error) {
-          throw new Error("Failed to parse InBody scan results. Please try again or ensure the photo is clear.");
+          // Parsing failed - save the image anyway and return partial success
+          const user = await db.getUserById(ctx.user.id);
+          if (!user || !user.groupId) {
+            throw new Error("User must be assigned to a group");
+          }
+
+          const activeChallenges = await db.getActiveChallenges();
+          if (activeChallenges.length === 0) {
+            throw new Error("No active challenge found");
+          }
+
+          // Save body metric with just the image reference
+          await db.createBodyMetric({
+            userId: ctx.user.id,
+            groupId: user.groupId,
+            challengeId: activeChallenges[0].id,
+            date: new Date(),
+            weight: null,
+            bodyFatPercent: null,
+            muscleMass: null,
+            visceralFat: null,
+            bmr: null,
+            notes: `InBody scan uploaded (parsing failed - please enter values manually). Image: ${input.imageBase64.substring(0, 50)}...`,
+          });
+
+          return {
+            parsingFailed: true,
+            message: "Image saved but couldn't extract metrics automatically. Please enter your values manually.",
+            weight: null,
+            bodyFatPercent: null,
+            muscleMass: null,
+            visceralFat: null,
+            bmr: null,
+            targets: null,
+          };
         }
       }),
+  }),
+
+  nutrition: router({
+    getMealSuggestions: protectedProcedure.query(async ({ ctx }) => {
+      try {
+        // Check if we have cached suggestions for today
+        const today = new Date().toISOString().split('T')[0];
+        const cachedSuggestions = await db.getMealSuggestionsCache(ctx.user.id, today);
+        
+        if (cachedSuggestions) {
+          return cachedSuggestions;
+        }
+
+        // Get latest body metrics
+        const metrics = await db.getUserBodyMetrics(ctx.user.id);
+        const latestMetric = metrics[0];
+
+        // Get user targets if available
+        const targets = await db.getUserTargets(ctx.user.id);
+
+        // Build AI prompt
+        const { invokeLLM } = await import("./_core/llm.js");
+        
+        const prompt = `You are a nutrition coach. Generate 3-5 healthy meal suggestions based on the following user data:
+
+Current Metrics:
+- Weight: ${latestMetric?.weight || 'unknown'} lbs
+- Body Fat: ${latestMetric?.bodyFatPercent || 'unknown'}%
+- Muscle Mass: ${latestMetric?.muscleMass || 'unknown'} lbs
+- BMR: ${latestMetric?.bmr || 'unknown'} calories
+
+Targets:
+- Recommended Daily Calories: ${targets?.recommendedCalories || 'unknown'}
+- Recommended Carbs: ${targets?.recommendedCarbs || 'unknown'}g
+- Recommended Protein: ${targets?.recommendedProtein || 'unknown'}g
+- Recommended Fat: ${targets?.recommendedFat || 'unknown'}g
+
+Generate meal suggestions that:
+1. Are realistic and easy to prepare
+2. Align with the recommended macros
+3. Support their fitness goals
+4. Include breakfast, lunch, dinner, and 2 snack options
+
+Respond ONLY with a JSON object in this exact format:
+{
+  "macroGuidance": "Brief summary of daily macro targets and why they matter",
+  "meals": [
+    {
+      "name": "Meal name",
+      "description": "Brief description",
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
+      "mealType": "breakfast" | "lunch" | "dinner" | "snack"
+    }
+  ]
+}`;
+
+        const result = await invokeLLM({
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        const messageContent = result.choices[0]?.message?.content;
+        const responseText = typeof messageContent === "string" ? messageContent : "";
+        const parsed = JSON.parse(responseText);
+        
+        await db.saveMealSuggestionsCache(ctx.user.id, today, parsed);
+        return parsed;
+      } catch (error) {
+        console.error('Meal suggestions error:', error);
+        throw new Error("Unable to generate meal suggestions. Please try again later.");
+      }
+    }),
+
+    regenerateMealSuggestions: protectedProcedure.mutation(async ({ ctx }) => {
+      try {
+        // Clear cache and regenerate
+        const today = new Date().toISOString().split('T')[0];
+        await db.clearMealSuggestionsCache(ctx.user.id, today);
+        
+        // Get fresh suggestions (same logic as getMealSuggestions)
+        const metrics = await db.getUserBodyMetrics(ctx.user.id);
+        const latestMetric = metrics[0];
+        const targets = await db.getUserTargets(ctx.user.id);
+        const { invokeLLM } = await import("./_core/llm.js");
+        
+        const prompt = `You are a nutrition coach. Generate 3-5 healthy meal suggestions based on the following user data:
+
+Current Metrics:
+- Weight: ${latestMetric?.weight || 'unknown'} lbs
+- Body Fat: ${latestMetric?.bodyFatPercent || 'unknown'}%
+- Muscle Mass: ${latestMetric?.muscleMass || 'unknown'} lbs
+- BMR: ${latestMetric?.bmr || 'unknown'} calories
+
+Targets:
+- Recommended Daily Calories: ${targets?.recommendedCalories || 'unknown'}
+- Recommended Carbs: ${targets?.recommendedCarbs || 'unknown'}g
+- Recommended Protein: ${targets?.recommendedProtein || 'unknown'}g
+- Recommended Fat: ${targets?.recommendedFat || 'unknown'}g
+
+Generate meal suggestions that:
+1. Are realistic and easy to prepare
+2. Align with the recommended macros
+3. Support their fitness goals
+4. Include breakfast, lunch, dinner, and 2 snack options
+
+Respond ONLY with a JSON object in this exact format:
+{
+  "macroGuidance": "Brief summary of daily macro targets and why they matter",
+  "meals": [
+    {
+      "name": "Meal name",
+      "description": "Brief description",
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
+      "mealType": "breakfast" | "lunch" | "dinner" | "snack"
+    }
+  ]
+}`;
+
+        const result = await invokeLLM({
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        const messageContent = result.choices[0]?.message?.content;
+        const responseText = typeof messageContent === "string" ? messageContent : "";
+        const parsed = JSON.parse(responseText);
+        
+        // Cache the new suggestions
+        await db.saveMealSuggestionsCache(ctx.user.id, today, parsed);
+        
+        return parsed;
+      } catch (error) {
+        console.error('Meal suggestions regenerate error:', error);
+        throw new Error("Unable to generate meal suggestions. Please try again later.");
+      }
+    }),
   }),
 
   badges: router({

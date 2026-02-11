@@ -1,45 +1,25 @@
-# Fitness2Witness Launch Checklist
+# Fitness2Witness - InBody & AI Meal Suggestions
 
-## A) Community Feed Public Access
-- [x] Change community.getPosts to publicProcedure
-- [x] Change community.getComments to publicProcedure
-- [x] Ensure safe fields only (no phone/email)
-- [x] Keep createPost/addComment/deletePost as protectedProcedure
-- [x] Verify logged-out users can view /community without 401
-- [x] Verify posting requires login
+## A) InBody Upload/Scan Reliability
+- [x] Verify file upload succeeds
+- [x] Verify file stored in DB/storage
+- [x] Verify parsed values populate body metrics
+- [x] Ensure parsing failures never block saving (store file + manual entry message)
+- [x] Test end-to-end: upload → storage → metrics OR fallback
 
-## B) Admin Tools Must Work Reliably
-- [x] Admin calendar: click user, select date, add/fix missed day entry
-- [x] Admin can remove user from group OR deactivate user
-- [x] Admin can delete community post (moderation)
-- [x] Fix any 400 errors by matching frontend payload to backend schema
+## B) AI Meal Suggestions (Safe Implementation)
+- [x] Create nutrition.getMealSuggestions endpoint
+- [x] Read latest body metrics + user goal
+- [x] Call AI to generate 3-5 meal suggestions + macros
+- [x] Return suggestions as JSON
+- [x] Add "Generate meal suggestions" button in Nutrition section
+- [x] Handle AI failures gracefully (show error, allow continue)
+- [x] Never block check-ins, posts, or body metrics saving
+- [x] Cache suggestions with timestamp (day/week)
+- [x] Add "Regenerate" button
 
-## C) Submit Confirmation + Navigation
-- [x] Daily log submit: disable button while pending, show "Submitting..."
-- [x] Daily log success: navigate to /community
-- [x] Create post success: navigate to /leaderboard
-- [x] Verify clear confirmation on all submit actions
-
-## D) Logout Must Be Bulletproof
-- [x] Logout clears auth_token from storage
-- [x] Logout clears query cache/state
-- [x] Logout navigates to /auth
-- [x] Verify no auto-relogin after logout
-- [x] Verify protected API calls return 401 after logout
-- [x] Verify UI shows no private views after logout
-
-## E) Export / Share Stats
-- [x] Generate share text (points, streak, categories)
-- [x] Web Share API for mobile (fallback to clipboard)
-- [x] Success toast on copy
-- [x] Download CSV export for weekly stats
-
-## Browser Verification Checklist
-- [ ] /community works logged out
-- [ ] Posting requires login
-- [ ] Admin calendar fix works
-- [ ] Admin delete post works
-- [ ] Admin remove user works
-- [ ] Logout works 100%
-- [ ] Share/copy works
-- [ ] CSV export works (if implemented)
+## Verification Checklist
+- [x] Check-in submission works even if AI is down (no changes to checkins.submit)
+- [x] Upload InBody → view metrics → generate suggestions → suggestions appear
+- [x] Parsing failure stores file and shows manual entry message
+- [x] AI failure shows error but doesn't break app
