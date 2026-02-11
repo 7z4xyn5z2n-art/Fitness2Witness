@@ -737,3 +737,14 @@
 - [x] Fix daily log submit - disable button, show "Submitting...", redirect to /community on success
 - [x] Fix post submit - redirect to /leaderboard on success
 - [x] Enforce single-select for daily log categories (radio style, not arrays)
+
+## Public Community Feed (CRITICAL)
+
+- [x] Change community.getPosts to publicProcedure (no auth required)
+- [x] Change community.getComments to publicProcedure (read-only)
+- [x] Ensure getPosts returns only safe fields (no phone/email)
+- [x] Keep createPost, addComment, deletePost, deleteComment as protectedProcedure
+- [x] Verify logged-out users can view /community without 401
+- [x] Verify logged-out users cannot post (createPost is protected)
+- [x] Confirm check-in submit navigates to /community
+- [x] Confirm post submit navigates to /leaderboard

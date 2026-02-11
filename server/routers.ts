@@ -374,18 +374,33 @@ export const appRouter = router({
 
   // Community Feed
   community: router({
-    getPosts: protectedProcedure.query(async ({ ctx }) => {
-      const user = await db.getUserById(ctx.user.id);
-      if (!user || !user.groupId) {
-        throw new Error("User must be assigned to a group");
+    // Public endpoint - anyone can view community posts (no auth required)
+    getPosts: publicProcedure.query(async () => {
+      // Get all groups and their posts (for now, return posts from all groups)
+      // In production, you might want to filter by a specific group or make this configurable
+      const allGroups = await db.getAllGroups();
+      if (!allGroups || allGroups.length === 0) {
+        return [];
       }
 
-      const posts = await db.getGroupPosts(user.groupId);
+      // Get posts from the first group (pilot group)
+      const posts = await db.getGroupPosts(allGroups[0].id);
       const postsWithUsers = await Promise.all(
         posts.map(async (post) => {
           const author = await db.getUserById(post.userId);
+          // Only return safe fields - no phone, email, or other sensitive data
           return {
-            ...post,
+            id: post.id,
+            userId: post.userId,
+            groupId: post.groupId,
+            postType: post.postType,
+            postText: post.postText,
+            postImageUrl: post.postImageUrl,
+            postVideoUrl: post.postVideoUrl,
+            isPinned: post.isPinned,
+            visibility: post.visibility,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
             authorName: author?.name || "Unknown",
           };
         })
@@ -464,7 +479,8 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    getComments: protectedProcedure.input(z.object({ postId: z.number() })).query(async ({ input }) => {
+    // Public endpoint - anyone can view comments (read-only)
+    getComments: publicProcedure.input(z.object({ postId: z.number() })).query(async ({ input }) => {
       const comments = await db.getPostComments(input.postId);
       const commentsWithUsers = await Promise.all(
         comments.map(async (comment) => {
