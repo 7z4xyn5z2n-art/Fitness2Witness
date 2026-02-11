@@ -710,3 +710,12 @@
 - [ ] Add WhatsApp deep link
 - [ ] Add SMS deep link
 - [ ] Add CSV export for stats
+
+## OpenAI Integration (CURRENT)
+- [x] Update server/_core/llm.ts to use OPENAI_API_KEY instead of BUILT_IN_FORGE_API_KEY
+- [x] Change API endpoint from Manus Forge to OpenAI (https://api.openai.com/v1/chat/completions)
+- [x] Update env.ts to read OPENAI_API_KEY
+- [x] Changed model from gemini-2.5-flash to gpt-4o-mini
+- [ ] Connect AI analysis to body metrics tracking
+- [ ] Test workout analysis with user's OpenAI key
+- [ ] Deploy to Render

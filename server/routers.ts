@@ -130,7 +130,24 @@ export const appRouter = router({
         let workoutAnalysis: string | undefined;
         if (input.workoutLog) {
           try {
+            // Analyze workout for exercise metrics
             workoutAnalysis = await analyzeWorkout(input.workoutLog);
+            
+            // Extract body metrics (weight, body fat, etc.) from workout text
+            const { extractBodyMetricsFromText } = await import("./ai-metrics.js");
+            const extractedMetrics = await extractBodyMetricsFromText(input.workoutLog);
+            
+            // Save body metrics if any were extracted
+            if (extractedMetrics && Object.keys(extractedMetrics).length > 0) {
+              await db.createBodyMetric({
+                userId: ctx.user.id,
+                groupId: user.groupId,
+                challengeId: group.challengeId,
+                date: new Date(input.date),
+                ...extractedMetrics,
+              });
+              console.log('[Check-in Submit] Body metrics extracted and saved:', extractedMetrics);
+            }
             // Update check-in with AI analysis
             await db.updateDailyCheckin(checkin.id, { workoutAnalysis });
             console.log('[Check-in Submit] AI analysis completed');
@@ -929,6 +946,36 @@ export const appRouter = router({
 
   // Body Metrics
   bodyMetrics: router({
+    // Extract body metrics from workout text using AI
+    extractFromText: protectedProcedure
+      .input(z.object({ workoutText: z.string() }))
+      .mutation(async ({ input }) => {
+        const { extractBodyMetricsFromText } = await import("./ai-metrics.js");
+        const extracted = await extractBodyMetricsFromText(input.workoutText);
+        return { metrics: extracted };
+      }),
+
+    // Get AI-generated insights based on metrics history
+    getInsights: protectedProcedure.query(async ({ ctx }) => {
+      const metrics = await db.getUserBodyMetrics(ctx.user.id);
+      const { generateMetricsInsights } = await import("./ai-metrics.js");
+      const insights = await generateMetricsInsights(metrics);
+      return { insights };
+    }),
+
+    // Get AI-generated goal recommendations
+    getGoalRecommendations: protectedProcedure.query(async ({ ctx }) => {
+      const metrics = await db.getUserBodyMetrics(ctx.user.id);
+      if (metrics.length === 0) {
+        return {
+          error: "No body metrics data available. Please track some measurements first.",
+        };
+      }
+
+      const { generateGoalRecommendations } = await import("./ai-metrics.js");
+      const recommendations = await generateGoalRecommendations(metrics[0], metrics);
+      return { recommendations };
+    }),
     getMyMetrics: protectedProcedure.query(async ({ ctx }) => {
       return db.getUserBodyMetrics(ctx.user.id);
     }),
