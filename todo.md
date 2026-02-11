@@ -1,25 +1,34 @@
-# Fitness2Witness - InBody & AI Meal Suggestions
+# Fitness2Witness - Admin Panel Functionality
 
-## A) InBody Upload/Scan Reliability
-- [x] Verify file upload succeeds
-- [x] Verify file stored in DB/storage
-- [x] Verify parsed values populate body metrics
-- [x] Ensure parsing failures never block saving (store file + manual entry message)
-- [x] Test end-to-end: upload → storage → metrics OR fallback
+## A) Confirm Admin Role Works
+- [x] Verify logged-in admin user has role='admin' in DB
+- [x] Ensure admin middleware checks ctx.user.role === 'admin'
+- [x] Return 403 when not admin (adminProcedure middleware)
 
-## B) AI Meal Suggestions (Safe Implementation)
-- [x] Create nutrition.getMealSuggestions endpoint
-- [x] Read latest body metrics + user goal
-- [x] Call AI to generate 3-5 meal suggestions + macros
-- [x] Return suggestions as JSON
-- [x] Add "Generate meal suggestions" button in Nutrition section
-- [x] Handle AI failures gracefully (show error, allow continue)
-- [x] Never block check-ins, posts, or body metrics saving
-- [x] Cache suggestions with timestamp (day/week)
-- [x] Add "Regenerate" button
+## B) Implement Admin tRPC Procedures
+- [x] admin.getAllUsers - returns safe user fields (id, name, groupId, role)
+- [x] admin.removeUserFromGroup - set groupId=null
+- [x] admin.deactivateUser - set groupId=null (deactivate)
+- [x] admin.removeUser - delete user permanently
+- [x] community.deletePost - delete post by postId (admin-only)
+- [x] admin.upsertCheckInForUserDate - create/update check-in for specific user+date
 
-## Verification Checklist
-- [x] Check-in submission works even if AI is down (no changes to checkins.submit)
-- [x] Upload InBody → view metrics → generate suggestions → suggestions appear
-- [x] Parsing failure stores file and shows manual entry message
-- [x] AI failure shows error but doesn't break app
+## C) Frontend Admin UI Wiring
+- [x] Users list: "Remove" button shows 2 options (Remove from Group / Delete Permanently)
+- [x] Users list: refresh on success
+- [x] Community moderation: Delete button calls deletePost
+- [x] Community moderation: invalidate query on success (immediate UI update)
+- [x] Calendar: admin selects user from list
+- [x] Calendar: "Quick Add" adds full check-in (all 4 categories)
+- [x] Calendar: "Custom" option for selecting specific categories
+- [x] Calendar: uses upsertCheckInForUserDate (creates OR updates)
+- [x] Calendar: shows "created" or "updated" confirmation
+
+## D) Error Handling
+- [x] All failed admin actions show actual error message (error.message)
+- [x] No silent failures
+
+## Deliverables
+- [ ] File paths changed documented
+- [ ] Exact procedure names documented
+- [ ] Confirmation each action works in browser

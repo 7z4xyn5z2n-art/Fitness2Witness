@@ -10,7 +10,12 @@ export default function ContentModerationScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: posts, refetch: refetchPosts } = trpc.community.getPosts.useQuery();
-  const deletePostMutation = trpc.community.deletePost.useMutation();
+  const utils = trpc.useUtils();
+  const deletePostMutation = trpc.community.deletePost.useMutation({
+    onSuccess: () => {
+      utils.community.getPosts.invalidate();
+    },
+  });
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -31,9 +36,8 @@ export default function ContentModerationScreen() {
             try {
               await deletePostMutation.mutateAsync({ postId });
               Alert.alert("Success", "Post deleted successfully");
-              refetchPosts();
-            } catch (error) {
-              Alert.alert("Error", "Failed to delete post");
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete post");
             }
           },
         },

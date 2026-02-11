@@ -14,6 +14,8 @@ export default function AdminUsersScreen() {
   const { data: users, refetch } = trpc.admin.getAllUsers.useQuery();
   const updateRoleMutation = trpc.admin.updateUserRole.useMutation();
   const removeUserMutation = trpc.admin.removeUser.useMutation();
+  const removeFromGroupMutation = trpc.admin.removeUserFromGroup.useMutation();
+  const deactivateUserMutation = trpc.admin.deactivateUser.useMutation();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -37,18 +39,31 @@ export default function AdminUsersScreen() {
   const handleRemoveUser = (userId: string, userName: string) => {
     Alert.alert(
       "Remove User",
-      `Are you sure you want to remove ${userName} from the group?`,
+      `Choose action for ${userName}:`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Remove",
+          text: "Remove from Group",
+          onPress: async () => {
+            try {
+              await removeFromGroupMutation.mutateAsync({ userId });
+              await refetch();
+              Alert.alert("Success", `${userName} removed from group`);
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to remove user from group");
+            }
+          },
+        },
+        {
+          text: "Delete Permanently",
           style: "destructive",
           onPress: async () => {
             try {
               await removeUserMutation.mutateAsync({ userId });
               await refetch();
-            } catch (error) {
-              Alert.alert("Error", "Failed to remove user");
+              Alert.alert("Success", `${userName} deleted permanently`);
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete user");
             }
           },
         },

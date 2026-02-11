@@ -668,6 +668,41 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    deactivateUser: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can deactivate users");
+        }
+
+        // Deactivate by removing from group (same as removeUserFromGroup)
+        await db.updateUser(parseInt(input.userId), { groupId: null });
+        const updatedUser = await db.getUserById(parseInt(input.userId));
+        return updatedUser;
+      }),
+
+    removeUserFromGroup: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can remove users from groups");
+        }
+
+        await db.updateUser(parseInt(input.userId), { groupId: null });
+        const updatedUser = await db.getUserById(parseInt(input.userId));
+        return updatedUser;
+      }),
+
     updateUser: protectedProcedure
       .input(
         z.object({
@@ -915,6 +950,69 @@ export const appRouter = router({
         });
 
         return { success: true };
+      }),
+
+    upsertCheckInForUserDate: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+          dateISO: z.string(),
+          nutritionDone: z.boolean(),
+          hydrationDone: z.boolean(),
+          movementDone: z.boolean(),
+          scriptureDone: z.boolean(),
+          lifeGroupAttended: z.boolean().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can upsert check-ins");
+        }
+
+        const targetUser = await db.getUserById(parseInt(input.userId));
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("User must be assigned to a group");
+        }
+
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+
+        // Normalize date to day boundary
+        const date = new Date(input.dateISO);
+        date.setHours(0, 0, 0, 0);
+
+        // Check if check-in exists for this user+date
+        const existing = await db.getCheckinByUserIdAndDate(parseInt(input.userId), date);
+
+        if (existing) {
+          // Update existing check-in
+          await db.updateDailyCheckin(existing.id, {
+            nutritionDone: input.nutritionDone,
+            hydrationDone: input.hydrationDone,
+            movementDone: input.movementDone,
+            scriptureDone: input.scriptureDone,
+            notes: input.notes,
+          });
+          return { success: true, action: "updated", checkInId: existing.id };
+        } else {
+          // Create new check-in
+          const newCheckIn = await db.createCheckIn({
+            date,
+            userId: parseInt(input.userId),
+            groupId: targetUser.groupId,
+            challengeId: group.challengeId,
+            nutritionDone: input.nutritionDone,
+            hydrationDone: input.hydrationDone,
+            movementDone: input.movementDone,
+            scriptureDone: input.scriptureDone,
+            notes: input.notes,
+          });
+          return { success: true, action: "created", checkInId: newCheckIn?.id || 0 };
+        }
       }),
 
     addUserAttendance: protectedProcedure

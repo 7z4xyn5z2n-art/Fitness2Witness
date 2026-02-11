@@ -28,15 +28,15 @@ export default function AdminCalendarScreen() {
     { enabled: true }
   );
 
-  const addCheckInMutation = trpc.admin.addUserCheckIn.useMutation({
-    onSuccess: () => {
-      Alert.alert("Success", "Check-in added successfully");
+  const upsertCheckInMutation = trpc.admin.upsertCheckInForUserDate.useMutation({
+    onSuccess: (data) => {
+      Alert.alert("Success", `Check-in ${data.action} successfully`);
       refetch();
       setEditMode(false);
       setSelectedUserId(null);
     },
     onError: (error) => {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", error.message || "Failed to save check-in");
     },
   });
 
@@ -50,18 +50,52 @@ export default function AdminCalendarScreen() {
     },
   });
 
-  const handleAddCheckIn = (userId: string) => {
-    Alert.alert(
-      "Add Check-In",
-      "Add a full check-in (all 4 categories) for this user?",
+  const handleEditCheckIn = (userId: string, userName: string) => {
+    // Show modal with 4 category checkboxes
+    const [nutrition, setNutrition] = useState(false);
+    const [hydration, setHydration] = useState(false);
+    const [movement, setMovement] = useState(false);
+    const [scripture, setScripture] = useState(false);
+    const [notes, setNotes] = useState("");
+
+    Alert.prompt(
+      `Edit Check-In for ${userName}`,
+      `Date: ${selectedDate.toLocaleDateString()}\n\nSelect categories completed:`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Add",
-          onPress: () => {
-            addCheckInMutation.mutate({
+          text: "Save",
+          onPress: (inputNotes?: string) => {
+            upsertCheckInMutation.mutate({
               userId,
-              date: selectedDate.toISOString(),
+              dateISO: selectedDate.toISOString(),
+              nutritionDone: nutrition,
+              hydrationDone: hydration,
+              movementDone: movement,
+              scriptureDone: scripture,
+              notes: inputNotes || "Edited by admin",
+            });
+          },
+        },
+      ],
+      "plain-text",
+      "",
+      "default"
+    );
+  };
+
+  const handleQuickAddCheckIn = (userId: string, userName: string) => {
+    Alert.alert(
+      "Quick Add Check-In",
+      `Add full check-in (all 4 categories) for ${userName}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Add All",
+          onPress: () => {
+            upsertCheckInMutation.mutate({
+              userId,
+              dateISO: selectedDate.toISOString(),
               nutritionDone: true,
               hydrationDone: true,
               movementDone: true,
@@ -69,6 +103,10 @@ export default function AdminCalendarScreen() {
               notes: "Added by admin",
             });
           },
+        },
+        {
+          text: "Custom...",
+          onPress: () => handleEditCheckIn(userId, userName),
         },
       ]
     );
@@ -159,7 +197,7 @@ export default function AdminCalendarScreen() {
               {users?.map((user: any) => (
                 <TouchableOpacity
                   key={user.id}
-                  onPress={() => handleAddCheckIn(user.id)}
+                  onPress={() => handleQuickAddCheckIn(user.id, user.name)}
                   className="p-3 bg-background rounded-xl border border-border flex-row items-center justify-between"
                 >
                   <View>
