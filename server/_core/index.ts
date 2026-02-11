@@ -56,6 +56,15 @@ async function startServer() {
 
   // OAuth routes removed - using phone-based auth
 
+  // Root health check (for Render health checks and bots)
+  app.get("/", (_req, res) => {
+    res.status(200).send("Fitness2Witness API - OK");
+  });
+
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ ok: true, service: "fitness2witness-api", timestamp: Date.now() });
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });

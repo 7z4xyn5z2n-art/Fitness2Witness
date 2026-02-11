@@ -719,3 +719,11 @@
 - [ ] Connect AI analysis to body metrics tracking
 - [ ] Test workout analysis with user's OpenAI key
 - [ ] Deploy to Render
+
+## Critical Application Logic Fixes (Production Blockers)
+- [ ] Investigate and fix check-in submission 500 error (verify OpenAI error handling)
+- [ ] Fix double-login issue (token storage order)
+- [ ] Fix logout not working (clear both localStorage and cookies)
+- [ ] Fix admin attendance submission 400 error (payload format mismatch)
+- [ ] Implement remove user endpoint for admin
+- [ ] Implement export/share functionality for user stats

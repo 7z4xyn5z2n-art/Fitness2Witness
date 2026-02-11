@@ -29,20 +29,16 @@ export default function CreatePostScreen() {
   const [videoUrl, setVideoUrl] = useState("");
 
   const createPostMutation = trpc.community.createPost.useMutation({
-    onSuccess: () => {
-      utils.community.getPosts.invalidate();
+    onSuccess: async () => {
+      await utils.community.getPosts.invalidate();
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      Alert.alert("Success", "Post created successfully!", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      // Navigate to leaderboard after successful post creation
+      router.push("/leaderboard");
     },
     onError: (error) => {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", error.message || "Failed to create post. Please try again.");
     },
   });
 

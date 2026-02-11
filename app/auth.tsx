@@ -11,6 +11,7 @@ export default function AuthScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const utils = trpc.useUtils();
   const loginMutation = trpc.auth.login.useMutation();
   const registerMutation = trpc.auth.register.useMutation();
 
@@ -51,7 +52,7 @@ export default function AuthScreen() {
         const result = await loginMutation.mutateAsync({ phoneNumber });
         console.log("Login successful:", result);
         
-        // Store auth token
+        // Store auth token FIRST
         if (result.token) {
           if (Platform.OS === "web") {
             if (typeof window !== "undefined") {
@@ -62,7 +63,10 @@ export default function AuthScreen() {
           }
         }
         
-        // Navigate to dashboard and reload to ensure tRPC client picks up new token
+        // Invalidate auth query to refresh user state
+        await utils.auth.me.invalidate();
+        
+        // Navigate to dashboard
         router.replace("/(tabs)");
         
         // Force reload on web to reinitialize tRPC client with new token
@@ -73,7 +77,7 @@ export default function AuthScreen() {
         const result = await registerMutation.mutateAsync({ name: name.trim(), phoneNumber });
         console.log("Registration successful:", result);
         
-        // Store auth token
+        // Store auth token FIRST
         if (result.token) {
           if (Platform.OS === "web") {
             if (typeof window !== "undefined") {
@@ -84,7 +88,10 @@ export default function AuthScreen() {
           }
         }
         
-        // Navigate to dashboard and reload to ensure tRPC client picks up new token
+        // Invalidate auth query to refresh user state
+        await utils.auth.me.invalidate();
+        
+        // Navigate to dashboard
         router.replace("/(tabs)");
         
         // Force reload on web to reinitialize tRPC client with new token

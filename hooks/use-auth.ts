@@ -49,8 +49,8 @@ export function useAuth() {
         }
       }
 
-      // Invalidate all queries
-      utils.invalidate();
+      // Clear all tRPC/react-query cache
+      await utils.invalidate();
 
       // Redirect to auth screen
       router.replace("/auth");

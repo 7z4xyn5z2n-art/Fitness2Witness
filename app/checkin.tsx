@@ -53,14 +53,16 @@ export default function CheckinScreen() {
 
   const submitMutation = trpc.checkins.submit.useMutation({
     onSuccess: async () => {
-      utils.checkins.getTodayCheckin.invalidate();
-      utils.metrics.getMyMetrics.invalidate();
+      // Invalidate queries to refresh data
+      await utils.checkins.getTodayCheckin.invalidate();
+      await utils.checkins.getMyCheckins.invalidate();
+      await utils.metrics.getMyMetrics.invalidate();
       
       // Check for new badges
       try {
         const newBadges = await checkBadgesMutation.mutateAsync();
         if (newBadges && newBadges.length > 0) {
-          utils.badges.getMyBadges.invalidate();
+          await utils.badges.getMyBadges.invalidate();
           const badge = newBadges[0];
           setEarnedBadge(badge);
           setShowBadgeNotification(true);
@@ -68,25 +70,23 @@ export default function CheckinScreen() {
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
+          // Badge notification will handle navigation when dismissed
           return;
         }
       } catch (error) {
         // Silently fail badge check
+        console.warn("Badge check failed:", error);
       }
 
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      Alert.alert("Success!", "Your check-in has been recorded.", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      // Navigate to community feed after successful check-in
+      router.push("/community");
     },
     onError: (error) => {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", error.message || "Failed to submit check-in. Please try again.");
     },
   });
 
@@ -472,7 +472,7 @@ export default function CheckinScreen() {
           badgeDescription={earnedBadge.badgeDescription}
           onDismiss={() => {
             setShowBadgeNotification(false);
-            router.back();
+            router.push("/community");
           }}
         />
       )}
