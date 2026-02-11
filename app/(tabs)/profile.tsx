@@ -198,27 +198,16 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
-          {/* Export Stats Button */}
+          {/* Share Stats Button */}
           <TouchableOpacity
             onPress={async () => {
               try {
                 const statsText = `Fitness2Witness Progress Report\n\n` +
                   `Name: ${user?.name}\n` +
-                  `Phone: ${user?.phoneNumber}\n` +
-                  `Role: ${user?.role}\n\n` +
-                  `📊 Current Progress:\n` +
                   `This Week: ${metrics?.thisWeekTotal || 0}/38 points (${Math.round(metrics?.weeklyPercent || 0)}%)\n` +
-                  `Overall: ${metrics?.totalPoints || 0}/456 points (${Math.round(metrics?.overallPercent || 0)}%)\n\n` +
-                  `🏆 Achievements:\n` +
-                  `Badges Earned: ${badges?.length || 0}\n` +
-                  (badges && badges.length > 0 ? badges.map(b => `  • ${b.badgeName}`).join('\n') + '\n\n' : '\n') +
-                  `📈 Body Metrics:\n` +
-                  (bodyMetrics && bodyMetrics.length > 0 ? 
-                    `Latest Weight: ${bodyMetrics[0].weight || 'N/A'} lbs\n` +
-                    `Body Fat: ${bodyMetrics[0].bodyFatPercent || 'N/A'}%\n` +
-                    `Muscle Mass: ${bodyMetrics[0].muscleMass || 'N/A'} lbs\n\n` 
-                    : 'No body metrics recorded yet\n\n') +
-                  `Generated: ${new Date().toLocaleString()}`;
+                  `Overall: ${metrics?.totalPoints || 0}/456 points (${Math.round(metrics?.overallPercent || 0)}%)\n` +
+                  `Badges Earned: ${badges?.length || 0}\n\n` +
+                  `Join me at Fitness2Witness! 💪🙏`;
                 
                 if (Platform.OS === 'web') {
                   // For web, copy to clipboard
@@ -232,13 +221,76 @@ export default function ProfileScreen() {
                   });
                 }
               } catch (error) {
-                console.error('Export error:', error);
-                Alert.alert("Error", "Failed to export stats. Please try again.");
+                console.error('Share error:', error);
+                Alert.alert("Error", "Failed to share stats. Please try again.");
+              }
+            }}
+            className="bg-primary px-6 py-4 rounded-full active:opacity-80"
+          >
+            <Text className="text-background text-center font-semibold text-lg">📤 Share My Stats</Text>
+          </TouchableOpacity>
+
+          {/* Download CSV Button */}
+          <TouchableOpacity
+            onPress={async () => {
+              try {
+                // Generate CSV content
+                let csvContent = "Fitness2Witness Weekly Stats\n\n";
+                
+                // Weekly progress CSV
+                if (weeklyProgress && weeklyProgress.length > 0) {
+                  csvContent += "Week,Points\n";
+                  weeklyProgress.forEach(w => {
+                    csvContent += `Week ${w.week},${w.points}\n`;
+                  });
+                  csvContent += "\n";
+                }
+                
+                // Category consistency CSV
+                if (categoryData && categoryData.length > 0) {
+                  csvContent += "Category,Percentage\n";
+                  categoryData.forEach(c => {
+                    csvContent += `${c.category},${c.percentage}%\n`;
+                  });
+                  csvContent += "\n";
+                }
+                
+                // Body metrics CSV
+                if (bodyMetrics && bodyMetrics.length > 0) {
+                  csvContent += "Date,Weight (lbs),Body Fat %,Muscle Mass (lbs)\n";
+                  bodyMetrics.forEach(m => {
+                    const date = new Date(m.date).toLocaleDateString();
+                    csvContent += `${date},${m.weight || 'N/A'},${m.bodyFatPercent || 'N/A'},${m.muscleMass || 'N/A'}\n`;
+                  });
+                }
+                
+                if (Platform.OS === 'web') {
+                  // For web, trigger download
+                  const blob = new Blob([csvContent], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `fitness2witness-stats-${new Date().toISOString().split('T')[0]}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  Alert.alert("Success", "CSV file downloaded!");
+                } else {
+                  // For mobile, share CSV as text
+                  await Share.share({
+                    message: csvContent,
+                    title: "Fitness2Witness Stats CSV",
+                  });
+                }
+              } catch (error) {
+                console.error('CSV export error:', error);
+                Alert.alert("Error", "Failed to export CSV. Please try again.");
               }
             }}
             className="bg-success px-6 py-4 rounded-full active:opacity-80"
           >
-            <Text className="text-background text-center font-semibold text-lg">📊 Export Stats</Text>
+            <Text className="text-background text-center font-semibold text-lg">📊 Download CSV</Text>
           </TouchableOpacity>
 
           {/* Logout Button */}
