@@ -107,16 +107,18 @@ export default function AdminCalendarScreen() {
         {
           text: "Add All",
           onPress: () => {
-            console.log("Adding check-in:", { userId, date: selectedDate.toISOString() });
-            upsertCheckInMutation.mutate({
-              userId,
+            const payload = {
+              userId: String(userId),
               dateISO: selectedDate.toISOString(),
               nutritionDone: true,
               hydrationDone: true,
               movementDone: true,
               scriptureDone: true,
               notes: "Added by admin",
-            });
+            };
+            console.log("Adding check-in payload:", payload);
+            console.log("Payload types:", { userId: typeof payload.userId, dateISO: typeof payload.dateISO });
+            upsertCheckInMutation.mutate(payload);
           },
         },
       ]
@@ -133,12 +135,14 @@ export default function AdminCalendarScreen() {
       return;
     }
     
-    console.log("Adding attendance:", { userId, date: selectedDate.toISOString() });
-    addAttendanceMutation.mutate({
-      userId,
+    const payload = {
+      userId: String(userId),
       date: selectedDate.toISOString(),
       attended: true,
-    });
+    };
+    console.log("Adding attendance payload:", payload);
+    console.log("Payload types:", { userId: typeof payload.userId, date: typeof payload.date });
+    addAttendanceMutation.mutate(payload);
   };
 
   if (usersLoading) {

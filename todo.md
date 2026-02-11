@@ -1,25 +1,30 @@
-# Fitness2Witness - Admin Calendar Fix (URGENT)
+# Fitness2Witness - Critical Fixes
 
-## Problem
-- Console warning: "DateTimePicker is not supported on: web"
-- Clicking "Mark Present" → 400 Bad Request (admin.addUserAttendance)
-- Clicking "Add Check-In" does nothing or errors
-- Root cause: selectedDate is null/undefined on web
+## 1) Admin Fix (400 Bad Request)
+- [x] admin-calendar.tsx: userId → String(), dateISO → toISOString() (lines 111, 139)
+- [x] admin-users.tsx: userId → String() (lines 49, 65)
+- [x] admin-moderation.tsx: postId → Number() (line 37)
+- [x] Add console.log before each mutate showing payload types
 
-## Requirements
-- [x] Fix date selection on WEB: replace DateTimePicker with <input type="date"> (lines 149-170)
-- [x] Keep native DateTimePicker on iOS/Android (lines 171-194)
-- [x] Default selectedDate to TODAY on load (line 11: useState(new Date()))
-- [x] Validate selectedDate and userId exist before calling mutations (lines 88-95, 122-129)
-- [x] Show toast/alert if date or user missing (lines 89, 93, 123, 127)
-- [x] Send date in correct format (ISO string) (lines 108, 134)
-- [x] Add console logs for debugging (lines 105, 131)
-- [x] Success: toast "Saved" and invalidate/refetch queries (lines 34-35, 48-49)
-- [x] Error: toast shows server message and logs details (lines 40-41, 52-54)
+## 2) Admin Calendar Web Date Picker
+- [x] Already implemented: <input type="date"> for web (lines 174-195)
+- [x] DateTimePicker for iOS/Android (lines 196-220)
+- [x] selectedDate defaults to new Date() (line 11)
 
-## Acceptance Tests (WEB)
-- [ ] No "DateTimePicker not supported" warning
-- [ ] Selecting date works
-- [ ] Mark Present creates attendance successfully (no 400)
-- [ ] Add Check-In works and updates immediately
-- [ ] Mobile behavior unchanged
+## 3) Logout Fix (Token Removal)
+- [x] Removed window.location.reload() from logout (line 69 removed)
+- [x] localStorage.removeItem("auth_token") always executes (line 47)
+- [x] Added double-check for token removal (lines 50-56)
+- [x] Clear query cache and navigate to /auth (lines 69, 74)
+
+## 4) Idle Timeout (5 minutes web)
+- [x] Created useIdleTimeout hook (hooks/use-idle-timeout.ts)
+- [x] Reset timer on mousemove, keydown, click, scroll, touchstart (line 49)
+- [x] After 5 minutes idle, clear token and navigate to /auth (lines 19-28)
+- [x] Added hook to root layout (app/_layout.tsx line 33)
+
+## 5) Share My Stats (Web)
+- [x] shareText summary already exists (profile.tsx lines 211-216)
+- [x] Try navigator.share if available (lines 220-226)
+- [x] Fallback to clipboard + Alert("Copied") (lines 234-235)
+- [x] Keep native Share API for mobile (lines 238-241)

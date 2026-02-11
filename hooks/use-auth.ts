@@ -45,7 +45,15 @@ export function useAuth() {
         if (typeof window !== "undefined") {
           console.log("removing token from localStorage...");
           window.localStorage.removeItem("auth_token");
-          console.log("token after logout:", window.localStorage.getItem("auth_token"));
+          
+          // Double-check token removal
+          const tokenAfterRemoval = window.localStorage.getItem("auth_token");
+          console.log("token after logout:", tokenAfterRemoval);
+          if (tokenAfterRemoval !== null) {
+            console.warn("Token still exists after removal, trying again...");
+            window.localStorage.removeItem("auth_token");
+            console.log("token after second removal:", window.localStorage.getItem("auth_token"));
+          }
           
           // Also clear cookies for backward compatibility
           document.cookie.split(";").forEach((c) => {
@@ -64,11 +72,6 @@ export function useAuth() {
       
       // Redirect to auth screen
       router.replace("/auth");
-      
-      // Force reload to clear all cached data (web only)
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        setTimeout(() => window.location.reload(), 100);
-      }
     } catch (error) {
       console.error("Logout error:", error);
       // Even if backend call fails, still clear local token

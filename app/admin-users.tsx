@@ -46,7 +46,10 @@ export default function AdminUsersScreen() {
           text: "Remove from Group",
           onPress: async () => {
             try {
-              await removeFromGroupMutation.mutateAsync({ userId });
+              const payload = { userId: String(userId) };
+              console.log("Remove from group payload:", payload);
+              console.log("Payload types:", { userId: typeof payload.userId });
+              await removeFromGroupMutation.mutateAsync(payload);
               await refetch();
               Alert.alert("Success", `${userName} removed from group`);
             } catch (error: any) {
@@ -59,7 +62,10 @@ export default function AdminUsersScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await removeUserMutation.mutateAsync({ userId });
+              const payload = { userId: String(userId) };
+              console.log("Delete user payload:", payload);
+              console.log("Payload types:", { userId: typeof payload.userId });
+              await removeUserMutation.mutateAsync(payload);
               await refetch();
               Alert.alert("Success", `${userName} deleted permanently`);
             } catch (error: any) {

@@ -216,11 +216,25 @@ export default function ProfileScreen() {
                   `Join me at Fitness2Witness! 💪🙏`;
                 
                 if (Platform.OS === 'web') {
-                  // For web, copy to clipboard
+                  // Try Web Share API first (if available)
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: "My Fitness2Witness Progress",
+                        text: statsText,
+                      });
+                      return; // Success, exit early
+                    } catch (shareError) {
+                      // User cancelled or share failed, fall through to clipboard
+                      console.log("Share cancelled or failed, using clipboard fallback");
+                    }
+                  }
+                  
+                  // Fallback to clipboard
                   await navigator.clipboard.writeText(statsText);
                   Alert.alert("Success", "Stats copied to clipboard!");
                 } else {
-                  // For mobile, use Share API
+                  // For mobile, use native Share API
                   await Share.share({
                     message: statsText,
                     title: "My Fitness2Witness Progress",

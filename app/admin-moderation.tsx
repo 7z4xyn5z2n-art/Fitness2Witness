@@ -34,7 +34,10 @@ export default function ContentModerationScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deletePostMutation.mutateAsync({ postId });
+              const payload = { postId: Number(postId) };
+              console.log("Delete post payload:", payload);
+              console.log("Payload types:", { postId: typeof payload.postId });
+              await deletePostMutation.mutateAsync(payload);
               Alert.alert("Success", "Post deleted successfully");
             } catch (error: any) {
               Alert.alert("Error", error.message || "Failed to delete post");
