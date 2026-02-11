@@ -727,3 +727,13 @@
 - [ ] Fix admin attendance submission 400 error (payload format mismatch)
 - [ ] Implement remove user endpoint for admin
 - [ ] Implement export/share functionality for user stats
+
+## Launch-Critical UX & Auth Fixes (DO NOW)
+
+- [x] Fix auth persistence - use single "auth_token" key in localStorage
+- [x] Fix tRPC client to read "auth_token" and attach Authorization header
+- [x] Fix login to store token on success and initialize auth on app load
+- [x] Fix logout to clear "auth_token" and react-query cache, then navigate to /login
+- [x] Fix daily log submit - disable button, show "Submitting...", redirect to /community on success
+- [x] Fix post submit - redirect to /leaderboard on success
+- [x] Enforce single-select for daily log categories (radio style, not arrays)
