@@ -30,23 +30,28 @@ export default function AdminCalendarScreen() {
 
   const upsertCheckInMutation = trpc.admin.upsertCheckInForUserDate.useMutation({
     onSuccess: (data) => {
+      console.log("Check-in saved successfully:", data);
       Alert.alert("Success", `Check-in ${data.action} successfully`);
       refetch();
       setEditMode(false);
       setSelectedUserId(null);
     },
     onError: (error) => {
-      Alert.alert("Error", error.message || "Failed to save check-in");
+      console.error("Check-in error:", error);
+      Alert.alert("Error", error.message || "Failed to save check-in. Check console for details.");
     },
   });
 
   const addAttendanceMutation = trpc.admin.addUserAttendance.useMutation({
     onSuccess: () => {
+      console.log("Attendance saved successfully");
       Alert.alert("Success", "Attendance recorded successfully");
       refetchAttendance();
     },
     onError: (error) => {
-      Alert.alert("Error", error.message);
+      console.error("Attendance error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      Alert.alert("Error", `${error.message}\n\nCheck console for details.`);
     },
   });
 
@@ -85,14 +90,24 @@ export default function AdminCalendarScreen() {
   };
 
   const handleQuickAddCheckIn = (userId: string, userName: string) => {
+    if (!selectedDate) {
+      Alert.alert("Error", "Please select a date first");
+      return;
+    }
+    if (!userId) {
+      Alert.alert("Error", "User ID is missing");
+      return;
+    }
+    
     Alert.alert(
       "Quick Add Check-In",
-      `Add full check-in (all 4 categories) for ${userName}?`,
+      `Add full check-in (all 4 categories) for ${userName} on ${selectedDate.toLocaleDateString()}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Add All",
           onPress: () => {
+            console.log("Adding check-in:", { userId, date: selectedDate.toISOString() });
             upsertCheckInMutation.mutate({
               userId,
               dateISO: selectedDate.toISOString(),
@@ -104,15 +119,21 @@ export default function AdminCalendarScreen() {
             });
           },
         },
-        {
-          text: "Custom...",
-          onPress: () => handleEditCheckIn(userId, userName),
-        },
       ]
     );
   };
 
   const handleAddAttendance = (userId: string) => {
+    if (!selectedDate) {
+      Alert.alert("Error", "Please select a date first");
+      return;
+    }
+    if (!userId) {
+      Alert.alert("Error", "User ID is missing");
+      return;
+    }
+    
+    console.log("Adding attendance:", { userId, date: selectedDate.toISOString() });
     addAttendanceMutation.mutate({
       userId,
       date: selectedDate.toISOString(),
@@ -146,25 +167,51 @@ export default function AdminCalendarScreen() {
           {/* Date Picker */}
           <View className="bg-surface rounded-2xl p-4 shadow-sm border border-border">
             <Text className="text-sm font-semibold text-foreground mb-2">Select Date</Text>
-            <TouchableOpacity 
-              onPress={() => setShowDatePicker(true)}
-              className="flex-row items-center justify-between p-3 bg-background rounded-xl border border-border"
-            >
-              <Text className="text-base text-foreground">
-                {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              </Text>
-              <Text className="text-primary text-sm">Change</Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display="default"
-                onChange={(event, date) => {
-                  setShowDatePicker(Platform.OS === "ios");
-                  if (date) setSelectedDate(date);
-                }}
-              />
+            {Platform.OS === "web" ? (
+              <View className="p-3 bg-background rounded-xl border border-border">
+                <Text className="text-xs text-muted mb-2">Select Date</Text>
+                <input
+                  type="date"
+                  value={selectedDate.toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const newDate = new Date(e.target.value + 'T00:00:00');
+                    if (!isNaN(newDate.getTime())) {
+                      setSelectedDate(newDate);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid #E5E7EB',
+                    backgroundColor: 'white',
+                  }}
+                />
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity 
+                  onPress={() => setShowDatePicker(true)}
+                  className="flex-row items-center justify-between p-3 bg-background rounded-xl border border-border"
+                >
+                  <Text className="text-base text-foreground">
+                    {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                  </Text>
+                  <Text className="text-primary text-sm">Change</Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowDatePicker(Platform.OS === "ios");
+                      if (date) setSelectedDate(date);
+                    }}
+                  />
+                )}
+              </>
             )}
           </View>
 
