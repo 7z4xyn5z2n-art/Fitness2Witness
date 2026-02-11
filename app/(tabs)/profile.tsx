@@ -24,7 +24,13 @@ export default function ProfileScreen() {
         text: "Logout",
         style: "destructive",
         onPress: async () => {
-          await logout();
+          try {
+            await logout();
+            Alert.alert("Success", "You have been logged out successfully");
+          } catch (error) {
+            console.error("Logout failed:", error);
+            Alert.alert("Error", "Failed to logout. Please try again.");
+          }
         },
       },
     ]);

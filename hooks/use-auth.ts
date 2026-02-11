@@ -29,6 +29,9 @@ export function useAuth() {
   }, [error, isLoading]);
 
   const logout = async () => {
+    console.log("logout clicked");
+    console.log("token before logout:", Platform.OS === "web" && typeof window !== "undefined" ? window.localStorage.getItem("auth_token") : "(native)");
+    
     try {
       // Call backend logout endpoint via tRPC
       await logoutMutation.mutateAsync();
@@ -36,10 +39,14 @@ export function useAuth() {
       // Clear auth token from secure storage
       if (Platform.OS !== "web") {
         await SecureStore.deleteItemAsync("auth_token");
+        console.log("token removed from SecureStore");
       } else {
         // For web, clear from localStorage
         if (typeof window !== "undefined") {
+          console.log("removing token from localStorage...");
           window.localStorage.removeItem("auth_token");
+          console.log("token after logout:", window.localStorage.getItem("auth_token"));
+          
           // Also clear cookies for backward compatibility
           document.cookie.split(";").forEach((c) => {
             document.cookie = c
@@ -50,8 +57,11 @@ export function useAuth() {
       }
 
       // Clear all tRPC/react-query cache
+      console.log("clearing tRPC cache...");
       await utils.invalidate();
 
+      console.log("logout successful, navigating to /auth");
+      
       // Redirect to auth screen
       router.replace("/auth");
       
@@ -67,6 +77,7 @@ export function useAuth() {
       } else {
         if (typeof window !== "undefined") {
           window.localStorage.removeItem("auth_token");
+          console.log("token after logout (error path):", window.localStorage.getItem("auth_token"));
         }
       }
       router.replace("/auth");

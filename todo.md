@@ -1,34 +1,21 @@
-# Fitness2Witness - Admin Panel Functionality
+# Fitness2Witness - Logout Fix (URGENT)
 
-## A) Confirm Admin Role Works
-- [x] Verify logged-in admin user has role='admin' in DB
-- [x] Ensure admin middleware checks ctx.user.role === 'admin'
-- [x] Return 403 when not admin (adminProcedure middleware)
+## Problem
+- Clicking Logout does NOT remove localStorage "auth_token"
+- localStorage.getItem("auth_token") still returns token after clicking logout
 
-## B) Implement Admin tRPC Procedures
-- [x] admin.getAllUsers - returns safe user fields (id, name, groupId, role)
-- [x] admin.removeUserFromGroup - set groupId=null
-- [x] admin.deactivateUser - set groupId=null (deactivate)
-- [x] admin.removeUser - delete user permanently
-- [x] community.deletePost - delete post by postId (admin-only)
-- [x] admin.upsertCheckInForUserDate - create/update check-in for specific user+date
+## Requirements
+- [x] Ensure Logout button is correctly wired to logout handler (onClick)
+- [x] Handler MUST: localStorage.removeItem("auth_token") - line 47 in use-auth.ts
+- [x] Handler MUST: clear tRPC/react-query cache (utils.invalidate) - line 61 in use-auth.ts
+- [x] Handler MUST: navigate to /auth - line 66 in use-auth.ts
+- [x] Add visible toast message on logout success - line 29 in profile.tsx
+- [x] Add console.log("logout clicked") inside handler - line 32 in use-auth.ts
+- [x] Add console.log("token after logout", localStorage.getItem("auth_token")) - line 48 in use-auth.ts
+- [x] Ensure no UI overlay blocks the click (z-index/pointer-events) - verified TouchableOpacity
+- [x] Remove any duplicate/unused logout buttons or handlers - only one logout button
 
-## C) Frontend Admin UI Wiring
-- [x] Users list: "Remove" button shows 2 options (Remove from Group / Delete Permanently)
-- [x] Users list: refresh on success
-- [x] Community moderation: Delete button calls deletePost
-- [x] Community moderation: invalidate query on success (immediate UI update)
-- [x] Calendar: admin selects user from list
-- [x] Calendar: "Quick Add" adds full check-in (all 4 categories)
-- [x] Calendar: "Custom" option for selecting specific categories
-- [x] Calendar: uses upsertCheckInForUserDate (creates OR updates)
-- [x] Calendar: shows "created" or "updated" confirmation
-
-## D) Error Handling
-- [x] All failed admin actions show actual error message (error.message)
-- [x] No silent failures
-
-## Deliverables
-- [ ] File paths changed documented
-- [ ] Exact procedure names documented
-- [ ] Confirmation each action works in browser
+## Acceptance Test
+- [ ] Before click: localStorage.getItem("auth_token") returns a token string
+- [ ] After click: localStorage.getItem("auth_token") returns null
+- [ ] After click: UI is on /auth
