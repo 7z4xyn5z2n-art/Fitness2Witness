@@ -112,7 +112,7 @@ export default function AdminConsoleScreen() {
     try {
       const payload = {
         userId: String(selectedUser.id),
-        dateISO: selectedDate.toISOString(),
+        day: selectedDate.toISOString(),
         nutritionDone,
         hydrationDone,
         movementDone,
@@ -122,7 +122,7 @@ export default function AdminConsoleScreen() {
       console.log("Save check-in payload:", payload);
       console.log("Payload types:", {
         userId: typeof payload.userId,
-        dateISO: typeof payload.dateISO,
+        day: typeof payload.day,
         nutritionDone: typeof payload.nutritionDone,
         hydrationDone: typeof payload.hydrationDone,
         movementDone: typeof payload.movementDone,
@@ -147,13 +147,13 @@ export default function AdminConsoleScreen() {
     try {
       const payload = {
         userId: String(selectedUser.id),
-        date: selectedDate.toISOString(),
+        day: selectedDate.toISOString(),
         attended,
       };
       console.log("Add attendance payload:", payload);
       console.log("Payload types:", {
         userId: typeof payload.userId,
-        date: typeof payload.date,
+        date: typeof payload.day,
         attended: typeof payload.attended,
       });
       
@@ -977,7 +977,7 @@ export default function AdminConsoleScreen() {
                 
                 <Text className="text-xs text-foreground mb-1">{entry.reason}</Text>
                 <Text className="text-xs text-muted">
-                  By {(entry as any).adminName} • {new Date(entry.date).toLocaleDateString()}
+                  By {(entry as any).adminName} • {new Date(entry.day).toLocaleDateString()}
                 </Text>
               </View>
             ))

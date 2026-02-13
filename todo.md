@@ -102,3 +102,60 @@
 - [x] Add deactivateUser option to admin-users.tsx handleRemoveUser Alert
 - [x] Change admin-calendar.tsx upsertCheckInMutation.mutate to mutateAsync
 - [x] Change admin-calendar.tsx addAttendanceMutation.mutate to mutateAsync
+
+## 14) Admin Day Editor (Web-First Replacement for Calendar & Logs)
+- [x] Backend: Add admin.getDaySnapshot procedure (userId, dateISO → check-in, attendance, day breakdown, dayTotal)
+- [x] Backend: Add admin.createPointAdjustmentForDate procedure (userId, dateISO, pointsDelta, reason, category)
+- [x] Backend: Add community.updatePost or admin.updatePost procedure (postId, postText, postType, visibility, isPinned)
+- [x] Backend: Add admin.getPostsForModeration procedure with filters (groupId, userId, dateISO)
+- [x] Frontend: Create /app/admin-day-editor.tsx with date + user selection
+- [x] Frontend: CARD 1 - Daily Check-In with 4 toggles + save button (mutateAsync, loading, success/error alerts)
+- [x] Frontend: CARD 1 - Day Points Adjustment section (Award Bonus Points style, allows negative, requires reason)
+- [x] Frontend: CARD 2 - Life Group Attendance toggle + save (mutateAsync, loading, success/error alerts)
+- [x] Frontend: CARD 2 - Quick adjustment button for attendance corrections
+- [x] Frontend: CARD 3 - Posts Moderation with list, edit modal, and FULL DELETE
+- [x] Frontend: All delete actions require confirmation before mutateAsync
+- [x] Frontend: All actions show loading state + success/error alerts
+- [x] Frontend: All actions log payload and types to console
+- [x] Frontend: All actions refetch day snapshot + admin.getAllUsers after success
+- [x] Navigation: Replace "Calendar & Logs" with "Day Editor" link to /admin-day-editor
+- [x] Verify: No breaking changes to admin-console.tsx, admin-users.tsx, Award Bonus Points
+
+## 15) Admin Day Editor - 95% Confidence Fixes
+### Phase 1: Database Hardening
+- [x] Convert dailyCheckins.date to day DATE column
+- [x] Convert pointAdjustments.date to day DATE column
+- [x] Convert weeklyAttendance.weekStartDate to weekStart DATE column
+- [x] Add UNIQUE constraint: dailyCheckins(userId, challengeId, day)
+- [x] Add UNIQUE constraint: weeklyAttendance(userId, challengeId, weekStart)
+- [x] Add pointAdjustments.idempotencyKey varchar(80) NOT NULL
+- [x] Add UNIQUE constraint: pointAdjustments(idempotencyKey)
+- [x] Create adminAuditLog table with all required columns
+- [x] Add indexes on adminAuditLog (performedBy, affectedUserId, day, weekStart)
+- [x] Create and run migrations to backfill DATE columns
+
+### Phase 2: API Contract Standardization
+- [x] Update admin.getDaySnapshot to accept day:"YYYY-MM-DD" (complete, 0 TS errors)
+- [x] Update admin.upsertDailyCheckin with day parameter and upsert logic
+- [x] Update admin.setWeeklyAttendance with weekStart parameter and upsert logic
+- [x] Update admin.createPointAdjustmentForDay with day + idempotencyKey (complete with generation)
+- [x] Add console.log for all mutation payloads (existing in frontend)
+- [x] Add console.log for all mutation results (existing in frontend)
+- [x] Add adminAuditLog entry for every mutation (checkin, attendance, adjustment, post)
+- [x] Verify all admin procedures enforce server-side admin role check
+
+### Phase 3: Frontend Date + State Reliability
+- [x] Change selectedDate to selectedDay storing "YYYY-MM-DD" string (using input type="date")
+- [x] Remove any toISOString() conversions for day keys (using direct string values)
+- [x] Add disabled={mutation.isPending} to all mutation buttons (already implemented)
+- [x] Generate idempotencyKey for point adjustments (userId:day:points:reason:bucket)
+- [x] Replace useState initializer with useEffect for snapshot state sync (using tRPC queries)
+- [x] Verify destructive actions have confirmation dialogs (Alert.alert used throughout)
+
+### Phase 4: Tests
+- [ ] Integration test: upsert daily check-in twice => only 1 record
+- [ ] Integration test: set attendance twice => only 1 record
+- [ ] Integration test: create adjustment with same idempotencyKey => only 1 record
+- [ ] Integration test: admin selects "2026-02-13" => DB day = '2026-02-13'
+- [ ] Integration test: non-admin calling admin mutation => rejected
+- [ ] E2E test: pick day + user, toggle checkin, save, reload, confirm persists

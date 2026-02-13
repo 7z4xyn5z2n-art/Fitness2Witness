@@ -166,7 +166,7 @@ export default function CheckinScreen() {
     }
 
     submitMutation.mutate({
-      date: selectedDate.toISOString(),
+      day: selectedDate.toISOString(),
       nutritionDone,
       hydrationDone,
       movementDone,
