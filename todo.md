@@ -42,6 +42,7 @@
 - [x] User selection with search filter
 - [x] Date selection (web: input type=date, native: existing approach)
 - [x] Daily check-in panel with 4 toggles + notes
+- [x] Weekly attendance panel with toggle + save button
 - [x] Points/Bonus panel with manual adjustment + quick bonus buttons
 - [x] Posts moderation panel with delete functionality
 - [x] Audit feed panel with filters (user, category)

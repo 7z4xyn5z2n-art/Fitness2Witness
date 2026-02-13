@@ -23,6 +23,9 @@ export default function AdminConsoleScreen() {
   const [scriptureDone, setScriptureDone] = useState(false);
   const [notes, setNotes] = useState("");
   
+  // Attendance state
+  const [attended, setAttended] = useState(false);
+  
   // Points adjustment state
   const [pointsDelta, setPointsDelta] = useState("");
   const [pointsReason, setPointsReason] = useState("");
@@ -40,6 +43,7 @@ export default function AdminConsoleScreen() {
   // Mutations
   const utils = trpc.useUtils();
   const upsertCheckInMutation = trpc.admin.upsertCheckInForUserDate.useMutation();
+  const addAttendanceMutation = trpc.admin.addUserAttendance.useMutation();
   const createPointAdjustmentMutation = trpc.admin.createPointAdjustment.useMutation();
   const deletePostMutation = trpc.community.deletePost.useMutation({
     onSuccess: () => {
@@ -101,6 +105,32 @@ export default function AdminConsoleScreen() {
       await refetchUsers();
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save check-in");
+    }
+  };
+  
+  const handleAttendance = async () => {
+    if (!selectedUser) {
+      Alert.alert("Error", "Please select a user first");
+      return;
+    }
+    
+    try {
+      const payload = {
+        userId: String(selectedUser.id),
+        date: selectedDate.toISOString(),
+        attended,
+      };
+      console.log("Add attendance payload:", payload);
+      console.log("Payload types:", {
+        userId: typeof payload.userId,
+        date: typeof payload.date,
+        attended: typeof payload.attended,
+      });
+      
+      await addAttendanceMutation.mutateAsync(payload);
+      Alert.alert("Success", `Attendance ${attended ? 'marked' : 'unmarked'} successfully`);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to update attendance");
     }
   };
   
@@ -358,6 +388,29 @@ export default function AdminConsoleScreen() {
           >
             <Text className="text-center font-semibold text-background">
               {upsertCheckInMutation.isPending ? "Saving..." : "Save Check-in"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Attendance Panel */}
+        <View className="bg-surface rounded-xl p-4 mb-4" style={{ borderWidth: 1, borderColor: colors.border }}>
+          <Text className="text-lg font-bold text-foreground mb-3">📋 Weekly Attendance</Text>
+          
+          <TouchableOpacity
+            onPress={() => setAttended(!attended)}
+            className="flex-row items-center justify-between bg-background rounded-lg px-4 py-3 mb-3"
+          >
+            <Text className="text-foreground">Attended Life Group</Text>
+            <View className={`w-6 h-6 rounded ${attended ? 'bg-success' : 'bg-muted'}`} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={handleAttendance}
+            className="bg-primary py-3 rounded-lg"
+            disabled={addAttendanceMutation.isPending}
+          >
+            <Text className="text-center font-semibold text-background">
+              {addAttendanceMutation.isPending ? "Saving..." : "Save Attendance"}
             </Text>
           </TouchableOpacity>
         </View>
