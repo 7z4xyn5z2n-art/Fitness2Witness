@@ -19,7 +19,8 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
-import { useIdleTimeout } from "@/hooks/use-idle-timeout";
+import { IdleTimeout } from "@/components/idle-timeout";
+import { View } from "react-native";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -29,8 +30,7 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  // Initialize idle timeout (web only, 5 minutes)
-  useIdleTimeout();
+  const activityPingRef = useState(() => ({ ping: () => {} }))[0];
   
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
@@ -87,15 +87,23 @@ export default function RootLayout() {
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="auth" />
-          </Stack>
-          <StatusBar style="auto" />
-        </QueryClientProvider>
-      </trpc.Provider>
+      <View
+        style={{ flex: 1 }}
+        onTouchStart={() => activityPingRef.ping()}
+        onStartShouldSetResponder={() => true}
+        onResponderGrant={() => activityPingRef.ping()}
+      >
+        <IdleTimeout timeoutMs={180000} />
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="auth" />
+            </Stack>
+            <StatusBar style="auto" />
+          </QueryClientProvider>
+        </trpc.Provider>
+      </View>
     </GestureHandlerRootView>
   );
 

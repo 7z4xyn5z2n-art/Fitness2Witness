@@ -55,3 +55,12 @@
 - [x] Update admin-console.tsx to use admin.getPosts instead of community.getPosts
 - [x] Add group filter UI to Posts Moderation panel
 - [x] Update delete invalidation to use admin.getPosts query key
+
+## 9) 3-Minute Inactivity Timeout
+- [x] Create components/idle-timeout.tsx component
+- [x] Implement activity detection (mousemove, keydown, click, scroll, touchstart)
+- [x] Add route change detection as activity
+- [x] Implement logout after 3 minutes (180,000ms) of inactivity
+- [x] Disable timeout on auth screens (login/register)
+- [x] Disable timeout when no auth token exists
+- [x] Wire IdleTimeout into root layout (app/_layout.tsx)
