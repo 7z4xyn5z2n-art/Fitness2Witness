@@ -26,9 +26,9 @@ export default function AdminScreen() {
       icon: "🛡️",
     },
     {
-      title: "Day Editor",
-      description: "Edit check-ins, attendance, and posts for specific days",
-      route: "/admin-day-editor",
+      title: "Calendar & Logs",
+      description: "View and edit user check-ins and attendance",
+      route: "/admin-calendar",
       icon: "📅",
     },
   ];

@@ -18,13 +18,13 @@ export default function AdminCalendarScreen() {
 
   // Fetch check-ins for selected date
   const { data: checkIns, isLoading: checkInsLoading, refetch } = trpc.admin.getCheckInsByDate.useQuery(
-    { day: selectedDate.toISOString() },
+    { date: selectedDate.toISOString() },
     { enabled: true }
   );
 
   // Fetch attendance for selected date
   const { data: attendance, refetch: refetchAttendance } = trpc.admin.getAttendanceByDate.useQuery(
-    { day: selectedDate.toISOString() },
+    { date: selectedDate.toISOString() },
     { enabled: true }
   );
 
@@ -74,7 +74,7 @@ export default function AdminCalendarScreen() {
             try {
               await upsertCheckInMutation.mutateAsync({
                 userId,
-                day: selectedDate.toISOString(),
+                dateISO: selectedDate.toISOString(),
                 nutritionDone: nutrition,
                 hydrationDone: hydration,
                 movementDone: movement,
@@ -114,7 +114,7 @@ export default function AdminCalendarScreen() {
             try {
               const payload = {
                 userId: String(userId),
-                day: selectedDate.toISOString(),
+                dateISO: selectedDate.toISOString(),
                 nutritionDone: true,
                 hydrationDone: true,
                 movementDone: true,
@@ -122,7 +122,7 @@ export default function AdminCalendarScreen() {
                 notes: "Added by admin",
               };
               console.log("Adding check-in payload:", payload);
-              console.log("Payload types:", { userId: typeof payload.userId, day: typeof payload.day });
+              console.log("Payload types:", { userId: typeof payload.userId, dateISO: typeof payload.dateISO });
               await upsertCheckInMutation.mutateAsync(payload);
             } catch (error: any) {
               console.error("Failed to add check-in:", error);
@@ -145,11 +145,11 @@ export default function AdminCalendarScreen() {
     
     const payload = {
       userId: String(userId),
-      day: selectedDate.toISOString(),
+      date: selectedDate.toISOString(),
       attended: true,
     };
     console.log("Adding attendance payload:", payload);
-    console.log("Payload types:", { userId: typeof payload.userId, date: typeof payload.day });
+    console.log("Payload types:", { userId: typeof payload.userId, date: typeof payload.date });
     try {
       await addAttendanceMutation.mutateAsync(payload);
     } catch (error: any) {

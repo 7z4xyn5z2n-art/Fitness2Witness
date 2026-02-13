@@ -72,7 +72,7 @@ export default function AttendanceScreen() {
           onPress: () => {
             markAttendanceMutation.mutate({
               userIds: Array.from(selectedUsers),
-              day: new Date().toISOString(),
+              date: new Date().toISOString(),
             });
             setSelectedUsers(new Set());
           },

@@ -1,8 +1,0 @@
-{
-  "schema": "./drizzle/schema.ts",
-  "out": "./drizzle/migrations",
-  "dialect": "postgresql",
-  "dbCredentials": {
-    "url": "postgresql://localhost:5432/fitness2witness"
-  }
-}

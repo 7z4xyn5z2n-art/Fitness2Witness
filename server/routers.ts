@@ -7,14 +7,6 @@ import { phoneAuthRouter } from "./routers/phone-auth";
 import * as db from "./db";
 import { storagePut } from "./storage";
 
-// Helper function to convert Date to YYYY-MM-DD string for DATE columns
-function toDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 // Helper function to analyze workout text using AI
 async function analyzeWorkout(workoutText: string): Promise<string> {
   const { invokeLLM } = await import("./_core/llm.js");
@@ -70,7 +62,7 @@ export const appRouter = router({
     submit: protectedProcedure
       .input(
         z.object({
-          day: z.string(),
+          date: z.string(),
           nutritionDone: z.boolean(),
           hydrationDone: z.boolean(),
           movementDone: z.boolean(),
@@ -97,7 +89,7 @@ export const appRouter = router({
           }
           console.log('[Check-in Submit] Group found:', { groupId: group.id, challengeId: group.challengeId });
 
-        const date = new Date(input.day);
+        const date = new Date(input.date);
         const existing = await db.getDailyCheckin(ctx.user.id, date);
 
         if (existing) {
@@ -114,7 +106,7 @@ export const appRouter = router({
 
         // 1) Save check-in to database FIRST (never let AI block this)
         const checkin = await db.createDailyCheckin({
-          day: toDateString(date),
+          date,
           userId: ctx.user.id,
           groupId: user.groupId,
           challengeId: group.challengeId,
@@ -151,7 +143,7 @@ export const appRouter = router({
                 userId: ctx.user.id,
                 groupId: user.groupId,
                 challengeId: group.challengeId,
-                date: new Date(input.day),
+                date: new Date(input.date),
                 ...extractedMetrics,
               });
               console.log('[Check-in Submit] Body metrics extracted and saved:', extractedMetrics);
@@ -249,7 +241,7 @@ export const appRouter = router({
         weekEnd.setDate(weekStart.getDate() + 7);
         
         const weekCheckins = checkins.filter(c => {
-          const checkinDate = new Date(c.day);
+          const checkinDate = new Date(c.date);
           return checkinDate >= weekStart && checkinDate < weekEnd;
         });
         
@@ -334,7 +326,7 @@ export const appRouter = router({
     }),
 
     markAttendance: protectedProcedure
-      .input(z.object({ userIds: z.array(z.number()), day: z.string() }))
+      .input(z.object({ userIds: z.array(z.number()), date: z.string() }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || !user.groupId) {
@@ -352,7 +344,7 @@ export const appRouter = router({
         }
 
         // Get start of current week (Monday)
-        const now = new Date(input.day);
+        const now = new Date(input.date);
         const dayOfWeek = now.getDay();
         const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         const weekStart = new Date(now);
@@ -367,7 +359,7 @@ export const appRouter = router({
             await db.updateWeeklyAttendance(userId, weekStart, true);
           } else {
             await db.createWeeklyAttendance({
-              weekStart: toDateString(weekStart),
+              weekStartDate: weekStart,
               userId,
               groupId: user.groupId,
               challengeId: group.challengeId,
@@ -483,17 +475,7 @@ export const appRouter = router({
         throw new Error("Only admins can delete posts");
       }
 
-      const before = await db.getPostById(input.postId);
       await db.deletePost(input.postId);
-      await db.createAuditLog({
-        actionType: "POST_DELETE",
-        entityType: "post",
-        entityId: input.postId,
-        affectedUserId: before?.userId,
-        before: before as any,
-        after: null,
-        performedBy: ctx.user.id,
-      });
       return { success: true };
     }),
 
@@ -871,12 +853,8 @@ export const appRouter = router({
           throw new Error("Group must be assigned to a challenge");
         }
 
-        // Generate idempotencyKey to prevent duplicate bonus point awards
-        const timestampBucket = Math.floor(Date.now() / 10000) * 10000; // Round to 10 seconds
-        const idempotencyKey = `bonus:${input.userId}:${input.pointsDelta}:${input.reason.substring(0, 20)}:${timestampBucket}`;
-
-        const adjustment = await db.createPointAdjustment({
-          day: toDateString(new Date()),
+        const adjustmentId = await db.createPointAdjustment({
+          date: new Date(),
           userId: input.userId,
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -884,20 +862,9 @@ export const appRouter = router({
           reason: input.reason,
           category: input.category, // Optional category for bonus points
           adjustedBy: ctx.user.id,
-          idempotencyKey,
-        });
-        await db.createAuditLog({
-          actionType: "POINTS_ADJUST",
-          entityType: "adjustment",
-          entityId: adjustment?.id,
-          affectedUserId: input.userId,
-          day: toDateString(new Date()),
-          before: null,
-          after: adjustment as any,
-          performedBy: ctx.user.id,
         });
 
-        return { success: true, adjustmentId: adjustment?.id };
+        return { success: true, adjustmentId };
       }),
 
     getAuditLog: protectedProcedure.query(async ({ ctx }) => {
@@ -980,32 +947,32 @@ export const appRouter = router({
       }),
 
     getCheckInsByDate: protectedProcedure
-      .input(z.object({ day: z.string() }))
+      .input(z.object({ date: z.string() }))
       .query(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || user.role !== "admin") {
           throw new Error("Only admins can access this");
         }
 
-        return db.getCheckInsByDate(new Date(input.day));
+        return db.getCheckInsByDate(new Date(input.date));
       }),
 
     getAttendanceByDate: protectedProcedure
-      .input(z.object({ day: z.string() }))
+      .input(z.object({ date: z.string() }))
       .query(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || user.role !== "admin") {
           throw new Error("Only admins can access this");
         }
 
-        return db.getAttendanceByDate(new Date(input.day));
+        return db.getAttendanceByDate(new Date(input.date));
       }),
 
     addUserCheckIn: protectedProcedure
       .input(
         z.object({
           userId: z.string(),
-          day: z.string(),
+          date: z.string(),
           nutritionDone: z.boolean(),
           hydrationDone: z.boolean(),
           movementDone: z.boolean(),
@@ -1030,7 +997,7 @@ export const appRouter = router({
         }
 
         await db.createCheckIn({
-          day: input.day,
+          date: new Date(input.date),
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -1048,7 +1015,7 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.string(),
-          day: z.string(),
+          dateISO: z.string(),
           nutritionDone: z.boolean(),
           hydrationDone: z.boolean(),
           movementDone: z.boolean(),
@@ -1074,7 +1041,7 @@ export const appRouter = router({
         }
 
         // Normalize date to day boundary
-        const date = new Date(input.day);
+        const date = new Date(input.dateISO);
         date.setHours(0, 0, 0, 0);
 
         // Check if check-in exists for this user+date
@@ -1082,7 +1049,6 @@ export const appRouter = router({
 
         if (existing) {
           // Update existing check-in
-          const before = { ...existing };
           await db.updateDailyCheckin(existing.id, {
             nutritionDone: input.nutritionDone,
             hydrationDone: input.hydrationDone,
@@ -1090,22 +1056,11 @@ export const appRouter = router({
             scriptureDone: input.scriptureDone,
             notes: input.notes,
           });
-          const after = await db.getCheckinByUserIdAndDate(parseInt(input.userId), date);
-          await db.createAuditLog({
-            actionType: "CHECKIN_UPDATE",
-            entityType: "checkin",
-            entityId: existing.id,
-            affectedUserId: parseInt(input.userId),
-            day: toDateString(date),
-            before: before as any,
-            after: after as any,
-            performedBy: ctx.user.id,
-          });
           return { success: true, action: "updated", checkInId: existing.id };
         } else {
           // Create new check-in
           const newCheckIn = await db.createCheckIn({
-            day: toDateString(date),
+            date,
             userId: parseInt(input.userId),
             groupId: targetUser.groupId,
             challengeId: group.challengeId,
@@ -1115,16 +1070,6 @@ export const appRouter = router({
             scriptureDone: input.scriptureDone,
             notes: input.notes,
           });
-          await db.createAuditLog({
-            actionType: "CHECKIN_CREATE",
-            entityType: "checkin",
-            entityId: newCheckIn?.id,
-            affectedUserId: parseInt(input.userId),
-            day: toDateString(date),
-            before: null,
-            after: newCheckIn as any,
-            performedBy: ctx.user.id,
-          });
           return { success: true, action: "created", checkInId: newCheckIn?.id || 0 };
         }
       }),
@@ -1133,7 +1078,7 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.string(),
-          day: z.string(), // Changed from 'date' to 'day' for consistency
+          date: z.string(),
           attended: z.boolean(),
         })
       )
@@ -1153,266 +1098,22 @@ export const appRouter = router({
           throw new Error("Group must be assigned to a challenge");
         }
 
-        const date = new Date(input.day);
+        const date = new Date(input.date);
         const startOfWeek = new Date(date);
         startOfWeek.setHours(0, 0, 0, 0);
         const dayOfWeek = startOfWeek.getDay();
         const diff = startOfWeek.getDate() - dayOfWeek;
         startOfWeek.setDate(diff);
 
-        const newAttendance = await db.createWeeklyAttendance({
-          weekStart: toDateString(startOfWeek),
+        await db.createWeeklyAttendance({
+          weekStartDate: startOfWeek,
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
           attendedWednesday: input.attended,
         });
-        await db.createAuditLog({
-          actionType: "ATTENDANCE_SET",
-          entityType: "attendance",
-          entityId: newAttendance?.id,
-          affectedUserId: parseInt(input.userId),
-          weekStart: toDateString(startOfWeek),
-          before: null,
-          after: newAttendance as any,
-          performedBy: ctx.user.id,
-        });
-        return { success: true };;
-      }),
 
-    // Get day snapshot for a specific user and date
-    getDaySnapshot: protectedProcedure
-      .input(
-        z.object({
-          userId: z.string(),
-          day: z.string(),
-        })
-      )
-      .query(async ({ ctx, input }) => {
-        const adminUser = await db.getUserById(ctx.user.id);
-        if (!adminUser || adminUser.role !== "admin") {
-          throw new Error("Only admins can access day snapshots");
-        }
-
-        const targetUser = await db.getUserById(parseInt(input.userId));
-        if (!targetUser) {
-          throw new Error("User not found");
-        }
-
-        // Normalize date to midnight
-        const date = new Date(input.day);
-        date.setHours(0, 0, 0, 0);
-
-        // Get daily check-in
-        const dailyCheckin = await db.getCheckinByUserIdAndDate(parseInt(input.userId), date);
-
-        // Get attendance for the week containing this date
-        const startOfWeek = new Date(date);
-        const dayOfWeek = startOfWeek.getDay();
-        const diff = startOfWeek.getDate() - dayOfWeek;
-        startOfWeek.setDate(diff);
-        startOfWeek.setHours(0, 0, 0, 0);
-        const attendance = await db.getAttendanceByUserIdAndWeek(parseInt(input.userId), startOfWeek);
-
-        // Get point adjustments for this specific day
-        const allAdjustments = await db.getPointAdjustmentsByUserId(parseInt(input.userId));
-        const dayAdjustments = allAdjustments.filter((adj) => {
-          const adjDate = new Date(adj.day);
-          adjDate.setHours(0, 0, 0, 0);
-          return adjDate.getTime() === date.getTime();
-        });
-        const dayAdjustmentsSum = dayAdjustments.reduce((sum, adj) => sum + adj.pointsDelta, 0);
-
-        // Calculate day total
-        const checkInPoints =
-          (dailyCheckin?.nutritionDone ? 1 : 0) +
-          (dailyCheckin?.hydrationDone ? 1 : 0) +
-          (dailyCheckin?.movementDone ? 1 : 0) +
-          (dailyCheckin?.scriptureDone ? 1 : 0);
-        const attendancePoints = attendance?.attendedWednesday ? 10 : 0;
-        const dayTotal = checkInPoints + attendancePoints + dayAdjustmentsSum;
-
-        return {
-          dailyCheckin: dailyCheckin || null,
-          attendance: attendance || null,
-          dayBreakdown: {
-            checkInPoints,
-            attendancePoints,
-            dayAdjustmentsSum,
-            dayTotal,
-          },
-          dayAdjustments,
-        };
-      }),
-
-    // Create point adjustment for a specific date
-    createPointAdjustmentForDate: protectedProcedure
-      .input(
-        z.object({
-          userId: z.number(),
-          day: z.string(), // Changed from dateISO to day for consistency
-          pointsDelta: z.number(),
-          reason: z.string(),
-          category: z.string().optional(),
-          idempotencyKey: z.string(), // Required for preventing duplicate submissions
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const adminUser = await db.getUserById(ctx.user.id);
-        if (!adminUser || adminUser.role !== "admin") {
-          throw new Error("Only admins can create point adjustments");
-        }
-
-        const targetUser = await db.getUserById(input.userId);
-        if (!targetUser || !targetUser.groupId) {
-          throw new Error("Target user must be assigned to a group");
-        }
-
-        const group = await db.getGroupById(targetUser.groupId);
-        if (!group || !group.challengeId) {
-          throw new Error("Group must be assigned to a challenge");
-        }
-
-        // input.day is already "YYYY-MM-DD" format, no conversion needed
-        const adjustment = await db.createPointAdjustment({
-          day: input.day,
-          userId: input.userId,
-          groupId: targetUser.groupId,
-          challengeId: group.challengeId,
-          pointsDelta: input.pointsDelta,
-          reason: input.reason,
-          category: input.category || "daily_correction",
-          adjustedBy: ctx.user.id,
-          idempotencyKey: input.idempotencyKey,
-        });
-        await db.createAuditLog({
-          actionType: "POINTS_ADJUST_DAY",
-          entityType: "adjustment",
-          entityId: adjustment?.id,
-          affectedUserId: input.userId,
-          day: input.day,
-          before: null,
-          after: adjustment as any,
-          performedBy: ctx.user.id,
-        });
-
-        return { success: true, adjustmentId: adjustment?.id };
-      }),
-
-    // Update post (for moderation)
-    updatePost: protectedProcedure
-      .input(
-        z.object({
-          postId: z.number(),
-          postText: z.string().optional(),
-          postType: z.enum(["Encouragement", "Testimony", "Photo", "Video", "Announcement"]).optional(),
-          visibility: z.enum(["GroupOnly", "LeadersOnly"]).optional(),
-          isPinned: z.boolean().optional(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const adminUser = await db.getUserById(ctx.user.id);
-        if (!adminUser || adminUser.role !== "admin") {
-          throw new Error("Only admins can update posts");
-        }
-
-        const { postId, ...updates } = input;
-        const before = await db.getPostById(postId);
-        await db.updatePost(postId, updates);
-        const after = await db.getPostById(postId);
-        await db.createAuditLog({
-          actionType: "POST_UPDATE",
-          entityType: "post",
-          entityId: postId,
-          affectedUserId: before?.userId,
-          before: before as any,
-          after: after as any,
-          performedBy: ctx.user.id,
-        });
         return { success: true };
-      }),
-
-    // Get posts for moderation with filters
-    getPostsForModeration: protectedProcedure
-      .input(
-        z
-          .object({
-            groupId: z.number().optional(),
-            userId: z.number().optional(),
-            day: z.string().optional(),
-          })
-          .optional()
-      )
-      .query(async ({ ctx, input }) => {
-        const adminUser = await db.getUserById(ctx.user.id);
-        if (!adminUser || adminUser.role !== "admin") {
-          throw new Error("Only admins can access posts for moderation");
-        }
-
-        const allGroups = await db.getAllGroups();
-        if (!allGroups || allGroups.length === 0) {
-          return [];
-        }
-
-        let allPosts: any[] = [];
-
-        if (input?.groupId) {
-          const posts = await db.getGroupPosts(input.groupId);
-          allPosts = posts;
-        } else {
-          for (const group of allGroups) {
-            const posts = await db.getGroupPosts(group.id);
-            allPosts = allPosts.concat(posts);
-          }
-        }
-
-        // Filter by userId if provided
-        if (input?.userId) {
-          allPosts = allPosts.filter((post) => post.userId === input.userId);
-        }
-
-        // Filter by date if provided
-        if (input?.day) {
-          const targetDate = new Date(input.day);
-          targetDate.setHours(0, 0, 0, 0);
-          const nextDay = new Date(targetDate);
-          nextDay.setDate(nextDay.getDate() + 1);
-
-          allPosts = allPosts.filter((post) => {
-            const postDate = new Date(post.createdAt);
-            return postDate >= targetDate && postDate < nextDay;
-          });
-        }
-
-        // Sort by createdAt desc
-        allPosts.sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return dateB - dateA;
-        });
-
-        // Map posts with author names
-        const postsWithUsers = await Promise.all(
-          allPosts.map(async (post) => {
-            const author = await db.getUserById(post.userId);
-            return {
-              id: post.id,
-              userId: post.userId,
-              groupId: post.groupId,
-              postType: post.postType,
-              postText: post.postText,
-              postImageUrl: post.postImageUrl,
-              postVideoUrl: post.postVideoUrl,
-              isPinned: post.isPinned,
-              visibility: post.visibility,
-              createdAt: post.createdAt,
-              updatedAt: post.updatedAt,
-              authorName: author?.name || "Unknown",
-            };
-          })
-        );
-
-        return postsWithUsers;
       }),
   }),
 
@@ -1470,7 +1171,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          day: z.string(),
+          date: z.string(),
           weight: z.number().optional(),
           bodyFatPercent: z.number().optional(),
           muscleMass: z.number().optional(),
@@ -1494,7 +1195,7 @@ export const appRouter = router({
           userId: ctx.user.id,
           groupId: user.groupId,
           challengeId: activeChallenges[0].id,
-          date: new Date(input.day),
+          date: new Date(input.date),
           weight: input.weight,
           bodyFatPercent: input.bodyFatPercent,
           muscleMass: input.muscleMass,
@@ -1877,7 +1578,7 @@ Respond ONLY with a JSON object in this exact format:
       for (const member of members) {
         // Get check-ins since week start
         const allMemberCheckins = await db.getUserCheckins(member.id);
-        const weeklyCheckins = allMemberCheckins.filter((c: any) => new Date(c.day) >= weekStart);
+        const weeklyCheckins = allMemberCheckins.filter((c: any) => new Date(c.date) >= weekStart);
         const weeklyPoints = weeklyCheckins.reduce((sum: number, c: any) => {
           let points = 0;
           if (c.nutrition) points++;
@@ -1914,7 +1615,7 @@ Respond ONLY with a JSON object in this exact format:
         // Check if needs follow-up (no check-ins in 3+ days or below 50%)
         const lastCheckin = allCheckins[0];
         const daysSinceLastCheckin = lastCheckin
-          ? Math.floor((now.getTime() - new Date(lastCheckin.day).getTime()) / (1000 * 60 * 60 * 24))
+          ? Math.floor((now.getTime() - new Date(lastCheckin.date).getTime()) / (1000 * 60 * 60 * 24))
           : 999;
 
         if (daysSinceLastCheckin >= 3) {
@@ -1948,7 +1649,7 @@ Respond ONLY with a JSON object in this exact format:
       let workoutLoggers = 0;
       for (const m of members) {
         const checkins = await db.getUserCheckins(m.id, 20);
-        const weeklyCheckins = checkins.filter((c: any) => new Date(c.day) >= weekStart);
+        const weeklyCheckins = checkins.filter((c: any) => new Date(c.date) >= weekStart);
         if (weeklyCheckins.some((c: any) => c.workoutLog)) {
           workoutLoggers++;
         }

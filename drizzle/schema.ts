@@ -1,4 +1,4 @@
-import { boolean, date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, real, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 // Define enums for PostgreSQL
 export const roleEnum = pgEnum("role", ["user", "leader", "admin"]);
@@ -61,116 +61,58 @@ export type Challenge = typeof challenges.$inferSelect;
 export type InsertChallenge = typeof challenges.$inferInsert;
 
 // Daily check-ins table
-export const dailyCheckins = pgTable(
-  "dailyCheckins",
-  {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    day: date("day").notNull(), // Changed from timestamp to date for timezone-safe day keys
-    userId: integer("userId").notNull(),
-    groupId: integer("groupId").notNull(),
-    challengeId: integer("challengeId").notNull(),
-    nutritionDone: boolean("nutritionDone").default(false).notNull(),
-    hydrationDone: boolean("hydrationDone").default(false).notNull(),
-    movementDone: boolean("movementDone").default(false).notNull(),
-    scriptureDone: boolean("scriptureDone").default(false).notNull(),
-    notes: text("notes"),
-    proofPhotoUrl: text("proofPhotoUrl"),
-    workoutLog: text("workoutLog"),
-    workoutAnalysis: text("workoutAnalysis"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  },
-  (table) => ({
-    // Unique constraint to prevent duplicate check-ins for same user/challenge/day
-    uniqueUserChallengeDay: unique("dailyCheckins_userId_challengeId_day_unique").on(
-      table.userId,
-      table.challengeId,
-      table.day
-    ),
-  })
-);
+export const dailyCheckins = pgTable("dailyCheckins", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  date: timestamp("date").notNull(),
+  userId: integer("userId").notNull(),
+  groupId: integer("groupId").notNull(),
+  challengeId: integer("challengeId").notNull(),
+  nutritionDone: boolean("nutritionDone").default(false).notNull(),
+  hydrationDone: boolean("hydrationDone").default(false).notNull(),
+  movementDone: boolean("movementDone").default(false).notNull(),
+  scriptureDone: boolean("scriptureDone").default(false).notNull(),
+  notes: text("notes"),
+  proofPhotoUrl: text("proofPhotoUrl"),
+  workoutLog: text("workoutLog"),
+  workoutAnalysis: text("workoutAnalysis"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
 
 export type DailyCheckin = typeof dailyCheckins.$inferSelect;
 export type InsertDailyCheckin = typeof dailyCheckins.$inferInsert;
 
 // Weekly attendance table
-export const weeklyAttendance = pgTable(
-  "weeklyAttendance",
-  {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    weekStart: date("weekStart").notNull(), // Changed from weekStartDate timestamp to date
-    userId: integer("userId").notNull(),
-    groupId: integer("groupId").notNull(),
-    challengeId: integer("challengeId").notNull(),
-    attendedWednesday: boolean("attendedWednesday").default(false).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  },
-  (table) => ({
-    // Unique constraint to prevent duplicate attendance records
-    uniqueUserChallengeWeek: unique("weeklyAttendance_userId_challengeId_weekStart_unique").on(
-      table.userId,
-      table.challengeId,
-      table.weekStart
-    ),
-  })
-);
+export const weeklyAttendance = pgTable("weeklyAttendance", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  weekStartDate: timestamp("weekStartDate").notNull(),
+  userId: integer("userId").notNull(),
+  groupId: integer("groupId").notNull(),
+  challengeId: integer("challengeId").notNull(),
+  attendedWednesday: boolean("attendedWednesday").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
 
 export type WeeklyAttendance = typeof weeklyAttendance.$inferSelect;
 export type InsertWeeklyAttendance = typeof weeklyAttendance.$inferInsert;
 
 // Point adjustments table
-export const pointAdjustments = pgTable(
-  "pointAdjustments",
-  {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    day: date("day").notNull(), // Changed from timestamp to date
-    userId: integer("userId").notNull(),
-    groupId: integer("groupId").notNull(),
-    challengeId: integer("challengeId").notNull(),
-    pointsDelta: integer("pointsDelta").notNull(),
-    reason: text("reason").notNull(),
-    category: varchar("category", { length: 100 }), // Optional category for bonus points
-    adjustedBy: integer("adjustedBy").notNull(),
-    idempotencyKey: varchar("idempotencyKey", { length: 80 }).notNull(), // Prevents duplicate submissions
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-  },
-  (table) => ({
-    // Unique constraint on idempotencyKey to prevent duplicate adjustments
-    uniqueIdempotencyKey: unique("pointAdjustments_idempotencyKey_unique").on(table.idempotencyKey),
-  })
-);
+export const pointAdjustments = pgTable("pointAdjustments", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  date: timestamp("date").notNull(),
+  userId: integer("userId").notNull(),
+  groupId: integer("groupId").notNull(),
+  challengeId: integer("challengeId").notNull(),
+  pointsDelta: integer("pointsDelta").notNull(),
+  reason: text("reason").notNull(),
+  category: varchar("category", { length: 100 }), // Optional category for bonus points (e.g., "Scripture Memory", "Workout Excellence")
+  adjustedBy: integer("adjustedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
 export type PointAdjustment = typeof pointAdjustments.$inferSelect;
 export type InsertPointAdjustment = typeof pointAdjustments.$inferInsert;
-
-// Admin audit log table
-export const adminAuditLog = pgTable(
-  "adminAuditLog",
-  {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    actionType: varchar("actionType", { length: 50 }).notNull(), // e.g., CHECKIN_UPSERT, ATTENDANCE_SET, POST_UPDATE
-    entityType: varchar("entityType", { length: 30 }).notNull(), // checkin, attendance, post, adjustment
-    entityId: integer("entityId"), // if known at time of log
-    affectedUserId: integer("affectedUserId"),
-    day: date("day"), // for day-scoped actions
-    weekStart: date("weekStart"), // for week-scoped actions
-    before: jsonb("before"), // snapshot before change
-    after: jsonb("after"), // snapshot after change
-    performedBy: integer("performedBy").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-  },
-  (table) => ({
-    // Indexes for common query patterns
-    idxPerformedBy: index("adminAuditLog_performedBy_idx").on(table.performedBy),
-    idxAffectedUserId: index("adminAuditLog_affectedUserId_idx").on(table.affectedUserId),
-    idxDay: index("adminAuditLog_day_idx").on(table.day),
-    idxWeekStart: index("adminAuditLog_weekStart_idx").on(table.weekStart),
-  })
-);
-
-export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
-export type InsertAdminAuditLog = typeof adminAuditLog.$inferInsert;
 
 // Community posts table
 export const communityPosts = pgTable("communityPosts", {
