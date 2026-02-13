@@ -73,7 +73,7 @@ export default function CheckinHistoryScreen() {
             data={checkins}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => {
-              const date = new Date(item.date);
+              const date = new Date(item.day);
               const points = [item.nutritionDone, item.hydrationDone, item.movementDone, item.scriptureDone].filter(Boolean).length;
 
               return (

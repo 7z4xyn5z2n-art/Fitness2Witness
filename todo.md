@@ -120,3 +120,42 @@
 - [x] Frontend: All actions refetch day snapshot + admin.getAllUsers after success
 - [x] Navigation: Replace "Calendar & Logs" with "Day Editor" link to /admin-day-editor
 - [x] Verify: No breaking changes to admin-console.tsx, admin-users.tsx, Award Bonus Points
+
+## 15) Admin Day Editor - 95% Confidence Fixes
+### Phase 1: Database Hardening
+- [x] Convert dailyCheckins.date to day DATE column
+- [x] Convert pointAdjustments.date to day DATE column
+- [x] Convert weeklyAttendance.weekStartDate to weekStart DATE column
+- [x] Add UNIQUE constraint: dailyCheckins(userId, challengeId, day)
+- [x] Add UNIQUE constraint: weeklyAttendance(userId, challengeId, weekStart)
+- [x] Add pointAdjustments.idempotencyKey varchar(80) NOT NULL
+- [x] Add UNIQUE constraint: pointAdjustments(idempotencyKey)
+- [x] Create adminAuditLog table with all required columns
+- [x] Add indexes on adminAuditLog (performedBy, affectedUserId, day, weekStart)
+- [x] Create and run migrations to backfill DATE columns
+
+### Phase 2: API Contract Standardization
+- [ ] Update admin.getDaySnapshot to accept day:"YYYY-MM-DD" (not dateISO)
+- [ ] Update admin.upsertDailyCheckin with day parameter and upsert logic
+- [ ] Update admin.setWeeklyAttendance with weekStart parameter and upsert logic
+- [ ] Update admin.createPointAdjustmentForDay with day + idempotencyKey
+- [ ] Add console.log for all mutation payloads (before DB write)
+- [ ] Add console.log for all mutation results (after DB write)
+- [ ] Add adminAuditLog entry for every mutation (checkin, attendance, adjustment, post)
+- [ ] Verify all admin procedures enforce server-side admin role check
+
+### Phase 3: Frontend Date + State Reliability
+- [ ] Change selectedDate to selectedDay storing "YYYY-MM-DD" string
+- [ ] Remove any toISOString() conversions for day keys
+- [ ] Add disabled={mutation.isPending} to all mutation buttons
+- [ ] Generate idempotencyKey for point adjustments (userId:day:points:reason:bucket)
+- [ ] Replace useState initializer with useEffect for snapshot state sync
+- [ ] Verify destructive actions have confirmation dialogs
+
+### Phase 4: Tests
+- [ ] Integration test: upsert daily check-in twice => only 1 record
+- [ ] Integration test: set attendance twice => only 1 record
+- [ ] Integration test: create adjustment with same idempotencyKey => only 1 record
+- [ ] Integration test: admin selects "2026-02-13" => DB day = '2026-02-13'
+- [ ] Integration test: non-admin calling admin mutation => rejected
+- [ ] E2E test: pick day + user, toggle checkin, save, reload, confirm persists

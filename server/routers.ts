@@ -89,7 +89,7 @@ export const appRouter = router({
           }
           console.log('[Check-in Submit] Group found:', { groupId: group.id, challengeId: group.challengeId });
 
-        const date = new Date(input.date);
+        const date = new Date(input.day);
         const existing = await db.getDailyCheckin(ctx.user.id, date);
 
         if (existing) {
@@ -143,7 +143,7 @@ export const appRouter = router({
                 userId: ctx.user.id,
                 groupId: user.groupId,
                 challengeId: group.challengeId,
-                date: new Date(input.date),
+                date: new Date(input.day),
                 ...extractedMetrics,
               });
               console.log('[Check-in Submit] Body metrics extracted and saved:', extractedMetrics);
@@ -241,7 +241,7 @@ export const appRouter = router({
         weekEnd.setDate(weekStart.getDate() + 7);
         
         const weekCheckins = checkins.filter(c => {
-          const checkinDate = new Date(c.date);
+          const checkinDate = new Date(c.day);
           return checkinDate >= weekStart && checkinDate < weekEnd;
         });
         
@@ -344,7 +344,7 @@ export const appRouter = router({
         }
 
         // Get start of current week (Monday)
-        const now = new Date(input.date);
+        const now = new Date(input.day);
         const dayOfWeek = now.getDay();
         const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         const weekStart = new Date(now);
@@ -359,7 +359,7 @@ export const appRouter = router({
             await db.updateWeeklyAttendance(userId, weekStart, true);
           } else {
             await db.createWeeklyAttendance({
-              weekStartDate: weekStart,
+              weekStart: weekStart,
               userId,
               groupId: user.groupId,
               challengeId: group.challengeId,
@@ -954,7 +954,7 @@ export const appRouter = router({
           throw new Error("Only admins can access this");
         }
 
-        return db.getCheckInsByDate(new Date(input.date));
+        return db.getCheckInsByDate(new Date(input.day));
       }),
 
     getAttendanceByDate: protectedProcedure
@@ -965,7 +965,7 @@ export const appRouter = router({
           throw new Error("Only admins can access this");
         }
 
-        return db.getAttendanceByDate(new Date(input.date));
+        return db.getAttendanceByDate(new Date(input.day));
       }),
 
     addUserCheckIn: protectedProcedure
@@ -997,7 +997,7 @@ export const appRouter = router({
         }
 
         await db.createCheckIn({
-          date: new Date(input.date),
+          date: new Date(input.day),
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -1098,7 +1098,7 @@ export const appRouter = router({
           throw new Error("Group must be assigned to a challenge");
         }
 
-        const date = new Date(input.date);
+        const date = new Date(input.day);
         const startOfWeek = new Date(date);
         startOfWeek.setHours(0, 0, 0, 0);
         const dayOfWeek = startOfWeek.getDay();
@@ -1106,7 +1106,7 @@ export const appRouter = router({
         startOfWeek.setDate(diff);
 
         await db.createWeeklyAttendance({
-          weekStartDate: startOfWeek,
+          weekStart: startOfWeek,
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -1153,7 +1153,7 @@ export const appRouter = router({
         // Get point adjustments for this specific day
         const allAdjustments = await db.getPointAdjustmentsByUserId(parseInt(input.userId));
         const dayAdjustments = allAdjustments.filter((adj) => {
-          const adjDate = new Date(adj.date);
+          const adjDate = new Date(adj.day);
           adjDate.setHours(0, 0, 0, 0);
           return adjDate.getTime() === date.getTime();
         });
@@ -1410,7 +1410,7 @@ export const appRouter = router({
           userId: ctx.user.id,
           groupId: user.groupId,
           challengeId: activeChallenges[0].id,
-          date: new Date(input.date),
+          date: new Date(input.day),
           weight: input.weight,
           bodyFatPercent: input.bodyFatPercent,
           muscleMass: input.muscleMass,
@@ -1793,7 +1793,7 @@ Respond ONLY with a JSON object in this exact format:
       for (const member of members) {
         // Get check-ins since week start
         const allMemberCheckins = await db.getUserCheckins(member.id);
-        const weeklyCheckins = allMemberCheckins.filter((c: any) => new Date(c.date) >= weekStart);
+        const weeklyCheckins = allMemberCheckins.filter((c: any) => new Date(c.day) >= weekStart);
         const weeklyPoints = weeklyCheckins.reduce((sum: number, c: any) => {
           let points = 0;
           if (c.nutrition) points++;
@@ -1830,7 +1830,7 @@ Respond ONLY with a JSON object in this exact format:
         // Check if needs follow-up (no check-ins in 3+ days or below 50%)
         const lastCheckin = allCheckins[0];
         const daysSinceLastCheckin = lastCheckin
-          ? Math.floor((now.getTime() - new Date(lastCheckin.date).getTime()) / (1000 * 60 * 60 * 24))
+          ? Math.floor((now.getTime() - new Date(lastCheckin.day).getTime()) / (1000 * 60 * 60 * 24))
           : 999;
 
         if (daysSinceLastCheckin >= 3) {
@@ -1864,7 +1864,7 @@ Respond ONLY with a JSON object in this exact format:
       let workoutLoggers = 0;
       for (const m of members) {
         const checkins = await db.getUserCheckins(m.id, 20);
-        const weeklyCheckins = checkins.filter((c: any) => new Date(c.date) >= weekStart);
+        const weeklyCheckins = checkins.filter((c: any) => new Date(c.day) >= weekStart);
         if (weeklyCheckins.some((c: any) => c.workoutLog)) {
           workoutLoggers++;
         }

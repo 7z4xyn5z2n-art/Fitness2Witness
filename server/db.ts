@@ -1,4 +1,13 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+
+// Helper function to convert Date to YYYY-MM-DD string for DATE columns
+function toDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import {
@@ -222,7 +231,7 @@ export async function getCheckinsByUserId(userId: number) {
     .select()
     .from(dailyCheckins)
     .where(eq(dailyCheckins.userId, userId))
-    .orderBy(desc(dailyCheckins.date));
+    .orderBy(desc(dailyCheckins.day));
 }
 
 // Get check-ins by user ID and date range
@@ -243,11 +252,11 @@ export async function getCheckinsByUserIdAndDateRange(
     .where(
       and(
         eq(dailyCheckins.userId, userId),
-        gte(dailyCheckins.date, startDate),
-        lte(dailyCheckins.date, endDate)
+        gte(dailyCheckins.day, toDateString(startDate)),
+        lte(dailyCheckins.day, toDateString(endDate))
       )
     )
-    .orderBy(desc(dailyCheckins.date));
+    .orderBy(desc(dailyCheckins.day));
 }
 
 // Get check-ins by group ID and date range
@@ -268,11 +277,11 @@ export async function getCheckinsByGroupIdAndDateRange(
     .where(
       and(
         eq(dailyCheckins.groupId, groupId),
-        gte(dailyCheckins.date, startDate),
-        lte(dailyCheckins.date, endDate)
+        gte(dailyCheckins.day, toDateString(startDate)),
+        lte(dailyCheckins.day, toDateString(endDate))
       )
     )
-    .orderBy(desc(dailyCheckins.date));
+    .orderBy(desc(dailyCheckins.day));
 }
 
 // Create weekly attendance record
@@ -288,7 +297,7 @@ export async function createWeeklyAttendance(attendance: InsertWeeklyAttendance)
 }
 
 // Get attendance by user ID and week
-export async function getAttendanceByUserIdAndWeek(userId: number, weekStartDate: Date) {
+export async function getAttendanceByUserIdAndWeek(userId: number, weekStart: Date) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get attendance: database not available");
@@ -299,7 +308,7 @@ export async function getAttendanceByUserIdAndWeek(userId: number, weekStartDate
     .select()
     .from(weeklyAttendance)
     .where(
-      and(eq(weeklyAttendance.userId, userId), eq(weeklyAttendance.weekStartDate, weekStartDate))
+      and(eq(weeklyAttendance.userId, userId), eq(weeklyAttendance.weekStart, toDateString(weekStart)))
     )
     .limit(1);
 
@@ -324,8 +333,8 @@ export async function getAttendanceByGroupIdAndDateRange(
     .where(
       and(
         eq(weeklyAttendance.groupId, groupId),
-        gte(weeklyAttendance.weekStartDate, startDate),
-        lte(weeklyAttendance.weekStartDate, endDate)
+        gte(weeklyAttendance.weekStart, toDateString(startDate)),
+        lte(weeklyAttendance.weekStart, toDateString(endDate))
       )
     );
 }
@@ -354,7 +363,7 @@ export async function getPointAdjustmentsByUserId(userId: number) {
     .select()
     .from(pointAdjustments)
     .where(eq(pointAdjustments.userId, userId))
-    .orderBy(desc(pointAdjustments.date));
+    .orderBy(desc(pointAdjustments.day));
 }
 
 // Create community post
@@ -578,7 +587,7 @@ export async function getAllCommunityPosts() {
 // Update attendance record
 export async function updateAttendance(
   userId: number,
-  weekStartDate: Date,
+  weekStart: Date,
   attendedWednesday: boolean
 ) {
   const db = await getDb();
@@ -591,7 +600,7 @@ export async function updateAttendance(
     .update(weeklyAttendance)
     .set({ attendedWednesday, updatedAt: new Date() })
     .where(
-      and(eq(weeklyAttendance.userId, userId), eq(weeklyAttendance.weekStartDate, weekStartDate))
+      and(eq(weeklyAttendance.userId, userId), eq(weeklyAttendance.weekStart, toDateString(weekStart)))
     );
 }
 
@@ -606,7 +615,7 @@ export async function getCheckinByUserIdAndDate(userId: number, date: Date) {
   const result = await db
     .select()
     .from(dailyCheckins)
-    .where(and(eq(dailyCheckins.userId, userId), eq(dailyCheckins.date, date)))
+    .where(and(eq(dailyCheckins.userId, userId), eq(dailyCheckins.day, toDateString(date))))
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
@@ -620,11 +629,11 @@ export async function getCheckinsByDate(date: Date) {
     return [];
   }
 
-  return await db.select().from(dailyCheckins).where(eq(dailyCheckins.date, date));
+  return await db.select().from(dailyCheckins).where(eq(dailyCheckins.day, toDateString(date)));
 }
 
 // Get all attendance records for a specific week
-export async function getAttendanceByWeek(weekStartDate: Date) {
+export async function getAttendanceByWeek(weekStart: Date) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get attendance: database not available");
@@ -634,7 +643,7 @@ export async function getAttendanceByWeek(weekStartDate: Date) {
   return await db
     .select()
     .from(weeklyAttendance)
-    .where(eq(weeklyAttendance.weekStartDate, weekStartDate));
+    .where(eq(weeklyAttendance.weekStart, toDateString(weekStart)));
 }
 
 // Get challenge progress for a user
@@ -847,7 +856,7 @@ export async function getUserCheckins(userId: number, limit?: number) {
     .select()
     .from(dailyCheckins)
     .where(eq(dailyCheckins.userId, userId))
-    .orderBy(desc(dailyCheckins.date));
+    .orderBy(desc(dailyCheckins.day));
 
   if (limit) {
     return await query.limit(limit);
@@ -987,7 +996,7 @@ export async function getGroupMembers(groupId: number) {
 }
 
 // Get weekly attendance for group
-export async function getWeeklyAttendanceForGroup(groupId: number, weekStartDate: Date) {
+export async function getWeeklyAttendanceForGroup(groupId: number, weekStart: Date) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get weekly attendance: database not available");
@@ -998,7 +1007,7 @@ export async function getWeeklyAttendanceForGroup(groupId: number, weekStartDate
     .select()
     .from(weeklyAttendance)
     .where(
-      and(eq(weeklyAttendance.groupId, groupId), eq(weeklyAttendance.weekStartDate, weekStartDate))
+      and(eq(weeklyAttendance.groupId, groupId), eq(weeklyAttendance.weekStart, toDateString(weekStart)))
     );
 }
 
@@ -1058,8 +1067,8 @@ export async function getCheckInsByDate(date: Date) {
   return getCheckinsByDate(date);
 }
 
-export async function getAttendanceByDate(weekStartDate: Date) {
-  return getAttendanceByWeek(weekStartDate);
+export async function getAttendanceByDate(weekStart: Date) {
+  return getAttendanceByWeek(weekStart);
 }
 
 export async function createCheckIn(checkin: InsertDailyCheckin) {
@@ -1101,7 +1110,7 @@ export async function getAllPointAdjustments() {
     return [];
   }
 
-  return await db.select().from(pointAdjustments).orderBy(desc(pointAdjustments.date));
+  return await db.select().from(pointAdjustments).orderBy(desc(pointAdjustments.day));
 }
 
 // Update user
@@ -1158,7 +1167,7 @@ export async function getGroupCheckinsForDate(groupId: number, date: Date) {
   return await db
     .select()
     .from(dailyCheckins)
-    .where(and(eq(dailyCheckins.groupId, groupId), eq(dailyCheckins.date, date)));
+    .where(and(eq(dailyCheckins.groupId, groupId), eq(dailyCheckins.day, toDateString(date))));
 }
 
 // Get user metrics with calculated points and percentages
@@ -1201,7 +1210,7 @@ export async function getUserMetrics(userId: number, challengeId: number) {
   weekStart.setDate(now.getDate() + diff);
   weekStart.setHours(0, 0, 0, 0);
 
-  const weekCheckins = checkins.filter(c => new Date(c.date) >= weekStart);
+  const weekCheckins = checkins.filter(c => new Date(c.day) >= weekStart);
   let thisWeekDailyPoints = 0;
   for (const checkin of weekCheckins) {
     if (checkin.nutritionDone) thisWeekDailyPoints++;
@@ -1210,10 +1219,10 @@ export async function getUserMetrics(userId: number, challengeId: number) {
     if (checkin.scriptureDone) thisWeekDailyPoints++;
   }
 
-  const weekAttendance = attendance.filter(a => new Date(a.weekStartDate) >= weekStart && a.attendedWednesday);
+  const weekAttendance = attendance.filter(a => new Date(a.weekStart) >= weekStart && a.attendedWednesday);
   const thisWeekAttendancePoints = weekAttendance.length * 10;
 
-  const weekAdjustments = adjustments.filter(a => new Date(a.date) >= weekStart);
+  const weekAdjustments = adjustments.filter(a => new Date(a.day) >= weekStart);
   const thisWeekAdjustmentPoints = weekAdjustments.reduce((sum, adj) => sum + adj.pointsDelta, 0);
   
   const thisWeekTotal = thisWeekDailyPoints + thisWeekAttendancePoints + thisWeekAdjustmentPoints;
@@ -1281,13 +1290,13 @@ export async function getPostComments(postId: number) {
 }
 
 // Get weekly attendance (alias for getAttendanceByUserIdAndWeek)
-export async function getWeeklyAttendance(userId: number, weekStartDate: Date) {
-  return getAttendanceByUserIdAndWeek(userId, weekStartDate);
+export async function getWeeklyAttendance(userId: number, weekStart: Date) {
+  return getAttendanceByUserIdAndWeek(userId, weekStart);
 }
 
 // Update weekly attendance (alias for updateAttendance)
-export async function updateWeeklyAttendance(userId: number, weekStartDate: Date, attendedWednesday: boolean) {
-  return updateAttendance(userId, weekStartDate, attendedWednesday);
+export async function updateWeeklyAttendance(userId: number, weekStart: Date, attendedWednesday: boolean) {
+  return updateAttendance(userId, weekStart, attendedWednesday);
 }
 
 // Get post by ID

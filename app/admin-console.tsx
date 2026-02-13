@@ -977,7 +977,7 @@ export default function AdminConsoleScreen() {
                 
                 <Text className="text-xs text-foreground mb-1">{entry.reason}</Text>
                 <Text className="text-xs text-muted">
-                  By {(entry as any).adminName} • {new Date(entry.date).toLocaleDateString()}
+                  By {(entry as any).adminName} • {new Date(entry.day).toLocaleDateString()}
                 </Text>
               </View>
             ))
