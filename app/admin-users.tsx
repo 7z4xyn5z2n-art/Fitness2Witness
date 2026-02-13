@@ -65,6 +65,21 @@ export default function AdminUsersScreen() {
           },
         },
         {
+          text: "Deactivate User",
+          onPress: async () => {
+            try {
+              const payload = { userId: String(userId) };
+              console.log("Deactivate user payload:", payload);
+              console.log("Payload types:", { userId: typeof payload.userId });
+              await deactivateUserMutation.mutateAsync(payload);
+              await refetch();
+              Alert.alert("Success", `${userName} deactivated`);
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to deactivate user");
+            }
+          },
+        },
+        {
           text: "Delete Permanently",
           style: "destructive",
           onPress: async () => {

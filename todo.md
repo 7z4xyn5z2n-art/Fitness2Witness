@@ -97,3 +97,8 @@
 - [x] Invalidate admin.getAllUsers after each successful action
 - [x] Show success/error alerts with proper error logging
 - [x] Keep Award Bonus Points modal unchanged
+
+## 13) Admin UI Fixes
+- [x] Add deactivateUser option to admin-users.tsx handleRemoveUser Alert
+- [x] Change admin-calendar.tsx upsertCheckInMutation.mutate to mutateAsync
+- [x] Change admin-calendar.tsx addAttendanceMutation.mutate to mutateAsync

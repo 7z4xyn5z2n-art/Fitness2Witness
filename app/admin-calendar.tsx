@@ -70,16 +70,20 @@ export default function AdminCalendarScreen() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Save",
-          onPress: (inputNotes?: string) => {
-            upsertCheckInMutation.mutate({
-              userId,
-              dateISO: selectedDate.toISOString(),
-              nutritionDone: nutrition,
-              hydrationDone: hydration,
-              movementDone: movement,
-              scriptureDone: scripture,
-              notes: inputNotes || "Edited by admin",
-            });
+          onPress: async (inputNotes?: string) => {
+            try {
+              await upsertCheckInMutation.mutateAsync({
+                userId,
+                dateISO: selectedDate.toISOString(),
+                nutritionDone: nutrition,
+                hydrationDone: hydration,
+                movementDone: movement,
+                scriptureDone: scripture,
+                notes: inputNotes || "Edited by admin",
+              });
+            } catch (error: any) {
+              console.error("Failed to save check-in:", error);
+            }
           },
         },
       ],
@@ -106,26 +110,30 @@ export default function AdminCalendarScreen() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Add All",
-          onPress: () => {
-            const payload = {
-              userId: String(userId),
-              dateISO: selectedDate.toISOString(),
-              nutritionDone: true,
-              hydrationDone: true,
-              movementDone: true,
-              scriptureDone: true,
-              notes: "Added by admin",
-            };
-            console.log("Adding check-in payload:", payload);
-            console.log("Payload types:", { userId: typeof payload.userId, dateISO: typeof payload.dateISO });
-            upsertCheckInMutation.mutate(payload);
+          onPress: async () => {
+            try {
+              const payload = {
+                userId: String(userId),
+                dateISO: selectedDate.toISOString(),
+                nutritionDone: true,
+                hydrationDone: true,
+                movementDone: true,
+                scriptureDone: true,
+                notes: "Added by admin",
+              };
+              console.log("Adding check-in payload:", payload);
+              console.log("Payload types:", { userId: typeof payload.userId, dateISO: typeof payload.dateISO });
+              await upsertCheckInMutation.mutateAsync(payload);
+            } catch (error: any) {
+              console.error("Failed to add check-in:", error);
+            }
           },
         },
       ]
     );
   };
 
-  const handleAddAttendance = (userId: string) => {
+  const handleAddAttendance = async (userId: string) => {
     if (!selectedDate) {
       Alert.alert("Error", "Please select a date first");
       return;
@@ -142,7 +150,11 @@ export default function AdminCalendarScreen() {
     };
     console.log("Adding attendance payload:", payload);
     console.log("Payload types:", { userId: typeof payload.userId, date: typeof payload.date });
-    addAttendanceMutation.mutate(payload);
+    try {
+      await addAttendanceMutation.mutateAsync(payload);
+    } catch (error: any) {
+      console.error("Failed to add attendance:", error);
+    }
   };
 
   if (usersLoading) {
