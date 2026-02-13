@@ -85,3 +85,15 @@
 - [x] Persist timeout duration setting in localStorage/SecureStore
 - [x] Reset timer on API calls (tRPC requests)
 - [x] Load saved timeout duration on app start
+
+## 12) Remove Participant Functionality in Admin Console
+- [x] Add tRPC mutation hooks for removeUser, removeUserFromGroup, deactivateUser
+- [x] Add "Remove / Manage" button per user card
+- [x] Create "Manage Participant" modal with three actions
+- [x] Add confirmation step for each action before execution
+- [x] Implement Remove from Group action with proper payload and logging
+- [x] Implement Deactivate User action with proper payload and logging
+- [x] Implement Delete Permanently action with proper payload and logging
+- [x] Invalidate admin.getAllUsers after each successful action
+- [x] Show success/error alerts with proper error logging
+- [x] Keep Award Bonus Points modal unchanged

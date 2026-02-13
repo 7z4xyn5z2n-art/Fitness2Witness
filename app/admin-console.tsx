@@ -50,6 +50,10 @@ export default function AdminConsoleScreen() {
   // Security Settings state
   const [idleTimeoutDuration, setIdleTimeoutDuration] = useState<number>(180000); // 3 minutes default
   
+  // Manage Participant modal state
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [manageAction, setManageAction] = useState<'removeFromGroup' | 'deactivate' | 'delete' | null>(null);
+  
   // Queries
   const { data: users, refetch: refetchUsers } = trpc.admin.getAllUsers.useQuery();
   const { data: groups } = trpc.admin.getAllGroups.useQuery();
@@ -73,6 +77,9 @@ export default function AdminConsoleScreen() {
       }
     },
   });
+  const removeUserMutation = trpc.admin.removeUser.useMutation();
+  const removeFromGroupMutation = trpc.admin.removeUserFromGroup.useMutation();
+  const deactivateUserMutation = trpc.admin.deactivateUser.useMutation();
   
   const onRefresh = async () => {
     setRefreshing(true);
@@ -374,6 +381,96 @@ export default function AdminConsoleScreen() {
     );
   };
   
+  const handleManageParticipant = () => {
+    if (!selectedUser) {
+      Alert.alert("Error", "Please select a user first");
+      return;
+    }
+    setShowManageModal(true);
+  };
+  
+  const handleRemoveFromGroup = async () => {
+    if (!selectedUser) return;
+    
+    if (manageAction !== 'removeFromGroup') {
+      setManageAction('removeFromGroup');
+      return;
+    }
+    
+    try {
+      const payload = { userId: String(selectedUser.id) };
+      console.log("Remove from group payload:", payload);
+      console.log("Payload types:", { userId: typeof payload.userId });
+      
+      await removeFromGroupMutation.mutateAsync(payload);
+      
+      setShowManageModal(false);
+      setManageAction(null);
+      Alert.alert("Success", `${selectedUser.name} removed from group`);
+      
+      await utils.admin.getAllUsers.invalidate();
+      await refetchUsers();
+    } catch (error: any) {
+      console.error("Remove from group error:", error);
+      Alert.alert("Error", error.message || "Failed to remove user from group");
+    }
+  };
+  
+  const handleDeactivateUser = async () => {
+    if (!selectedUser) return;
+    
+    if (manageAction !== 'deactivate') {
+      setManageAction('deactivate');
+      return;
+    }
+    
+    try {
+      const payload = { userId: String(selectedUser.id) };
+      console.log("Deactivate user payload:", payload);
+      console.log("Payload types:", { userId: typeof payload.userId });
+      
+      await deactivateUserMutation.mutateAsync(payload);
+      
+      setShowManageModal(false);
+      setManageAction(null);
+      Alert.alert("Success", `${selectedUser.name} deactivated`);
+      
+      await utils.admin.getAllUsers.invalidate();
+      await refetchUsers();
+    } catch (error: any) {
+      console.error("Deactivate user error:", error);
+      Alert.alert("Error", error.message || "Failed to deactivate user");
+    }
+  };
+  
+  const handleDeletePermanently = async () => {
+    if (!selectedUser) return;
+    
+    if (manageAction !== 'delete') {
+      setManageAction('delete');
+      return;
+    }
+    
+    try {
+      const payload = { userId: String(selectedUser.id) };
+      console.log("Delete user permanently payload:", payload);
+      console.log("Payload types:", { userId: typeof payload.userId });
+      
+      await removeUserMutation.mutateAsync(payload);
+      
+      setShowManageModal(false);
+      setManageAction(null);
+      setSelectedUser(null);
+      Alert.alert("Success", `${selectedUser.name} deleted permanently`);
+      
+      await utils.admin.getAllUsers.invalidate();
+      await refetchUsers();
+    } catch (error: any) {
+      console.error("Delete user error:", error);
+      Alert.alert("Error", error.message || "Failed to delete user");
+    }
+  };
+  
   return (
     <ScreenContainer className="bg-background">
       <ScrollView
@@ -516,7 +613,14 @@ export default function AdminConsoleScreen() {
           {selectedUser && (
             <View className="bg-background rounded-lg p-3">
               <Text className="text-sm font-semibold text-foreground mb-1">{selectedUser.name}</Text>
-              <Text className="text-xs text-muted">Total: {selectedUser.totalPoints} pts | Week: {selectedUser.weekPoints} pts | Check-ins: {selectedUser.checkInCount}</Text>
+              <Text className="text-xs text-muted mb-2">Total: {selectedUser.totalPoints} pts | Week: {selectedUser.weekPoints} pts | Check-ins: {selectedUser.checkInCount}</Text>
+              <TouchableOpacity
+                onPress={handleManageParticipant}
+                className="bg-error/20 py-2 rounded-lg"
+                style={{ borderWidth: 1, borderColor: colors.error }}
+              >
+                <Text className="text-center font-semibold text-error">Remove / Manage</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -963,6 +1067,84 @@ export default function AdminConsoleScreen() {
                     <Text className="text-center font-semibold text-background">Delete</Text>
                   </TouchableOpacity>
                 </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Manage Participant Modal */}
+      <Modal
+        visible={showManageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowManageModal(false);
+          setManageAction(null);
+        }}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 p-4">
+          <View className="bg-surface rounded-2xl p-6 w-full max-w-md" style={{ borderWidth: 1, borderColor: colors.border }}>
+            {selectedUser && (
+              <View>
+                <Text className="text-2xl font-bold text-foreground mb-2">Manage Participant</Text>
+                <Text className="text-base text-muted mb-6">{selectedUser.name}</Text>
+                
+                {/* Remove from Group */}
+                <TouchableOpacity
+                  onPress={handleRemoveFromGroup}
+                  className={`py-3 rounded-lg mb-3 ${
+                    manageAction === 'removeFromGroup' ? 'bg-warning' : 'bg-background'
+                  }`}
+                  style={{ borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text className={`text-center font-semibold ${
+                    manageAction === 'removeFromGroup' ? 'text-background' : 'text-foreground'
+                  }`}>
+                    {manageAction === 'removeFromGroup' ? 'Tap Again to Confirm' : 'Remove from Group'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Deactivate User */}
+                <TouchableOpacity
+                  onPress={handleDeactivateUser}
+                  className={`py-3 rounded-lg mb-3 ${
+                    manageAction === 'deactivate' ? 'bg-warning' : 'bg-background'
+                  }`}
+                  style={{ borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text className={`text-center font-semibold ${
+                    manageAction === 'deactivate' ? 'text-background' : 'text-foreground'
+                  }`}>
+                    {manageAction === 'deactivate' ? 'Tap Again to Confirm' : 'Deactivate User'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Delete Permanently */}
+                <TouchableOpacity
+                  onPress={handleDeletePermanently}
+                  className={`py-3 rounded-lg mb-4 ${
+                    manageAction === 'delete' ? 'bg-error' : 'bg-background'
+                  }`}
+                  style={{ borderWidth: 1, borderColor: manageAction === 'delete' ? colors.error : colors.border }}
+                >
+                  <Text className={`text-center font-semibold ${
+                    manageAction === 'delete' ? 'text-background' : 'text-error'
+                  }`}>
+                    {manageAction === 'delete' ? 'Tap Again to Confirm' : 'Delete Permanently'}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowManageModal(false);
+                    setManageAction(null);
+                  }}
+                  className="bg-background py-3 rounded-lg"
+                  style={{ borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text className="text-center font-semibold text-foreground">Cancel</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
