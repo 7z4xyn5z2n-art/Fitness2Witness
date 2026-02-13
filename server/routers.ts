@@ -1115,6 +1115,221 @@ export const appRouter = router({
 
         return { success: true };
       }),
+
+    // Get day snapshot for a specific user and date
+    getDaySnapshot: protectedProcedure
+      .input(
+        z.object({
+          userId: z.string(),
+          dateISO: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can access day snapshots");
+        }
+
+        const targetUser = await db.getUserById(parseInt(input.userId));
+        if (!targetUser) {
+          throw new Error("User not found");
+        }
+
+        // Normalize date to midnight
+        const date = new Date(input.dateISO);
+        date.setHours(0, 0, 0, 0);
+
+        // Get daily check-in
+        const dailyCheckin = await db.getCheckinByUserIdAndDate(parseInt(input.userId), date);
+
+        // Get attendance for the week containing this date
+        const startOfWeek = new Date(date);
+        const dayOfWeek = startOfWeek.getDay();
+        const diff = startOfWeek.getDate() - dayOfWeek;
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+        const attendance = await db.getAttendanceByUserIdAndWeek(parseInt(input.userId), startOfWeek);
+
+        // Get point adjustments for this specific day
+        const allAdjustments = await db.getPointAdjustmentsByUserId(parseInt(input.userId));
+        const dayAdjustments = allAdjustments.filter((adj) => {
+          const adjDate = new Date(adj.date);
+          adjDate.setHours(0, 0, 0, 0);
+          return adjDate.getTime() === date.getTime();
+        });
+        const dayAdjustmentsSum = dayAdjustments.reduce((sum, adj) => sum + adj.pointsDelta, 0);
+
+        // Calculate day total
+        const checkInPoints =
+          (dailyCheckin?.nutritionDone ? 1 : 0) +
+          (dailyCheckin?.hydrationDone ? 1 : 0) +
+          (dailyCheckin?.movementDone ? 1 : 0) +
+          (dailyCheckin?.scriptureDone ? 1 : 0);
+        const attendancePoints = attendance?.attendedWednesday ? 10 : 0;
+        const dayTotal = checkInPoints + attendancePoints + dayAdjustmentsSum;
+
+        return {
+          dailyCheckin: dailyCheckin || null,
+          attendance: attendance || null,
+          dayBreakdown: {
+            checkInPoints,
+            attendancePoints,
+            dayAdjustmentsSum,
+            dayTotal,
+          },
+          dayAdjustments,
+        };
+      }),
+
+    // Create point adjustment for a specific date
+    createPointAdjustmentForDate: protectedProcedure
+      .input(
+        z.object({
+          userId: z.number(),
+          dateISO: z.string(),
+          pointsDelta: z.number(),
+          reason: z.string(),
+          category: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can create point adjustments");
+        }
+
+        const targetUser = await db.getUserById(input.userId);
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("Target user must be assigned to a group");
+        }
+
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+
+        // Normalize date to midnight boundary
+        const date = new Date(input.dateISO);
+        date.setHours(0, 0, 0, 0);
+
+        const adjustmentId = await db.createPointAdjustment({
+          date,
+          userId: input.userId,
+          groupId: targetUser.groupId,
+          challengeId: group.challengeId,
+          pointsDelta: input.pointsDelta,
+          reason: input.reason,
+          category: input.category || "daily_correction",
+          adjustedBy: ctx.user.id,
+        });
+
+        return { success: true, adjustmentId };
+      }),
+
+    // Update post (for moderation)
+    updatePost: protectedProcedure
+      .input(
+        z.object({
+          postId: z.number(),
+          postText: z.string().optional(),
+          postType: z.enum(["Encouragement", "Testimony", "Photo", "Video", "Announcement"]).optional(),
+          visibility: z.enum(["GroupOnly", "LeadersOnly"]).optional(),
+          isPinned: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can update posts");
+        }
+
+        const { postId, ...updates } = input;
+        await db.updatePost(postId, updates);
+        return { success: true };
+      }),
+
+    // Get posts for moderation with filters
+    getPostsForModeration: protectedProcedure
+      .input(
+        z
+          .object({
+            groupId: z.number().optional(),
+            userId: z.number().optional(),
+            dateISO: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can access posts for moderation");
+        }
+
+        const allGroups = await db.getAllGroups();
+        if (!allGroups || allGroups.length === 0) {
+          return [];
+        }
+
+        let allPosts: any[] = [];
+
+        if (input?.groupId) {
+          const posts = await db.getGroupPosts(input.groupId);
+          allPosts = posts;
+        } else {
+          for (const group of allGroups) {
+            const posts = await db.getGroupPosts(group.id);
+            allPosts = allPosts.concat(posts);
+          }
+        }
+
+        // Filter by userId if provided
+        if (input?.userId) {
+          allPosts = allPosts.filter((post) => post.userId === input.userId);
+        }
+
+        // Filter by date if provided
+        if (input?.dateISO) {
+          const targetDate = new Date(input.dateISO);
+          targetDate.setHours(0, 0, 0, 0);
+          const nextDay = new Date(targetDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+
+          allPosts = allPosts.filter((post) => {
+            const postDate = new Date(post.createdAt);
+            return postDate >= targetDate && postDate < nextDay;
+          });
+        }
+
+        // Sort by createdAt desc
+        allPosts.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+
+        // Map posts with author names
+        const postsWithUsers = await Promise.all(
+          allPosts.map(async (post) => {
+            const author = await db.getUserById(post.userId);
+            return {
+              id: post.id,
+              userId: post.userId,
+              groupId: post.groupId,
+              postType: post.postType,
+              postText: post.postText,
+              postImageUrl: post.postImageUrl,
+              postVideoUrl: post.postVideoUrl,
+              isPinned: post.isPinned,
+              visibility: post.visibility,
+              createdAt: post.createdAt,
+              updatedAt: post.updatedAt,
+              authorName: author?.name || "Unknown",
+            };
+          })
+        );
+
+        return postsWithUsers;
+      }),
   }),
 
   // Body Metrics

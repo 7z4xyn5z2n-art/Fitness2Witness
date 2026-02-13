@@ -102,3 +102,21 @@
 - [x] Add deactivateUser option to admin-users.tsx handleRemoveUser Alert
 - [x] Change admin-calendar.tsx upsertCheckInMutation.mutate to mutateAsync
 - [x] Change admin-calendar.tsx addAttendanceMutation.mutate to mutateAsync
+
+## 14) Admin Day Editor (Web-First Replacement for Calendar & Logs)
+- [x] Backend: Add admin.getDaySnapshot procedure (userId, dateISO → check-in, attendance, day breakdown, dayTotal)
+- [x] Backend: Add admin.createPointAdjustmentForDate procedure (userId, dateISO, pointsDelta, reason, category)
+- [x] Backend: Add community.updatePost or admin.updatePost procedure (postId, postText, postType, visibility, isPinned)
+- [x] Backend: Add admin.getPostsForModeration procedure with filters (groupId, userId, dateISO)
+- [x] Frontend: Create /app/admin-day-editor.tsx with date + user selection
+- [x] Frontend: CARD 1 - Daily Check-In with 4 toggles + save button (mutateAsync, loading, success/error alerts)
+- [x] Frontend: CARD 1 - Day Points Adjustment section (Award Bonus Points style, allows negative, requires reason)
+- [x] Frontend: CARD 2 - Life Group Attendance toggle + save (mutateAsync, loading, success/error alerts)
+- [x] Frontend: CARD 2 - Quick adjustment button for attendance corrections
+- [x] Frontend: CARD 3 - Posts Moderation with list, edit modal, and FULL DELETE
+- [x] Frontend: All delete actions require confirmation before mutateAsync
+- [x] Frontend: All actions show loading state + success/error alerts
+- [x] Frontend: All actions log payload and types to console
+- [x] Frontend: All actions refetch day snapshot + admin.getAllUsers after success
+- [x] Navigation: Replace "Calendar & Logs" with "Day Editor" link to /admin-day-editor
+- [x] Verify: No breaking changes to admin-console.tsx, admin-users.tsx, Award Bonus Points
