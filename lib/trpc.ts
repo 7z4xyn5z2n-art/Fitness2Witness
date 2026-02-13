@@ -5,6 +5,7 @@ import type { AppRouter } from "@/server/routers";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { pingActivity } from "@/lib/idle";
 
 /**
  * tRPC React client for type-safe API calls.
@@ -45,12 +46,26 @@ export function createTRPCClient() {
           const token = await getAuthToken();
           return token ? { Authorization: `Bearer ${token}` } : {};
         },
-        // Custom fetch to include credentials for backward compatibility
-        fetch(url, options) {
-          return fetch(url, {
-            ...options,
-            credentials: "include",
-          });
+        // Custom fetch to include credentials and track activity
+        async fetch(url, options) {
+          // Ping activity before API call
+          pingActivity();
+          
+          try {
+            const response = await fetch(url, {
+              ...options,
+              credentials: "include",
+            });
+            
+            // Ping activity after successful API call
+            pingActivity();
+            
+            return response;
+          } catch (error) {
+            // Ping activity even on error (user is still active)
+            pingActivity();
+            throw error;
+          }
         },
       }),
     ],

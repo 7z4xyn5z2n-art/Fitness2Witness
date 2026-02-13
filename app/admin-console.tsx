@@ -1,4 +1,5 @@
 import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, RefreshControl, Platform, Modal } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -45,6 +46,9 @@ export default function AdminConsoleScreen() {
   // Bulk Select state
   const [bulkSelectMode, setBulkSelectMode] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<Set<number>>(new Set());
+  
+  // Security Settings state
+  const [idleTimeoutDuration, setIdleTimeoutDuration] = useState<number>(180000); // 3 minutes default
   
   // Queries
   const { data: users, refetch: refetchUsers } = trpc.admin.getAllUsers.useQuery();
@@ -386,6 +390,100 @@ export default function AdminConsoleScreen() {
             <Text className="text-3xl font-bold text-foreground mb-2">Admin Command Center</Text>
             <Text className="text-base text-muted">Centralized admin hub</Text>
           </View>
+        </View>
+        
+        {/* Security Settings */}
+        <View className="bg-surface rounded-xl p-4 mb-4" style={{ borderWidth: 1, borderColor: colors.border }}>
+          <Text className="text-lg font-bold text-foreground mb-3">🔒 Security Settings</Text>
+          
+          <Text className="text-sm text-muted mb-2">Idle Timeout Duration</Text>
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              onPress={async () => {
+                const newTimeout = 180000; // 3 minutes
+                setIdleTimeoutDuration(newTimeout);
+                const { setIdleTimeoutMs } = await import("@/lib/idle");
+                setIdleTimeoutMs(newTimeout);
+                try {
+                  if (Platform.OS === "web") {
+                    localStorage.setItem("idle_timeout_ms", String(newTimeout));
+                  } else {
+                    await SecureStore.setItemAsync("idle_timeout_ms", String(newTimeout));
+                  }
+                  Alert.alert("Success", "Idle timeout set to 3 minutes");
+                } catch (error) {
+                  console.error("Error saving timeout:", error);
+                  Alert.alert("Error", "Failed to save timeout setting");
+                }
+              }}
+              className={`flex-1 py-3 rounded-lg ${
+                idleTimeoutDuration === 180000 ? 'bg-primary' : 'bg-background'
+              }`}
+              style={{ borderWidth: 1, borderColor: idleTimeoutDuration === 180000 ? colors.primary : colors.border }}
+            >
+              <Text className={`text-center font-semibold ${
+                idleTimeoutDuration === 180000 ? 'text-background' : 'text-foreground'
+              }`}>3 min</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={async () => {
+                const newTimeout = 300000; // 5 minutes
+                setIdleTimeoutDuration(newTimeout);
+                const { setIdleTimeoutMs } = await import("@/lib/idle");
+                setIdleTimeoutMs(newTimeout);
+                try {
+                  if (Platform.OS === "web") {
+                    localStorage.setItem("idle_timeout_ms", String(newTimeout));
+                  } else {
+                    await SecureStore.setItemAsync("idle_timeout_ms", String(newTimeout));
+                  }
+                  Alert.alert("Success", "Idle timeout set to 5 minutes");
+                } catch (error) {
+                  console.error("Error saving timeout:", error);
+                  Alert.alert("Error", "Failed to save timeout setting");
+                }
+              }}
+              className={`flex-1 py-3 rounded-lg ${
+                idleTimeoutDuration === 300000 ? 'bg-primary' : 'bg-background'
+              }`}
+              style={{ borderWidth: 1, borderColor: idleTimeoutDuration === 300000 ? colors.primary : colors.border }}
+            >
+              <Text className={`text-center font-semibold ${
+                idleTimeoutDuration === 300000 ? 'text-background' : 'text-foreground'
+              }`}>5 min</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={async () => {
+                const newTimeout = 600000; // 10 minutes
+                setIdleTimeoutDuration(newTimeout);
+                const { setIdleTimeoutMs } = await import("@/lib/idle");
+                setIdleTimeoutMs(newTimeout);
+                try {
+                  if (Platform.OS === "web") {
+                    localStorage.setItem("idle_timeout_ms", String(newTimeout));
+                  } else {
+                    await SecureStore.setItemAsync("idle_timeout_ms", String(newTimeout));
+                  }
+                  Alert.alert("Success", "Idle timeout set to 10 minutes");
+                } catch (error) {
+                  console.error("Error saving timeout:", error);
+                  Alert.alert("Error", "Failed to save timeout setting");
+                }
+              }}
+              className={`flex-1 py-3 rounded-lg ${
+                idleTimeoutDuration === 600000 ? 'bg-primary' : 'bg-background'
+              }`}
+              style={{ borderWidth: 1, borderColor: idleTimeoutDuration === 600000 ? colors.primary : colors.border }}
+            >
+              <Text className={`text-center font-semibold ${
+                idleTimeoutDuration === 600000 ? 'text-background' : 'text-foreground'
+              }`}>10 min</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text className="text-xs text-muted mt-2">Users will be logged out after this period of inactivity</Text>
         </View>
         
         {/* User Selection */}

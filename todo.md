@@ -73,3 +73,15 @@
 - [x] Implement Bulk Delete with sequential deletion
 - [x] Fix query invalidation to respect groupId filter
 - [x] Show success/failure summary after bulk delete
+
+## 11) Idle Timeout Upgrades
+- [x] Create centralized idle timer state module (lib/idle.ts)
+- [x] Add warning modal 30 seconds before logout
+- [x] Add "Stay Logged In" button to reset timer
+- [x] Add "Log Out Now" button for immediate logout
+- [x] Add countdown display showing remaining seconds
+- [x] Add configurable timeout duration (3/5/10 minutes)
+- [x] Add admin security settings UI in Admin Command Center
+- [x] Persist timeout duration setting in localStorage/SecureStore
+- [x] Reset timer on API calls (tRPC requests)
+- [x] Load saved timeout duration on app start
