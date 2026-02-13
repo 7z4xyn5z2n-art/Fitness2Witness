@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, RefreshControl, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, RefreshControl, Platform, Modal } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -38,6 +38,14 @@ export default function AdminConsoleScreen() {
   // Group filter for posts
   const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(undefined);
   
+  // Post Detail Modal state
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  
+  // Bulk Select state
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState<Set<number>>(new Set());
+  
   // Queries
   const { data: users, refetch: refetchUsers } = trpc.admin.getAllUsers.useQuery();
   const { data: groups } = trpc.admin.getAllGroups.useQuery();
@@ -53,7 +61,12 @@ export default function AdminConsoleScreen() {
   const createPointAdjustmentMutation = trpc.admin.createPointAdjustment.useMutation();
   const deletePostMutation = trpc.community.deletePost.useMutation({
     onSuccess: () => {
-      utils.admin.getPosts.invalidate();
+      // Invalidate with correct query input based on current filter
+      if (selectedGroupId) {
+        utils.admin.getPosts.invalidate({ groupId: selectedGroupId });
+      } else {
+        utils.admin.getPosts.invalidate();
+      }
     },
   });
   
@@ -243,6 +256,113 @@ export default function AdminConsoleScreen() {
               Alert.alert("Success", "Post deleted successfully");
             } catch (error: any) {
               Alert.alert("Error", error.message || "Failed to delete post");
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+  const handleViewPost = (post: any) => {
+    setSelectedPost(post);
+    setShowPostModal(true);
+  };
+  
+  const handleDeleteFromModal = async () => {
+    if (!selectedPost) return;
+    
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deletePostMutation.mutateAsync({ postId: Number(selectedPost.id) });
+              setShowPostModal(false);
+              setSelectedPost(null);
+              Alert.alert("Success", "Post deleted successfully");
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete post");
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+  const togglePostSelection = (postId: number) => {
+    const newSet = new Set(selectedPostIds);
+    if (newSet.has(postId)) {
+      newSet.delete(postId);
+    } else {
+      newSet.add(postId);
+    }
+    setSelectedPostIds(newSet);
+  };
+  
+  const handleSelectAll = () => {
+    if (!posts) return;
+    const allIds = new Set(posts.map(p => p.id));
+    setSelectedPostIds(allIds);
+  };
+  
+  const handleClearSelection = () => {
+    setSelectedPostIds(new Set());
+  };
+  
+  const handleBulkDelete = async () => {
+    if (selectedPostIds.size === 0) {
+      Alert.alert("Error", "No posts selected");
+      return;
+    }
+    
+    Alert.alert(
+      "Bulk Delete",
+      `Are you sure you want to delete ${selectedPostIds.size} post(s)?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            let deletedCount = 0;
+            let failedCount = 0;
+            const failedIds: number[] = [];
+            
+            for (const postId of Array.from(selectedPostIds)) {
+              try {
+                await deletePostMutation.mutateAsync({ postId: Number(postId) });
+                deletedCount++;
+              } catch (error) {
+                failedCount++;
+                failedIds.push(postId);
+                console.error(`Failed to delete post ${postId}:`, error);
+              }
+            }
+            
+            // Invalidate query after all deletions
+            if (selectedGroupId) {
+              await utils.admin.getPosts.invalidate({ groupId: selectedGroupId });
+            } else {
+              await utils.admin.getPosts.invalidate();
+            }
+            
+            // Clear selection
+            setSelectedPostIds(new Set());
+            setBulkSelectMode(false);
+            
+            // Show summary
+            if (failedCount === 0) {
+              Alert.alert("Success", `Deleted ${deletedCount} post(s) successfully`);
+            } else {
+              Alert.alert(
+                "Partial Success",
+                `Deleted: ${deletedCount}\nFailed: ${failedCount}\n\nFailed IDs: ${failedIds.join(", ")}`
+              );
             }
           },
         },
@@ -483,7 +603,23 @@ export default function AdminConsoleScreen() {
         
         {/* Posts Moderation Panel */}
         <View className="bg-surface rounded-xl p-4 mb-4" style={{ borderWidth: 1, borderColor: colors.border }}>
-          <Text className="text-lg font-bold text-foreground mb-3">🛡️ Posts Moderation</Text>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-lg font-bold text-foreground">🛡️ Posts Moderation</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setBulkSelectMode(!bulkSelectMode);
+                if (bulkSelectMode) {
+                  setSelectedPostIds(new Set());
+                }
+              }}
+              className="px-3 py-2 rounded-lg bg-background"
+              style={{ borderWidth: 1, borderColor: colors.border }}
+            >
+              <Text className="text-xs font-semibold text-foreground">
+                {bulkSelectMode ? "Cancel" : "Select"}
+              </Text>
+            </TouchableOpacity>
+          </View>
           
           {/* Group Filter */}
           <View className="mb-3">
@@ -518,17 +654,65 @@ export default function AdminConsoleScreen() {
             </View>
           </View>
           
-          {posts && posts.length > 0 ? (
-            posts.slice(0, 5).map((post) => (
-              <View
-                key={post.id}
-                className="bg-background rounded-lg p-3 mb-2"
+          {/* Bulk Actions */}
+          {bulkSelectMode && (
+            <View className="flex-row gap-2 mb-3">
+              <TouchableOpacity
+                onPress={handleSelectAll}
+                className="flex-1 bg-background py-2 rounded-lg"
                 style={{ borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text className="text-center text-xs font-semibold text-foreground">Select All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleClearSelection}
+                className="flex-1 bg-background py-2 rounded-lg"
+                style={{ borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text className="text-center text-xs font-semibold text-foreground">Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleBulkDelete}
+                disabled={selectedPostIds.size === 0}
+                className="flex-1 bg-error/10 py-2 rounded-lg"
+                style={{ opacity: selectedPostIds.size === 0 ? 0.5 : 1 }}
+              >
+                <Text className="text-center text-xs font-semibold text-error">
+                  Delete ({selectedPostIds.size})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {posts && posts.length > 0 ? (
+            posts.map((post) => (
+              <TouchableOpacity
+                key={post.id}
+                onPress={() => bulkSelectMode ? togglePostSelection(post.id) : handleViewPost(post)}
+                className="bg-background rounded-lg p-3 mb-2"
+                style={{ borderWidth: 1, borderColor: selectedPostIds.has(post.id) ? colors.primary : colors.border }}
               >
                 <View className="flex-row items-start justify-between mb-2">
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">{(post as any).authorName}</Text>
-                    <Text className="text-xs text-muted">{new Date(post.createdAt).toLocaleDateString()}</Text>
+                    <View className="flex-row items-center gap-2">
+                      {bulkSelectMode && (
+                        <View
+                          className="w-5 h-5 rounded border-2"
+                          style={{
+                            borderColor: selectedPostIds.has(post.id) ? colors.primary : colors.border,
+                            backgroundColor: selectedPostIds.has(post.id) ? colors.primary : 'transparent',
+                          }}
+                        >
+                          {selectedPostIds.has(post.id) && (
+                            <Text className="text-center text-xs text-background font-bold">✓</Text>
+                          )}
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="text-sm font-semibold text-foreground">{(post as any).authorName}</Text>
+                        <Text className="text-xs text-muted">{new Date(post.createdAt).toLocaleDateString()}</Text>
+                      </View>
+                    </View>
                   </View>
                   <View className="px-2 py-1 rounded bg-primary/10">
                     <Text className="text-xs font-semibold" style={{ color: colors.primary }}>{post.postType}</Text>
@@ -538,14 +722,7 @@ export default function AdminConsoleScreen() {
                 {post.postText && (
                   <Text className="text-sm text-foreground mb-2" numberOfLines={2}>{post.postText}</Text>
                 )}
-                
-                <TouchableOpacity
-                  onPress={() => handleDeletePost(post.id, post.postText || "")}
-                  className="bg-error/10 py-2 rounded-lg"
-                >
-                  <Text className="text-center text-sm font-semibold text-error">Delete</Text>
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ))
           ) : (
             <Text className="text-center text-muted py-4">No posts found</Text>
@@ -607,6 +784,92 @@ export default function AdminConsoleScreen() {
           )}
         </View>
       </ScrollView>
+      
+      {/* Post Detail Modal */}
+      <Modal
+        visible={showPostModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPostModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center p-4">
+          <View className="bg-surface rounded-xl p-4 w-full max-w-md" style={{ borderWidth: 1, borderColor: colors.border }}>
+            <Text className="text-xl font-bold text-foreground mb-4">Post Details</Text>
+            
+            {selectedPost && (
+              <View>
+                <View className="mb-3">
+                  <Text className="text-xs text-muted mb-1">Author</Text>
+                  <Text className="text-sm font-semibold text-foreground">{(selectedPost as any).authorName}</Text>
+                </View>
+                
+                <View className="mb-3">
+                  <Text className="text-xs text-muted mb-1">Date</Text>
+                  <Text className="text-sm text-foreground">{new Date(selectedPost.createdAt).toLocaleString()}</Text>
+                </View>
+                
+                <View className="mb-3">
+                  <Text className="text-xs text-muted mb-1">Type</Text>
+                  <View className="px-2 py-1 rounded bg-primary/10 self-start">
+                    <Text className="text-xs font-semibold" style={{ color: colors.primary }}>{selectedPost.postType}</Text>
+                  </View>
+                </View>
+                
+                {selectedPost.postText && (
+                  <View className="mb-3">
+                    <Text className="text-xs text-muted mb-1">Content</Text>
+                    <Text className="text-sm text-foreground">{selectedPost.postText}</Text>
+                  </View>
+                )}
+                
+                {selectedPost.postImageUrl && (
+                  <View className="mb-3">
+                    <Text className="text-xs text-muted mb-1">Image</Text>
+                    <Text className="text-xs text-foreground">✓ Has image attachment</Text>
+                  </View>
+                )}
+                
+                {selectedPost.postVideoUrl && (
+                  <View className="mb-3">
+                    <Text className="text-xs text-muted mb-1">Video</Text>
+                    <Text className="text-xs text-foreground">✓ Has video attachment</Text>
+                  </View>
+                )}
+                
+                <View className="mb-3">
+                  <Text className="text-xs text-muted mb-1">Status</Text>
+                  <View className="flex-row gap-2">
+                    {selectedPost.isPinned && (
+                      <View className="px-2 py-1 rounded bg-primary/10">
+                        <Text className="text-xs font-semibold" style={{ color: colors.primary }}>Pinned</Text>
+                      </View>
+                    )}
+                    <View className="px-2 py-1 rounded bg-background">
+                      <Text className="text-xs text-foreground">{selectedPost.visibility}</Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <View className="flex-row gap-2 mt-4">
+                  <TouchableOpacity
+                    onPress={() => setShowPostModal(false)}
+                    className="flex-1 bg-background py-3 rounded-lg"
+                    style={{ borderWidth: 1, borderColor: colors.border }}
+                  >
+                    <Text className="text-center font-semibold text-foreground">Close</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleDeleteFromModal}
+                    className="flex-1 bg-error py-3 rounded-lg"
+                  >
+                    <Text className="text-center font-semibold text-background">Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

@@ -64,3 +64,12 @@
 - [x] Disable timeout on auth screens (login/register)
 - [x] Disable timeout when no auth token exists
 - [x] Wire IdleTimeout into root layout (app/_layout.tsx)
+
+## 10) Posts Moderation Enhancements
+- [x] Add Post Detail Modal with full post content view
+- [x] Add Delete button in Post Detail Modal
+- [x] Implement Bulk Select mode with checkboxes
+- [x] Add Select All and Clear buttons for bulk selection
+- [x] Implement Bulk Delete with sequential deletion
+- [x] Fix query invalidation to respect groupId filter
+- [x] Show success/failure summary after bulk delete
