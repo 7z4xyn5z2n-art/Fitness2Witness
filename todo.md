@@ -36,3 +36,13 @@
 - [x] Create admin UI for awarding bonus points with category selection
 - [x] Test bonus points appear in leaderboard calculations
 - [x] Verify audit log shows category information
+
+## 7) Admin Command Center
+- [x] Create app/admin-console.tsx with centralized admin hub
+- [x] User selection with search filter
+- [x] Date selection (web: input type=date, native: existing approach)
+- [x] Daily check-in panel with 4 toggles + notes
+- [x] Points/Bonus panel with manual adjustment + quick bonus buttons
+- [x] Posts moderation panel with delete functionality
+- [x] Audit feed panel with filters (user, category)
+- [x] Add navigation link from admin-users.tsx

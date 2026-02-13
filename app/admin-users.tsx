@@ -164,6 +164,22 @@ export default function AdminUsersScreen() {
             </View>
           </View>
 
+          {/* Admin Command Center Link */}
+          <TouchableOpacity
+            onPress={() => router.push("/admin-console")}
+            className="bg-primary/10 py-4 px-4 rounded-xl flex-row items-center justify-between"
+            style={{ borderWidth: 1, borderColor: colors.primary }}
+          >
+            <View className="flex-row items-center gap-3">
+              <Text className="text-2xl">⚡</Text>
+              <View>
+                <Text className="text-base font-semibold text-foreground">Admin Command Center</Text>
+                <Text className="text-xs text-muted">Centralized admin hub</Text>
+              </View>
+            </View>
+            <Text className="text-xl text-muted">›</Text>
+          </TouchableOpacity>
+
           {/* User List */}
           <View className="gap-3">
             {users?.map((user) => (
