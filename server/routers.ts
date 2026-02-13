@@ -7,6 +7,14 @@ import { phoneAuthRouter } from "./routers/phone-auth";
 import * as db from "./db";
 import { storagePut } from "./storage";
 
+// Helper function to convert Date to YYYY-MM-DD string for DATE columns
+function toDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Helper function to analyze workout text using AI
 async function analyzeWorkout(workoutText: string): Promise<string> {
   const { invokeLLM } = await import("./_core/llm.js");
@@ -62,7 +70,7 @@ export const appRouter = router({
     submit: protectedProcedure
       .input(
         z.object({
-          date: z.string(),
+          day: z.string(),
           nutritionDone: z.boolean(),
           hydrationDone: z.boolean(),
           movementDone: z.boolean(),
@@ -106,7 +114,7 @@ export const appRouter = router({
 
         // 1) Save check-in to database FIRST (never let AI block this)
         const checkin = await db.createDailyCheckin({
-          date,
+          day: toDateString(date),
           userId: ctx.user.id,
           groupId: user.groupId,
           challengeId: group.challengeId,
@@ -326,7 +334,7 @@ export const appRouter = router({
     }),
 
     markAttendance: protectedProcedure
-      .input(z.object({ userIds: z.array(z.number()), date: z.string() }))
+      .input(z.object({ userIds: z.array(z.number()), day: z.string() }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || !user.groupId) {
@@ -359,7 +367,7 @@ export const appRouter = router({
             await db.updateWeeklyAttendance(userId, weekStart, true);
           } else {
             await db.createWeeklyAttendance({
-              weekStart: weekStart,
+              weekStart: toDateString(weekStart),
               userId,
               groupId: user.groupId,
               challengeId: group.challengeId,
@@ -947,7 +955,7 @@ export const appRouter = router({
       }),
 
     getCheckInsByDate: protectedProcedure
-      .input(z.object({ date: z.string() }))
+      .input(z.object({ day: z.string() }))
       .query(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || user.role !== "admin") {
@@ -958,7 +966,7 @@ export const appRouter = router({
       }),
 
     getAttendanceByDate: protectedProcedure
-      .input(z.object({ date: z.string() }))
+      .input(z.object({ day: z.string() }))
       .query(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || user.role !== "admin") {
@@ -972,7 +980,7 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.string(),
-          date: z.string(),
+          day: z.string(),
           nutritionDone: z.boolean(),
           hydrationDone: z.boolean(),
           movementDone: z.boolean(),
@@ -1015,7 +1023,7 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.string(),
-          dateISO: z.string(),
+          day: z.string(),
           nutritionDone: z.boolean(),
           hydrationDone: z.boolean(),
           movementDone: z.boolean(),
@@ -1041,7 +1049,7 @@ export const appRouter = router({
         }
 
         // Normalize date to day boundary
-        const date = new Date(input.dateISO);
+        const date = new Date(input.day);
         date.setHours(0, 0, 0, 0);
 
         // Check if check-in exists for this user+date
@@ -1060,7 +1068,7 @@ export const appRouter = router({
         } else {
           // Create new check-in
           const newCheckIn = await db.createCheckIn({
-            date,
+            day: toDateString(date),
             userId: parseInt(input.userId),
             groupId: targetUser.groupId,
             challengeId: group.challengeId,
@@ -1078,7 +1086,7 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.string(),
-          date: z.string(),
+          day: z.string(), // Changed from 'date' to 'day' for consistency
           attended: z.boolean(),
         })
       )
@@ -1106,7 +1114,7 @@ export const appRouter = router({
         startOfWeek.setDate(diff);
 
         await db.createWeeklyAttendance({
-          weekStart: startOfWeek,
+          weekStart: toDateString(startOfWeek),
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -1121,7 +1129,7 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.string(),
-          dateISO: z.string(),
+          day: z.string(),
         })
       )
       .query(async ({ ctx, input }) => {
@@ -1136,7 +1144,7 @@ export const appRouter = router({
         }
 
         // Normalize date to midnight
-        const date = new Date(input.dateISO);
+        const date = new Date(input.day);
         date.setHours(0, 0, 0, 0);
 
         // Get daily check-in
@@ -1186,10 +1194,11 @@ export const appRouter = router({
       .input(
         z.object({
           userId: z.number(),
-          dateISO: z.string(),
+          day: z.string(), // Changed from dateISO to day for consistency
           pointsDelta: z.number(),
           reason: z.string(),
           category: z.string().optional(),
+          idempotencyKey: z.string(), // Required for preventing duplicate submissions
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -1208,12 +1217,9 @@ export const appRouter = router({
           throw new Error("Group must be assigned to a challenge");
         }
 
-        // Normalize date to midnight boundary
-        const date = new Date(input.dateISO);
-        date.setHours(0, 0, 0, 0);
-
+        // input.day is already "YYYY-MM-DD" format, no conversion needed
         const adjustmentId = await db.createPointAdjustment({
-          date,
+          day: input.day,
           userId: input.userId,
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -1221,6 +1227,7 @@ export const appRouter = router({
           reason: input.reason,
           category: input.category || "daily_correction",
           adjustedBy: ctx.user.id,
+          idempotencyKey: input.idempotencyKey,
         });
 
         return { success: true, adjustmentId };
@@ -1255,7 +1262,7 @@ export const appRouter = router({
           .object({
             groupId: z.number().optional(),
             userId: z.number().optional(),
-            dateISO: z.string().optional(),
+            day: z.string().optional(),
           })
           .optional()
       )
@@ -1289,7 +1296,7 @@ export const appRouter = router({
 
         // Filter by date if provided
         if (input?.dateISO) {
-          const targetDate = new Date(input.dateISO);
+          const targetDate = new Date(input.day);
           targetDate.setHours(0, 0, 0, 0);
           const nextDay = new Date(targetDate);
           nextDay.setDate(nextDay.getDate() + 1);
@@ -1386,7 +1393,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          date: z.string(),
+          day: z.string(),
           weight: z.number().optional(),
           bodyFatPercent: z.number().optional(),
           muscleMass: z.number().optional(),

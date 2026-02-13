@@ -144,7 +144,7 @@ export default function AdminDayEditorScreen() {
     try {
       const payload = {
         userId: String(selectedUserId),
-        date: selectedDate,
+        day: selectedDate,
         attended,
       };
       console.log("Save attendance payload:", payload);

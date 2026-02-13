@@ -18,13 +18,13 @@ export default function AdminCalendarScreen() {
 
   // Fetch check-ins for selected date
   const { data: checkIns, isLoading: checkInsLoading, refetch } = trpc.admin.getCheckInsByDate.useQuery(
-    { date: selectedDate.toISOString() },
+    { day: selectedDate.toISOString() },
     { enabled: true }
   );
 
   // Fetch attendance for selected date
   const { data: attendance, refetch: refetchAttendance } = trpc.admin.getAttendanceByDate.useQuery(
-    { date: selectedDate.toISOString() },
+    { day: selectedDate.toISOString() },
     { enabled: true }
   );
 
@@ -145,7 +145,7 @@ export default function AdminCalendarScreen() {
     
     const payload = {
       userId: String(userId),
-      date: selectedDate.toISOString(),
+      day: selectedDate.toISOString(),
       attended: true,
     };
     console.log("Adding attendance payload:", payload);

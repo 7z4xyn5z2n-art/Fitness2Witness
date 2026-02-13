@@ -147,7 +147,7 @@ export default function AdminConsoleScreen() {
     try {
       const payload = {
         userId: String(selectedUser.id),
-        date: selectedDate.toISOString(),
+        day: selectedDate.toISOString(),
         attended,
       };
       console.log("Add attendance payload:", payload);

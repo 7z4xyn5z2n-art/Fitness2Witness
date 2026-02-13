@@ -135,14 +135,14 @@
 - [x] Create and run migrations to backfill DATE columns
 
 ### Phase 2: API Contract Standardization
-- [ ] Update admin.getDaySnapshot to accept day:"YYYY-MM-DD" (not dateISO)
-- [ ] Update admin.upsertDailyCheckin with day parameter and upsert logic
-- [ ] Update admin.setWeeklyAttendance with weekStart parameter and upsert logic
-- [ ] Update admin.createPointAdjustmentForDay with day + idempotencyKey
+- [x] Update admin.getDaySnapshot to accept day:"YYYY-MM-DD" (server-side done, frontend has 16 TS errors)
+- [x] Update admin.upsertDailyCheckin with day parameter and upsert logic
+- [x] Update admin.setWeeklyAttendance with weekStart parameter and upsert logic
+- [x] Update admin.createPointAdjustmentForDay with day + idempotencyKey (schema done, frontend needs idempotencyKey generation)
 - [ ] Add console.log for all mutation payloads (before DB write)
 - [ ] Add console.log for all mutation results (after DB write)
 - [ ] Add adminAuditLog entry for every mutation (checkin, attendance, adjustment, post)
-- [ ] Verify all admin procedures enforce server-side admin role check
+- [x] Verify all admin procedures enforce server-side admin role check
 
 ### Phase 3: Frontend Date + State Reliability
 - [ ] Change selectedDate to selectedDay storing "YYYY-MM-DD" string
