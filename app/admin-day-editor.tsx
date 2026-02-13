@@ -44,7 +44,7 @@ export default function AdminDayEditorScreen() {
   } = trpc.admin.getDaySnapshot.useQuery(
     {
       userId: String(selectedUserId),
-      dateISO: selectedDate,
+      day: selectedDate,
     },
     {
       enabled: !!selectedUserId && !!selectedDate,
@@ -59,7 +59,7 @@ export default function AdminDayEditorScreen() {
   } = trpc.admin.getPostsForModeration.useQuery(
     {
       userId: selectedUserId || undefined,
-      dateISO: selectedDate || undefined,
+      day: selectedDate || undefined,
     },
     {
       enabled: !!selectedUserId && !!selectedDate,
@@ -108,7 +108,7 @@ export default function AdminDayEditorScreen() {
     try {
       const payload = {
         userId: String(selectedUserId),
-        dateISO: selectedDate,
+        day: selectedDate,
         nutritionDone,
         hydrationDone,
         movementDone,
@@ -117,7 +117,7 @@ export default function AdminDayEditorScreen() {
       console.log("Save check-in payload:", payload);
       console.log("Payload types:", {
         userId: typeof payload.userId,
-        dateISO: typeof payload.dateISO,
+        day: typeof payload.day,
         nutritionDone: typeof payload.nutritionDone,
         hydrationDone: typeof payload.hydrationDone,
         movementDone: typeof payload.movementDone,
@@ -150,7 +150,7 @@ export default function AdminDayEditorScreen() {
       console.log("Save attendance payload:", payload);
       console.log("Payload types:", {
         userId: typeof payload.userId,
-        date: typeof payload.date,
+        date: typeof payload.day,
         attended: typeof payload.attended,
       });
 
@@ -183,17 +183,22 @@ export default function AdminDayEditorScreen() {
     }
 
     try {
+      // Generate idempotencyKey to prevent duplicate submissions
+      const timestampBucket = Math.floor(Date.now() / 10000) * 10000; // Round to 10 seconds
+      const idempotencyKey = `${selectedUserId}:${selectedDate}:${pointsNum}:${reason.substring(0, 20)}:${timestampBucket}`;
+      
       const payload = {
         userId: selectedUserId,
-        dateISO: selectedDate,
+        day: selectedDate,
         pointsDelta: pointsNum,
         reason,
         category: category || undefined,
+        idempotencyKey,
       };
       console.log("Day adjustment payload:", payload);
       console.log("Payload types:", {
         userId: typeof payload.userId,
-        dateISO: typeof payload.dateISO,
+        day: typeof payload.day,
         pointsDelta: typeof payload.pointsDelta,
         reason: typeof payload.reason,
         category: typeof payload.category,

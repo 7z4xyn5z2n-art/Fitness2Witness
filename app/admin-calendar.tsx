@@ -74,7 +74,7 @@ export default function AdminCalendarScreen() {
             try {
               await upsertCheckInMutation.mutateAsync({
                 userId,
-                dateISO: selectedDate.toISOString(),
+                day: selectedDate.toISOString(),
                 nutritionDone: nutrition,
                 hydrationDone: hydration,
                 movementDone: movement,
@@ -114,7 +114,7 @@ export default function AdminCalendarScreen() {
             try {
               const payload = {
                 userId: String(userId),
-                dateISO: selectedDate.toISOString(),
+                day: selectedDate.toISOString(),
                 nutritionDone: true,
                 hydrationDone: true,
                 movementDone: true,
@@ -122,7 +122,7 @@ export default function AdminCalendarScreen() {
                 notes: "Added by admin",
               };
               console.log("Adding check-in payload:", payload);
-              console.log("Payload types:", { userId: typeof payload.userId, dateISO: typeof payload.dateISO });
+              console.log("Payload types:", { userId: typeof payload.userId, day: typeof payload.day });
               await upsertCheckInMutation.mutateAsync(payload);
             } catch (error: any) {
               console.error("Failed to add check-in:", error);
@@ -149,7 +149,7 @@ export default function AdminCalendarScreen() {
       attended: true,
     };
     console.log("Adding attendance payload:", payload);
-    console.log("Payload types:", { userId: typeof payload.userId, date: typeof payload.date });
+    console.log("Payload types:", { userId: typeof payload.userId, date: typeof payload.day });
     try {
       await addAttendanceMutation.mutateAsync(payload);
     } catch (error: any) {

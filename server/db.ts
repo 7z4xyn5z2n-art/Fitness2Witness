@@ -11,6 +11,7 @@ function toDateString(date: Date): string {
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import {
+  adminAuditLog,
   bodyMetrics,
   challengeComments,
   challengeParticipants,
@@ -48,6 +49,7 @@ import {
   type InsertUserBadge,
   type InsertUserTarget,
   type InsertWeeklyAttendance,
+  type InsertAdminAuditLog,
   type UserTarget,
   type PointAdjustment,
   type UserBadge,
@@ -1380,4 +1382,19 @@ export async function saveMealSuggestionsCache(userId: number, date: string, dat
 export async function clearMealSuggestionsCache(userId: number, date: string): Promise<void> {
   const key = `${userId}-${date}`;
   mealSuggestionsCache.delete(key);
+}
+
+// Admin Audit Log
+export async function createAuditLog(log: InsertAdminAuditLog): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create audit log: database not available");
+    return;
+  }
+  try {
+    await db.insert(adminAuditLog).values(log);
+  } catch (error) {
+    console.error("[Database] Failed to create audit log:", error);
+    // Don't throw - audit logging should not block the main operation
+  }
 }

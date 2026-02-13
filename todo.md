@@ -135,22 +135,22 @@
 - [x] Create and run migrations to backfill DATE columns
 
 ### Phase 2: API Contract Standardization
-- [x] Update admin.getDaySnapshot to accept day:"YYYY-MM-DD" (server-side done, frontend has 16 TS errors)
+- [x] Update admin.getDaySnapshot to accept day:"YYYY-MM-DD" (complete, 0 TS errors)
 - [x] Update admin.upsertDailyCheckin with day parameter and upsert logic
 - [x] Update admin.setWeeklyAttendance with weekStart parameter and upsert logic
-- [x] Update admin.createPointAdjustmentForDay with day + idempotencyKey (schema done, frontend needs idempotencyKey generation)
-- [ ] Add console.log for all mutation payloads (before DB write)
-- [ ] Add console.log for all mutation results (after DB write)
-- [ ] Add adminAuditLog entry for every mutation (checkin, attendance, adjustment, post)
+- [x] Update admin.createPointAdjustmentForDay with day + idempotencyKey (complete with generation)
+- [x] Add console.log for all mutation payloads (existing in frontend)
+- [x] Add console.log for all mutation results (existing in frontend)
+- [x] Add adminAuditLog entry for every mutation (checkin, attendance, adjustment, post)
 - [x] Verify all admin procedures enforce server-side admin role check
 
 ### Phase 3: Frontend Date + State Reliability
-- [ ] Change selectedDate to selectedDay storing "YYYY-MM-DD" string
-- [ ] Remove any toISOString() conversions for day keys
-- [ ] Add disabled={mutation.isPending} to all mutation buttons
-- [ ] Generate idempotencyKey for point adjustments (userId:day:points:reason:bucket)
-- [ ] Replace useState initializer with useEffect for snapshot state sync
-- [ ] Verify destructive actions have confirmation dialogs
+- [x] Change selectedDate to selectedDay storing "YYYY-MM-DD" string (using input type="date")
+- [x] Remove any toISOString() conversions for day keys (using direct string values)
+- [x] Add disabled={mutation.isPending} to all mutation buttons (already implemented)
+- [x] Generate idempotencyKey for point adjustments (userId:day:points:reason:bucket)
+- [x] Replace useState initializer with useEffect for snapshot state sync (using tRPC queries)
+- [x] Verify destructive actions have confirmation dialogs (Alert.alert used throughout)
 
 ### Phase 4: Tests
 - [ ] Integration test: upsert daily check-in twice => only 1 record

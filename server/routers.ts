@@ -483,7 +483,17 @@ export const appRouter = router({
         throw new Error("Only admins can delete posts");
       }
 
+      const before = await db.getPostById(input.postId);
       await db.deletePost(input.postId);
+      await db.createAuditLog({
+        actionType: "POST_DELETE",
+        entityType: "post",
+        entityId: input.postId,
+        affectedUserId: before?.userId,
+        before: before as any,
+        after: null,
+        performedBy: ctx.user.id,
+      });
       return { success: true };
     }),
 
@@ -861,8 +871,12 @@ export const appRouter = router({
           throw new Error("Group must be assigned to a challenge");
         }
 
-        const adjustmentId = await db.createPointAdjustment({
-          date: new Date(),
+        // Generate idempotencyKey to prevent duplicate bonus point awards
+        const timestampBucket = Math.floor(Date.now() / 10000) * 10000; // Round to 10 seconds
+        const idempotencyKey = `bonus:${input.userId}:${input.pointsDelta}:${input.reason.substring(0, 20)}:${timestampBucket}`;
+
+        const adjustment = await db.createPointAdjustment({
+          day: toDateString(new Date()),
           userId: input.userId,
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -870,9 +884,20 @@ export const appRouter = router({
           reason: input.reason,
           category: input.category, // Optional category for bonus points
           adjustedBy: ctx.user.id,
+          idempotencyKey,
+        });
+        await db.createAuditLog({
+          actionType: "POINTS_ADJUST",
+          entityType: "adjustment",
+          entityId: adjustment?.id,
+          affectedUserId: input.userId,
+          day: toDateString(new Date()),
+          before: null,
+          after: adjustment as any,
+          performedBy: ctx.user.id,
         });
 
-        return { success: true, adjustmentId };
+        return { success: true, adjustmentId: adjustment?.id };
       }),
 
     getAuditLog: protectedProcedure.query(async ({ ctx }) => {
@@ -1005,7 +1030,7 @@ export const appRouter = router({
         }
 
         await db.createCheckIn({
-          date: new Date(input.day),
+          day: input.day,
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
@@ -1057,12 +1082,24 @@ export const appRouter = router({
 
         if (existing) {
           // Update existing check-in
+          const before = { ...existing };
           await db.updateDailyCheckin(existing.id, {
             nutritionDone: input.nutritionDone,
             hydrationDone: input.hydrationDone,
             movementDone: input.movementDone,
             scriptureDone: input.scriptureDone,
             notes: input.notes,
+          });
+          const after = await db.getCheckinByUserIdAndDate(parseInt(input.userId), date);
+          await db.createAuditLog({
+            actionType: "CHECKIN_UPDATE",
+            entityType: "checkin",
+            entityId: existing.id,
+            affectedUserId: parseInt(input.userId),
+            day: toDateString(date),
+            before: before as any,
+            after: after as any,
+            performedBy: ctx.user.id,
           });
           return { success: true, action: "updated", checkInId: existing.id };
         } else {
@@ -1077,6 +1114,16 @@ export const appRouter = router({
             movementDone: input.movementDone,
             scriptureDone: input.scriptureDone,
             notes: input.notes,
+          });
+          await db.createAuditLog({
+            actionType: "CHECKIN_CREATE",
+            entityType: "checkin",
+            entityId: newCheckIn?.id,
+            affectedUserId: parseInt(input.userId),
+            day: toDateString(date),
+            before: null,
+            after: newCheckIn as any,
+            performedBy: ctx.user.id,
           });
           return { success: true, action: "created", checkInId: newCheckIn?.id || 0 };
         }
@@ -1113,15 +1160,24 @@ export const appRouter = router({
         const diff = startOfWeek.getDate() - dayOfWeek;
         startOfWeek.setDate(diff);
 
-        await db.createWeeklyAttendance({
+        const newAttendance = await db.createWeeklyAttendance({
           weekStart: toDateString(startOfWeek),
           userId: parseInt(input.userId),
           groupId: targetUser.groupId,
           challengeId: group.challengeId,
           attendedWednesday: input.attended,
         });
-
-        return { success: true };
+        await db.createAuditLog({
+          actionType: "ATTENDANCE_SET",
+          entityType: "attendance",
+          entityId: newAttendance?.id,
+          affectedUserId: parseInt(input.userId),
+          weekStart: toDateString(startOfWeek),
+          before: null,
+          after: newAttendance as any,
+          performedBy: ctx.user.id,
+        });
+        return { success: true };;
       }),
 
     // Get day snapshot for a specific user and date
@@ -1218,7 +1274,7 @@ export const appRouter = router({
         }
 
         // input.day is already "YYYY-MM-DD" format, no conversion needed
-        const adjustmentId = await db.createPointAdjustment({
+        const adjustment = await db.createPointAdjustment({
           day: input.day,
           userId: input.userId,
           groupId: targetUser.groupId,
@@ -1229,8 +1285,18 @@ export const appRouter = router({
           adjustedBy: ctx.user.id,
           idempotencyKey: input.idempotencyKey,
         });
+        await db.createAuditLog({
+          actionType: "POINTS_ADJUST_DAY",
+          entityType: "adjustment",
+          entityId: adjustment?.id,
+          affectedUserId: input.userId,
+          day: input.day,
+          before: null,
+          after: adjustment as any,
+          performedBy: ctx.user.id,
+        });
 
-        return { success: true, adjustmentId };
+        return { success: true, adjustmentId: adjustment?.id };
       }),
 
     // Update post (for moderation)
@@ -1251,7 +1317,18 @@ export const appRouter = router({
         }
 
         const { postId, ...updates } = input;
+        const before = await db.getPostById(postId);
         await db.updatePost(postId, updates);
+        const after = await db.getPostById(postId);
+        await db.createAuditLog({
+          actionType: "POST_UPDATE",
+          entityType: "post",
+          entityId: postId,
+          affectedUserId: before?.userId,
+          before: before as any,
+          after: after as any,
+          performedBy: ctx.user.id,
+        });
         return { success: true };
       }),
 
@@ -1295,7 +1372,7 @@ export const appRouter = router({
         }
 
         // Filter by date if provided
-        if (input?.dateISO) {
+        if (input?.day) {
           const targetDate = new Date(input.day);
           targetDate.setHours(0, 0, 0, 0);
           const nextDay = new Date(targetDate);
