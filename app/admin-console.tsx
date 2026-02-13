@@ -35,9 +35,15 @@ export default function AdminConsoleScreen() {
   const [filterSelectedUserOnly, setFilterSelectedUserOnly] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
   
+  // Group filter for posts
+  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(undefined);
+  
   // Queries
   const { data: users, refetch: refetchUsers } = trpc.admin.getAllUsers.useQuery();
-  const { data: posts, refetch: refetchPosts } = trpc.community.getPosts.useQuery();
+  const { data: groups } = trpc.admin.getAllGroups.useQuery();
+  const { data: posts, refetch: refetchPosts } = trpc.admin.getPosts.useQuery(
+    selectedGroupId ? { groupId: selectedGroupId } : undefined
+  );
   const { data: auditLog, refetch: refetchAudit } = trpc.admin.getAuditLog.useQuery();
   
   // Mutations
@@ -47,7 +53,7 @@ export default function AdminConsoleScreen() {
   const createPointAdjustmentMutation = trpc.admin.createPointAdjustment.useMutation();
   const deletePostMutation = trpc.community.deletePost.useMutation({
     onSuccess: () => {
-      utils.community.getPosts.invalidate();
+      utils.admin.getPosts.invalidate();
     },
   });
   
@@ -478,6 +484,39 @@ export default function AdminConsoleScreen() {
         {/* Posts Moderation Panel */}
         <View className="bg-surface rounded-xl p-4 mb-4" style={{ borderWidth: 1, borderColor: colors.border }}>
           <Text className="text-lg font-bold text-foreground mb-3">🛡️ Posts Moderation</Text>
+          
+          {/* Group Filter */}
+          <View className="mb-3">
+            <Text className="text-xs text-muted mb-2">Filter by Group</Text>
+            <View className="flex-row flex-wrap gap-2">
+              <TouchableOpacity
+                onPress={() => setSelectedGroupId(undefined)}
+                className={`px-3 py-2 rounded-lg ${
+                  selectedGroupId === undefined ? 'bg-primary' : 'bg-background'
+                }`}
+                style={{ borderWidth: 1, borderColor: selectedGroupId === undefined ? colors.primary : colors.border }}
+              >
+                <Text className={`text-xs font-semibold ${
+                  selectedGroupId === undefined ? 'text-background' : 'text-foreground'
+                }`}>All Groups</Text>
+              </TouchableOpacity>
+              
+              {groups?.map((group) => (
+                <TouchableOpacity
+                  key={group.id}
+                  onPress={() => setSelectedGroupId(group.id)}
+                  className={`px-3 py-2 rounded-lg ${
+                    selectedGroupId === group.id ? 'bg-primary' : 'bg-background'
+                  }`}
+                  style={{ borderWidth: 1, borderColor: selectedGroupId === group.id ? colors.primary : colors.border }}
+                >
+                  <Text className={`text-xs font-semibold ${
+                    selectedGroupId === group.id ? 'text-background' : 'text-foreground'
+                  }`}>{group.groupName}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
           
           {posts && posts.length > 0 ? (
             posts.slice(0, 5).map((post) => (

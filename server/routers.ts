@@ -889,6 +889,63 @@ export const appRouter = router({
       return adjustmentsWithUsers;
     }),
 
+    getPosts: protectedProcedure
+      .input(z.object({ groupId: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can access all posts");
+        }
+
+        const allGroups = await db.getAllGroups();
+        if (!allGroups || allGroups.length === 0) {
+          return [];
+        }
+
+        let allPosts: any[] = [];
+
+        if (input?.groupId) {
+          // Fetch posts for specific group
+          const posts = await db.getGroupPosts(input.groupId);
+          allPosts = posts;
+        } else {
+          // Fetch posts from all groups
+          for (const group of allGroups) {
+            const posts = await db.getGroupPosts(group.id);
+            allPosts = allPosts.concat(posts);
+          }
+          // Sort by createdAt desc (newest first)
+          allPosts.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+          });
+        }
+
+        // Map posts with author names
+        const postsWithUsers = await Promise.all(
+          allPosts.map(async (post) => {
+            const author = await db.getUserById(post.userId);
+            return {
+              id: post.id,
+              userId: post.userId,
+              groupId: post.groupId,
+              postType: post.postType,
+              postText: post.postText,
+              postImageUrl: post.postImageUrl,
+              postVideoUrl: post.postVideoUrl,
+              isPinned: post.isPinned,
+              visibility: post.visibility,
+              createdAt: post.createdAt,
+              updatedAt: post.updatedAt,
+              authorName: author?.name || "Unknown",
+            };
+          })
+        );
+
+        return postsWithUsers;
+      }),
+
     getCheckInsByDate: protectedProcedure
       .input(z.object({ date: z.string() }))
       .query(async ({ ctx, input }) => {

@@ -47,3 +47,11 @@
 - [x] Posts moderation panel with delete functionality
 - [x] Audit feed panel with filters (user, category)
 - [x] Add navigation link from admin-users.tsx
+
+## 8) Admin Posts Moderation - All Groups Support
+- [x] Add admin.getPosts procedure to server/routers.ts
+- [x] Support optional groupId parameter to filter by group
+- [x] Return posts from all groups when no groupId provided
+- [x] Update admin-console.tsx to use admin.getPosts instead of community.getPosts
+- [x] Add group filter UI to Posts Moderation panel
+- [x] Update delete invalidation to use admin.getPosts query key
