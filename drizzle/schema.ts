@@ -106,6 +106,7 @@ export const pointAdjustments = pgTable("pointAdjustments", {
   challengeId: integer("challengeId").notNull(),
   pointsDelta: integer("pointsDelta").notNull(),
   reason: text("reason").notNull(),
+  category: varchar("category", { length: 100 }), // Optional category for bonus points (e.g., "Scripture Memory", "Workout Excellence")
   adjustedBy: integer("adjustedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

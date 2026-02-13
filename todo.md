@@ -28,3 +28,11 @@
 - [x] Try navigator.share if available (lines 220-226)
 - [x] Fallback to clipboard + Alert("Copied") (lines 234-235)
 - [x] Keep native Share API for mobile (lines 238-241)
+
+## 6) Bonus Points System
+- [x] Add category field to pointAdjustments table schema
+- [x] Create database migration to add category column
+- [x] Update admin.createPointAdjustment to accept category field
+- [x] Create admin UI for awarding bonus points with category selection
+- [x] Test bonus points appear in leaderboard calculations
+- [x] Verify audit log shows category information

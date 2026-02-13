@@ -834,6 +834,7 @@ export const appRouter = router({
           userId: z.number(),
           pointsDelta: z.number(),
           reason: z.string(),
+          category: z.string().optional(), // Optional category for bonus points
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -859,6 +860,7 @@ export const appRouter = router({
           challengeId: group.challengeId,
           pointsDelta: input.pointsDelta,
           reason: input.reason,
+          category: input.category, // Optional category for bonus points
           adjustedBy: ctx.user.id,
         });
 
