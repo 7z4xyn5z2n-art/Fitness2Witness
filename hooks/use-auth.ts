@@ -29,60 +29,23 @@ export function useAuth() {
   }, [error, isLoading]);
 
   const logout = async () => {
-    console.log("logout clicked");
-    console.log("token before logout:", Platform.OS === "web" && typeof window !== "undefined" ? window.localStorage.getItem("auth_token") : "(native)");
-    
     try {
-      // Call backend logout endpoint via tRPC
       await logoutMutation.mutateAsync();
-
-      // Clear auth token from secure storage
       if (Platform.OS !== "web") {
         await SecureStore.deleteItemAsync("auth_token");
-        console.log("token removed from SecureStore");
-      } else {
-        // For web, clear from localStorage
-        if (typeof window !== "undefined") {
-          console.log("removing token from localStorage...");
-          window.localStorage.removeItem("auth_token");
-          
-          // Double-check token removal
-          const tokenAfterRemoval = window.localStorage.getItem("auth_token");
-          console.log("token after logout:", tokenAfterRemoval);
-          if (tokenAfterRemoval !== null) {
-            console.warn("Token still exists after removal, trying again...");
-            window.localStorage.removeItem("auth_token");
-            console.log("token after second removal:", window.localStorage.getItem("auth_token"));
-          }
-          
-          // Also clear cookies for backward compatibility
-          document.cookie.split(";").forEach((c) => {
-            document.cookie = c
-              .replace(/^ +/, "")
-              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-          });
-        }
+      } else if (typeof window !== "undefined") {
+        window.localStorage.removeItem("auth_token");
       }
-
-      // Clear all tRPC/react-query cache
-      console.log("clearing tRPC cache...");
+      utils.auth.me.setData(undefined, null);
       await utils.invalidate();
-
-      console.log("logout successful, navigating to /auth");
-      
-      // Redirect to auth screen
       router.replace("/auth");
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Even if backend call fails, still clear local token
+    } catch {
       if (Platform.OS !== "web") {
         await SecureStore.deleteItemAsync("auth_token");
-      } else {
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem("auth_token");
-          console.log("token after logout (error path):", window.localStorage.getItem("auth_token"));
-        }
+      } else if (typeof window !== "undefined") {
+        window.localStorage.removeItem("auth_token");
       }
+      utils.auth.me.setData(undefined, null);
       router.replace("/auth");
     }
   };
