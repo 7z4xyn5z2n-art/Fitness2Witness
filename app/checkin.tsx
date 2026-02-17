@@ -19,7 +19,10 @@ type CategoryPhotos = {
 export default function CheckinScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
-  
+  const goToCommunityWithPrompt = () => {
+  router.replace({ pathname: "/(tabs)/community", params: { promptShare: "1" } });
+};
+
   // Fetch user targets from InBody scan
   const { data: targets } = trpc.bodyMetrics.getMyTargets.useQuery();
 
@@ -56,54 +59,61 @@ export default function CheckinScreen() {
 
   const checkBadgesMutation = trpc.badges.checkAndAward.useMutation();
 
-  const submitMutation = trpc.checkins.submit.useMutation({
-    onSuccess: async () => {
-      // Invalidate queries to refresh data
-      await utils.checkins.getTodayCheckin.invalidate();
-      await utils.checkins.getMyCheckins.invalidate();
-      await utils.metrics.getMyMetrics.invalidate();
+const submitMutation = trpc.checkins.submit.useMutation({
+  onSuccess: async () => {
+    // Invalidate queries to refresh data
+    await utils.checkins.getTodayCheckin.invalidate();
+    await utils.checkins.getMyCheckins.invalidate();
+    await utils.metrics.getMyMetrics.invalidate();
 
-      await utils.metrics.getGroupLeaderboard.invalidate({ period: "day" });
-      await utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
-      await utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
+    await utils.metrics.getGroupLeaderboard.invalidate({ period: "day" });
+    await utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
+    await utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
 
-      // Warm cache so it shows immediately when user taps leaderboard
-      await utils.metrics.getGroupLeaderboard.fetch({ period: "day" });
-      await utils.metrics.getGroupLeaderboard.fetch({ period: "week" });
-      await utils.metrics.getGroupLeaderboard.fetch({ period: "overall" });
-      await utils.checkins.getByDate.invalidate({ dateISO: selectedDate.toISOString() });
-      
-      // Check for new badges
-      try {
-        const newBadges = await checkBadgesMutation.mutateAsync();
-        if (newBadges && newBadges.length > 0) {
-          await utils.badges.getMyBadges.invalidate();
-          const badge = newBadges[0];
-          setEarnedBadge(badge);
-          setShowBadgeNotification(true);
-          
-          if (Platform.OS !== "web") {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-          // Badge notification will handle navigation when dismissed
-          return;
+    // Warm cache so it shows immediately when user taps leaderboard
+    await utils.metrics.getGroupLeaderboard.fetch({ period: "day" });
+    await utils.metrics.getGroupLeaderboard.fetch({ period: "week" });
+    await utils.metrics.getGroupLeaderboard.fetch({ period: "overall" });
+
+    // Invalidate checkin-by-date cache (safe: do both formats)
+    const dateISO = selectedDate.toISOString();
+    const dateYMD = dateISO.slice(0, 10);
+    await utils.checkins.getByDate.invalidate({ dateISO });
+    await utils.checkins.getByDate.invalidate({ dateISO: dateYMD });
+
+    // Check for new badges
+    try {
+      const newBadges = await checkBadgesMutation.mutateAsync();
+      if (newBadges && newBadges.length > 0) {
+        await utils.badges.getMyBadges.invalidate();
+
+        const badge = newBadges[0];
+        setEarnedBadge(badge);
+        setShowBadgeNotification(true);
+
+        if (Platform.OS !== "web") {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
-      } catch (error) {
-        // Silently fail badge check
-        console.warn("Badge check failed:", error);
-      }
 
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Badge modal will handle navigation on dismiss
+        return;
       }
+    } catch (error) {
+      console.warn("Badge check failed:", error);
+    }
 
-      // Navigate to community feed after successful check-in
-      router.replace({ pathname: "/(tabs)/community", params: { promptShare: "1" } });
-    },
-    onError: (error) => {
-      Alert.alert("Error", error.message || "Failed to submit check-in. Please try again.");
-    },
-  });
+    if (Platform.OS !== "web") {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
+    // No badge: navigate immediately
+    goToCommunityWithPrompt();
+  },
+
+  onError: (error) => {
+    Alert.alert("Error", error.message || "Failed to submit check-in. Please try again.");
+  },
+});
 
   useEffect(() => {
     if (!existingForDate) {
@@ -575,6 +585,7 @@ export default function CheckinScreen() {
           badgeDescription={earnedBadge.badgeDescription}
           onDismiss={() => {
             setShowBadgeNotification(false);
+            goToCommunityWithPrompt();
           }}
         />
       )}
