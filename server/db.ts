@@ -1237,15 +1237,30 @@ export async function getUserMetrics(userId: number, challengeId: number) {
   const adjustments = await getPointAdjustmentsByUserId(userId);
   totalPoints += adjustments.reduce((sum, adj) => sum + adj.pointsDelta, 0);
 
-  // Calculate this week's points
+  // Calculate this week's points using 12:01 AM boundaries
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + diff);
-  weekStart.setHours(0, 0, 0, 0);
+  const dayStart = startOfAppDayLocal(now);
+  const dayEnd = endOfAppDayLocal(now);
+  const weekStart = startOfAppWeekLocal(now);
+  const weekEnd = endOfAppWeekLocal(now);
 
-  const weekCheckins = checkins.filter(c => new Date(c.date) >= weekStart);
+  // Calculate today's points
+  const todayCheckins = checkins.filter((c) => {
+    const d = new Date(c.date);
+    return d >= dayStart && d < dayEnd;
+  });
+  let todayTotal = 0;
+  for (const c of todayCheckins) {
+    if (c.nutritionDone) todayTotal++;
+    if (c.hydrationDone) todayTotal++;
+    if (c.movementDone) todayTotal++;
+    if (c.scriptureDone) todayTotal++;
+  }
+
+  const weekCheckins = checkins.filter(c => {
+    const d = new Date(c.date);
+    return d >= weekStart && d < weekEnd;
+  });
   let thisWeekDailyPoints = 0;
   for (const checkin of weekCheckins) {
     if (checkin.nutritionDone) thisWeekDailyPoints++;
@@ -1270,6 +1285,7 @@ export async function getUserMetrics(userId: number, challengeId: number) {
 
   return {
     totalPoints,
+    todayTotal,
     thisWeekTotal,
     thisWeekDailyPoints,
     thisWeekAttendancePoints,

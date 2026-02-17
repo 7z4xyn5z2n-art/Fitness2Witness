@@ -59,6 +59,13 @@ export const appRouter = router({
       return db.getUserCheckins(ctx.user.id);
     }),
 
+    getByDate: protectedProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const date = new Date(input.date);
+        return db.getCheckinByUserIdAndDate(ctx.user.id, date);
+      }),
+
     submit: protectedProcedure
       .input(
         z.object({
@@ -90,11 +97,6 @@ export const appRouter = router({
           console.log('[Check-in Submit] Group found:', { groupId: group.id, challengeId: group.challengeId });
 
         const date = new Date(input.date);
-        const existing = await db.getDailyCheckin(ctx.user.id, date);
-
-        if (existing) {
-          throw new Error("Check-in already exists for this date");
-        }
 
         let proofPhotoUrl: string | undefined;
         if (input.proofPhotoBase64) {
@@ -104,8 +106,8 @@ export const appRouter = router({
           proofPhotoUrl = result.url;
         }
 
-        // 1) Save check-in to database FIRST (never let AI block this)
-        const checkin = await db.createDailyCheckin({
+        // 1) Save check-in to database FIRST using upsert (allows updates)
+        const result = await db.upsertDailyCheckinForDate({
           date,
           userId: ctx.user.id,
           groupId: user.groupId,
@@ -120,11 +122,12 @@ export const appRouter = router({
           workoutAnalysis: undefined, // Will be updated after AI analysis
         });
 
-        if (!checkin) {
+        if (!result || ('deleted' in result)) {
           throw new Error("Failed to create check-in");
         }
 
-        console.log('[Check-in Submit] SUCCESS: Check-in created:', checkin.id);
+        const checkin = result.row;
+        console.log('[Check-in Submit] SUCCESS: Check-in upserted:', checkin.id);
 
         // 2) Optional AI analysis (never block check-in success)
         let workoutAnalysis: string | undefined;
@@ -182,7 +185,7 @@ export const appRouter = router({
     }),
 
     getGroupLeaderboard: protectedProcedure
-      .input(z.object({ period: z.enum(["week", "overall"]) }))
+      .input(z.object({ period: z.enum(["day", "week", "overall"]) }))
       .query(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || !user.groupId) {
@@ -201,13 +204,13 @@ export const appRouter = router({
             return {
               userId: u.id,
               name: u.name || "Unknown",
-              points: input.period === "week" ? metrics.thisWeekTotal : metrics.totalPoints,
-              maxPoints: input.period === "week" ? 38 : 456,
+              points: input.period === "day" ? metrics.todayTotal : input.period === "week" ? metrics.thisWeekTotal : metrics.totalPoints,
+              maxPoints: input.period === "day" ? 4 : input.period === "week" ? 38 : 456,
             };
           })
         );
 
-        leaderboard.sort((a, b) => b.points - a.points);
+        leaderboard.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
         return leaderboard;
       }),
 
@@ -1677,6 +1680,60 @@ Respond ONLY with a JSON object in this exact format:
         metricsTrackers,
       };
     }),
+
+    getCheckInForUserDate: protectedProcedure
+      .input(z.object({ userId: z.number(), date: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can access this");
+        }
+        const date = new Date(input.date);
+        return db.getCheckinByUserIdAndDate(input.userId, date);
+      }),
+
+    upsertCheckInForUserDate: protectedProcedure
+      .input(
+        z.object({
+          userId: z.number(),
+          date: z.string(),
+          nutritionDone: z.boolean(),
+          hydrationDone: z.boolean(),
+          movementDone: z.boolean(),
+          scriptureDone: z.boolean(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user || user.role !== "admin") {
+          throw new Error("Only admins can access this");
+        }
+
+        const targetUser = await db.getUserById(input.userId);
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("Target user must be assigned to a group");
+        }
+
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+
+        const result = await db.upsertDailyCheckinForDate({
+          date: new Date(input.date),
+          userId: input.userId,
+          groupId: targetUser.groupId,
+          challengeId: group.challengeId,
+          nutritionDone: input.nutritionDone,
+          hydrationDone: input.hydrationDone,
+          movementDone: input.movementDone,
+          scriptureDone: input.scriptureDone,
+          notes: input.notes,
+        });
+
+        return { success: true, result };
+      }),
   }),
 
   // Group Challenges
