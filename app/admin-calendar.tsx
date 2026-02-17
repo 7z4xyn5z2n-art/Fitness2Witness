@@ -222,12 +222,12 @@ export default function AdminCalendarScreen() {
                 {checkIns.map((checkIn: any) => (
                   <TouchableOpacity
                     key={checkIn.id}
-                    onPress={() => openEdit(String(checkIn.userId), checkIn.user.name)}
+                    onPress={() => openEdit(String(checkIn.userId), checkIn.user?.name ?? "Unknown User")}
                     className="p-3 bg-background rounded-xl border border-border"
                   >
                     <View className="flex-row items-center justify-between">
                       <View>
-                        <Text className="text-sm font-semibold text-foreground">{checkIn.user.name}</Text>
+                        <Text className="text-sm font-semibold text-foreground">{checkIn.user?.name ?? "Unknown User"}</Text>
                         <Text className="text-xs text-muted mt-1">
                           Points: {[checkIn.nutritionDone, checkIn.hydrationDone, checkIn.movementDone, checkIn.scriptureDone].filter(Boolean).length}/4
                         </Text>
@@ -247,7 +247,7 @@ export default function AdminCalendarScreen() {
             <Text className="text-lg font-bold text-foreground mb-3">Add Check-In</Text>
             <Text className="text-xs text-muted mb-3">Select a user to add a check-in for the selected date</Text>
             <View className="gap-2">
-              {users?.map((user: any) => (
+              {users?.filter(Boolean).map((user: any) => (
                 <TouchableOpacity
                   key={user.id}
                   onPress={() => handleQuickAddCheckIn(user.id, user.name)}
@@ -268,7 +268,7 @@ export default function AdminCalendarScreen() {
             <Text className="text-lg font-bold text-foreground mb-3">Life Group Attendance</Text>
             <Text className="text-xs text-muted mb-3">Mark attendance for the selected date</Text>
             <View className="gap-2">
-              {users?.map((user: any) => {
+              {users?.filter(Boolean).map((user: any) => {
                 const hasAttendance = attendance?.some((a: any) => a.userId === user.id);
                 return (
                   <TouchableOpacity

@@ -141,3 +141,9 @@
 - [x] Replace DateTimePicker with platform-specific rendering (native DateTimePicker, web Modal with text input)
 - [x] Add date validation (YYYY-MM-DD format, valid date, not future)
 - [x] Verify 0 TypeScript errors
+
+## 18) Admin Calendar Undefined Fixes
+- [x] Fix undefined user.name with optional chaining (checkIn.user?.name ?? "Unknown User")
+- [x] Add filter(Boolean) to users map in Add Check-In section
+- [x] Add filter(Boolean) to users map in Attendance section
+- [x] Verify 0 TypeScript errors
