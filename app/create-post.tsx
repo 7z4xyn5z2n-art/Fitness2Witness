@@ -25,7 +25,7 @@ export default function CreatePostScreen() {
 
   const [postType, setPostType] = useState<PostType>("Encouragement");
   const [postText, setPostText] = useState("");
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [image, setImage] = useState<{ uri: string; base64: string } | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
 
   const createPostMutation = trpc.community.createPost.useMutation({
@@ -45,24 +45,38 @@ export default function CreatePostScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission Denied", "We need camera roll permissions to select photos.");
+      Alert.alert("Permission Denied", "We need photo library permissions.");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
       quality: 0.8,
       base64: true,
     });
+    if (!result.canceled && result.assets[0]?.base64) {
+      setImage({ uri: result.assets[0].uri, base64: result.assets[0].base64 });
+    }
+  };
 
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "We need camera permissions.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0]?.base64) {
+      setImage({ uri: result.assets[0].uri, base64: result.assets[0].base64 });
     }
   };
 
   const handleSubmit = () => {
-    if (!postText.trim() && !imageUri && !videoUrl.trim()) {
+    if (!postText.trim() && !image?.uri && !videoUrl.trim()) {
       Alert.alert("Empty Post", "Please add some content to your post.");
       return;
     }
@@ -70,7 +84,7 @@ export default function CreatePostScreen() {
     createPostMutation.mutate({
       postType,
       postText: postText.trim() || undefined,
-      postImageBase64: imageUri ? imageUri.split(",")[1] : undefined,
+      postImageBase64: image?.base64,
       postVideoUrl: videoUrl.trim() || undefined,
       visibility: "GroupOnly",
     });
@@ -159,24 +173,33 @@ export default function CreatePostScreen() {
             {(postType === "Photo" || postType === "Testimony" || postType === "Encouragement") && (
               <View className="bg-surface rounded-2xl p-4 border border-border">
                 <Text className="text-sm font-semibold text-foreground mb-3">Add Photo (Optional)</Text>
-                {imageUri ? (
+                {image?.uri ? (
                   <View>
-                    <Image source={{ uri: imageUri }} className="w-full h-48 rounded-xl mb-3" resizeMode="cover" />
+                    <Image source={{ uri: image?.uri }} className="w-full h-48 rounded-xl mb-3" resizeMode="cover" />
                     <TouchableOpacity
-                      onPress={() => setImageUri(null)}
+                      onPress={() => setImage(null)}
                       className="bg-error px-4 py-2 rounded-full self-center"
                     >
                       <Text className="text-background font-semibold">Remove Photo</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity
-                    onPress={pickImage}
-                    className="border-2 border-dashed border-border rounded-xl p-6 items-center"
-                  >
-                    <Text className="text-4xl mb-2">📷</Text>
-                    <Text className="text-primary font-semibold">Select Photo</Text>
-                  </TouchableOpacity>
+                  <View className="gap-3">
+                    <TouchableOpacity
+                      onPress={takePhoto}
+                      className="border-2 border-dashed border-border rounded-xl p-6 items-center"
+                    >
+                      <Text className="text-4xl mb-2">📷</Text>
+                      <Text className="text-primary font-semibold">Take Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={pickImage}
+                      className="border-2 border-dashed border-border rounded-xl p-6 items-center"
+                    >
+                      <Text className="text-4xl mb-2">🖼️</Text>
+                      <Text className="text-primary font-semibold">Select Photo</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             )}

@@ -102,3 +102,12 @@
 - [x] Add deactivateUser option to admin-users.tsx handleRemoveUser Alert
 - [x] Change admin-calendar.tsx upsertCheckInMutation.mutate to mutateAsync
 - [x] Change admin-calendar.tsx addAttendanceMutation.mutate to mutateAsync
+
+## 14) Create Post Camera Support and Base64 Fix (Section 7)
+- [x] Replace imageUri state with image object containing uri and base64
+- [x] Update pickImage to store base64 explicitly
+- [x] Add takePhoto function for camera capture with base64
+- [x] Fix submit payload to use image?.base64 instead of uri.split
+- [x] Update all preview usage to use image?.uri
+- [x] Add Take Photo button next to Select Photo button
+- [x] Verify 0 TypeScript errors
