@@ -167,3 +167,17 @@
 - [x] P3A: Add useCallback and useFocusEffect imports to leaderboard.tsx
 - [x] P3B: Add useFocusEffect hook to refetch leaderboard when tab is focused
 - [x] Verify 0 TypeScript errors
+
+## 21) Section 1-4: Logout Confirmation + Check-in Flow + Point Adjustments
+- [x] Section 1A: Add Alert import to use-auth.ts
+- [x] Section 1B: Replace logout function with confirmation dialog and hard cleanup
+- [x] Section 2A: Add day period invalidation + warm cache for all leaderboard periods after check-in
+- [x] Section 2B: Change router.push to router.replace with promptShare param
+- [x] Section 2C: Add share prompt effect in community.tsx with useLocalSearchParams and Alert
+- [x] Section 3A: Add createPointAdjustmentForDate mutation to server/routers.ts
+- [x] Section 4A: Add adjustment state variables (adjNutrition, adjHydration, adjMovement, adjScripture, adjLifeGroup)
+- [x] Section 4B: Add adjustPointsMutation hook before upsertCheckInMutation
+- [x] Section 4C: Reset adjustment fields to "0" before opening modal
+- [x] Section 4D: Update modal UI to include point adjustment input per tile
+- [x] Section 4E: Apply point adjustments for selected date before closing modal
+- [x] Verify 0 TypeScript errors

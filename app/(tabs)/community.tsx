@@ -1,10 +1,28 @@
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
-import { useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
+import { useState, useEffect } from "react";
 import { ScreenContainer } from "@/components/screen-container";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
 
 export default function CommunityScreen() {
+  const params = useLocalSearchParams();
+  const [didPrompt, setDidPrompt] = useState(false);
+
+  useEffect(() => {
+    if (didPrompt) return;
+    if (params?.promptShare === "1") {
+      setDidPrompt(true);
+      Alert.alert(
+        "Share your progress",
+        "Want to post to the community and encourage others?",
+        [
+          { text: "Not now", style: "cancel", onPress: () => {} },
+          { text: "Create Post", onPress: () => router.push("/create-post") },
+        ]
+      );
+    }
+  }, [params, didPrompt]);
+
   const router = useRouter();
   
   const { data: posts, isLoading, refetch } = trpc.community.getPosts.useQuery();

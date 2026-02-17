@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { Platform, Alert } from "react-native";
 import { useEffect } from "react";
 
 export function useAuth() {
@@ -29,25 +29,45 @@ export function useAuth() {
   }, [error, isLoading]);
 
   const logout = async () => {
-    try {
-      await logoutMutation.mutateAsync();
-      if (Platform.OS !== "web") {
-        await SecureStore.deleteItemAsync("auth_token");
-      } else if (typeof window !== "undefined") {
-        window.localStorage.removeItem("auth_token");
-      }
-      utils.auth.me.setData(undefined, null);
-      await utils.invalidate();
-      router.replace("/auth");
-    } catch {
-      if (Platform.OS !== "web") {
-        await SecureStore.deleteItemAsync("auth_token");
-      } else if (typeof window !== "undefined") {
-        window.localStorage.removeItem("auth_token");
-      }
-      utils.auth.me.setData(undefined, null);
-      router.replace("/auth");
-    }
+    return new Promise<void>((resolve, reject) => {
+      Alert.alert("Logout", "Are you sure you want to logout?", [
+        { text: "No", style: "cancel", onPress: () => resolve() },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Best-effort server logout (do not block)
+              logoutMutation.mutateAsync().catch(() => {});
+              // Remove stored token
+              if (Platform.OS !== "web") {
+                await SecureStore.deleteItemAsync("auth_token");
+              } else if (typeof window !== "undefined") {
+                window.localStorage.removeItem("auth_token");
+              }
+              // Clear cached user immediately
+              utils.auth.me.setData(undefined, null);
+              // Invalidate all queries so UI cannot keep stale auth
+              await utils.invalidate();
+              router.replace("/auth");
+              resolve();
+            } catch (e) {
+              // Force local logout even on error
+              try {
+                if (Platform.OS !== "web") {
+                  await SecureStore.deleteItemAsync("auth_token");
+                } else if (typeof window !== "undefined") {
+                  window.localStorage.removeItem("auth_token");
+                }
+              } catch {}
+              utils.auth.me.setData(undefined, null);
+              router.replace("/auth");
+              reject(e);
+            }
+          },
+        },
+      ]);
+    });
   };
 
   return {

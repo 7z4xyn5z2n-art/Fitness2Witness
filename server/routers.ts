@@ -876,6 +876,48 @@ export const appRouter = router({
         return { success: true, adjustmentId };
       }),
 
+    createPointAdjustmentForDate: protectedProcedure
+      .input(
+        z.object({
+          userId: z.number(),
+          dateISO: z.string(),
+          pointsDelta: z.number(),
+          reason: z.string(),
+          category: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can create point adjustments");
+        }
+
+        const targetUser = await db.getUserById(input.userId);
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("Target user must be assigned to a group");
+        }
+
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+
+        const date = new Date(input.dateISO);
+
+        const adjustment = await db.createPointAdjustment({
+          date,
+          userId: input.userId,
+          groupId: targetUser.groupId,
+          challengeId: group.challengeId,
+          pointsDelta: input.pointsDelta,
+          reason: input.reason,
+          category: input.category,
+          adjustedBy: ctx.user.id,
+        });
+
+        return { success: true, adjustmentId: adjustment?.id };
+      }),
+
     getAuditLog: protectedProcedure.query(async ({ ctx }) => {
       const user = await db.getUserById(ctx.user.id);
       if (!user || user.role !== "admin") {

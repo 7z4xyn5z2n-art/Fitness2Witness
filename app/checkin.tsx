@@ -62,8 +62,15 @@ export default function CheckinScreen() {
       await utils.checkins.getTodayCheckin.invalidate();
       await utils.checkins.getMyCheckins.invalidate();
       await utils.metrics.getMyMetrics.invalidate();
+
+      await utils.metrics.getGroupLeaderboard.invalidate({ period: "day" });
       await utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
       await utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
+
+      // Warm cache so it shows immediately when user taps leaderboard
+      await utils.metrics.getGroupLeaderboard.fetch({ period: "day" });
+      await utils.metrics.getGroupLeaderboard.fetch({ period: "week" });
+      await utils.metrics.getGroupLeaderboard.fetch({ period: "overall" });
       await utils.checkins.getByDate.invalidate({ dateISO: selectedDate.toISOString() });
       
       // Check for new badges
@@ -91,7 +98,7 @@ export default function CheckinScreen() {
       }
 
       // Navigate to community feed after successful check-in
-      router.push("/community");
+      router.replace({ pathname: "/(tabs)/community", params: { promptShare: "1" } });
     },
     onError: (error) => {
       Alert.alert("Error", error.message || "Failed to submit check-in. Please try again.");

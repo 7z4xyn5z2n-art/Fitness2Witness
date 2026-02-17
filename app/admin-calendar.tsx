@@ -21,6 +21,12 @@ export default function AdminCalendarScreen() {
   const [mScripture, setMScripture] = useState(false);
   const [mLifeGroup, setMLifeGroup] = useState(false);
   const [mNotes, setMNotes] = useState("");
+
+  const [adjNutrition, setAdjNutrition] = useState("0");
+  const [adjHydration, setAdjHydration] = useState("0");
+  const [adjMovement, setAdjMovement] = useState("0");
+  const [adjScripture, setAdjScripture] = useState("0");
+  const [adjLifeGroup, setAdjLifeGroup] = useState("0");
   const [showEditModal, setShowEditModal] = useState(false);
   const [editUserName, setEditUserName] = useState("");
   const [editNutrition, setEditNutrition] = useState(false);
@@ -45,6 +51,12 @@ export default function AdminCalendarScreen() {
     { date: selectedDate.toISOString() },
     { enabled: true }
   );
+
+  const adjustPointsMutation = trpc.admin.createPointAdjustmentForDate.useMutation({
+    onError: (error) => {
+      Alert.alert("Error", error.message || "Failed to adjust points.");
+    },
+  });
 
   const upsertCheckInMutation = trpc.admin.upsertCheckInForUserDate.useMutation({
     onSuccess: (data) => {
@@ -109,6 +121,11 @@ export default function AdminCalendarScreen() {
     // Prefill life group attendance (weekly record)
     const hasAttendance = attendance?.some((a: any) => String(a.userId) === String(userId));
     setMLifeGroup(!!hasAttendance);
+    setAdjNutrition("0");
+    setAdjHydration("0");
+    setAdjMovement("0");
+    setAdjScripture("0");
+    setAdjLifeGroup("0");
     setShowAddModal(true);
   };
 
@@ -397,23 +414,37 @@ export default function AdminCalendarScreen() {
                 <Text className="text-xs text-muted mb-4">{selectedDate.toLocaleDateString()}</Text>
 
                 {[
-                  ["🥗 Nutrition", mNutrition, setMNutrition],
-                  ["💧 Hydration", mHydration, setMHydration],
-                  ["🏃 Movement", mMovement, setMMovement],
-                  ["📖 Scripture", mScripture, setMScripture],
-                  ["👥 Life Group", mLifeGroup, setMLifeGroup],
-                ].map(([label, value, setter]: any) => (
-                  <TouchableOpacity
-                    key={label}
-                    onPress={() => setter(!value)}
-                    className={`p-4 rounded-xl border-2 mb-2 flex-row items-center justify-between ${
-                      value ? "bg-muted border-primary" : "bg-background border-border"
-                    }`}
-                  >
-                    <Text className="text-base font-semibold text-foreground">{label}</Text>
-                    <Text className="text-xs text-muted">{value ? "Selected" : "Tap to select"}</Text>
-                  </TouchableOpacity>
-                ))}
+                  ["🥗 Nutrition", mNutrition, setMNutrition, adjNutrition, setAdjNutrition, "Nutrition"],
+                  ["💧 Hydration", mHydration, setMHydration, adjHydration, setAdjHydration, "Hydration"],
+                  ["🏃 Movement", mMovement, setMMovement, adjMovement, setAdjMovement, "Movement"],
+                  ["📖 Scripture", mScripture, setMScripture, adjScripture, setAdjScripture, "Scripture"],
+                  ["👥 Life Group", mLifeGroup, setMLifeGroup, adjLifeGroup, setAdjLifeGroup, "Life Group"],
+                ].map(([label, value, setter, adj, setAdj, category]: any) => {
+                  const n = Number(String(adj).trim());
+                  const hasAdj = !Number.isNaN(n) && n !== 0;
+
+                  return (
+                    <View key={label} className={`p-4 rounded-xl border-2 mb-2 ${
+                      value || hasAdj ? "bg-muted border-primary" : "bg-background border-border"
+                    }`}>
+                      <TouchableOpacity onPress={() => setter(!value)} className="flex-row items-center justify-between">
+                        <Text className="text-base font-semibold text-foreground">{label}</Text>
+                        <Text className="text-xs text-muted">{value ? "Selected" : "Tap to select"}</Text>
+                      </TouchableOpacity>
+
+                      <View className="flex-row items-center justify-between mt-3">
+                        <Text className="text-xs text-muted">Points (+ / -)</Text>
+                        <TextInput
+                          value={String(adj)}
+                          onChangeText={setAdj}
+                          placeholder="0"
+                          keyboardType="numeric"
+                          className="border border-border rounded-lg px-3 py-2 w-24 text-right"
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
 
                 <TextInput
                   value={mNotes}
@@ -461,6 +492,31 @@ export default function AdminCalendarScreen() {
                           date: selectedDate.toISOString(),
                         });
                       }
+
+                      const adjustments = [
+                        { category: "Nutrition", v: adjNutrition },
+                        { category: "Hydration", v: adjHydration },
+                        { category: "Movement", v: adjMovement },
+                        { category: "Scripture", v: adjScripture },
+                        { category: "Life Group", v: adjLifeGroup },
+                      ];
+
+                      for (const a of adjustments) {
+                        const delta = Number(String(a.v).trim());
+                        if (!Number.isFinite(delta) || delta === 0) continue;
+
+                        await adjustPointsMutation.mutateAsync({
+                          userId: Number(modalUserId),
+                          dateISO: selectedDate.toISOString(),
+                          pointsDelta: delta,
+                          reason: `${a.category} adjustment`,
+                          category: a.category,
+                        });
+                      }
+
+                      // Refresh check-ins/attendance and leaderboards
+                      refetch();
+                      refetchAttendance();
 
                       setShowAddModal(false);
                       setModalUserId(null);
