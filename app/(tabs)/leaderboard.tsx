@@ -3,7 +3,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
-type Period = "week" | "overall";
+type Period = "day" | "week" | "overall";
 
 export default function LeaderboardScreen() {
   const [period, setPeriod] = useState<Period>("week");
@@ -63,14 +63,23 @@ export default function LeaderboardScreen() {
         {/* Period Selector */}
         <View className="flex-row bg-surface rounded-full p-1">
           <TouchableOpacity
+            className={`flex-1 py-3 rounded-full ${period === "day" ? "bg-primary" : ""}`}
+            onPress={() => setPeriod("day")}
+          >
+            <Text className={`text-center font-semibold ${period === "day" ? "text-background" : "text-muted"}`}>
+              Day
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             className={`flex-1 py-3 rounded-full ${period === "week" ? "bg-primary" : ""}`}
             onPress={() => setPeriod("week")}
           >
             <Text className={`text-center font-semibold ${period === "week" ? "text-background" : "text-muted"}`}>
-              This Week
+              Week
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             className={`flex-1 py-3 rounded-full ${period === "overall" ? "bg-primary" : ""}`}
             onPress={() => setPeriod("overall")}
