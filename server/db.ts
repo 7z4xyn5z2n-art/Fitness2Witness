@@ -1244,13 +1244,15 @@ export async function getUserMetrics(userId: number, challengeId: number) {
 
   // Calculate this week's points
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + diff);
-  weekStart.setHours(0, 0, 0, 0);
+  const dayStart = startOfAppDayLocal(now);
+  const dayEnd = endOfAppDayLocal(now);
+  const weekStart = startOfAppWeekLocal(now);
+  const weekEnd = endOfAppWeekLocal(now);
 
-  const weekCheckins = checkins.filter(c => new Date(c.date) >= weekStart);
+  const weekCheckins = checkins.filter(c => {
+    const d = new Date(c.date);
+    return d >= weekStart && d < weekEnd;
+  });
   let thisWeekDailyPoints = 0;
   for (const checkin of weekCheckins) {
     if (checkin.nutritionDone) thisWeekDailyPoints++;
@@ -1262,7 +1264,22 @@ export async function getUserMetrics(userId: number, challengeId: number) {
   const weekAttendance = attendance.filter(a => new Date(a.weekStartDate) >= weekStart && a.attendedWednesday);
   const thisWeekAttendancePoints = weekAttendance.length * 10;
 
-  const weekAdjustments = adjustments.filter(a => new Date(a.date) >= weekStart);
+  const todayCheckins = checkins.filter((c) => {
+    const d = new Date(c.date);
+    return d >= dayStart && d < dayEnd;
+  });
+  let todayTotal = 0;
+  for (const c of todayCheckins) {
+    if (c.nutritionDone) todayTotal++;
+    if (c.hydrationDone) todayTotal++;
+    if (c.movementDone) todayTotal++;
+    if (c.scriptureDone) todayTotal++;
+  }
+
+  const weekAdjustments = adjustments.filter(a => {
+    const d = new Date(a.date);
+    return d >= weekStart && d < weekEnd;
+  });
   const thisWeekAdjustmentPoints = weekAdjustments.reduce((sum, adj) => sum + adj.pointsDelta, 0);
   
   const thisWeekTotal = thisWeekDailyPoints + thisWeekAttendancePoints + thisWeekAdjustmentPoints;
@@ -1275,6 +1292,7 @@ export async function getUserMetrics(userId: number, challengeId: number) {
 
   return {
     totalPoints,
+    todayTotal,
     thisWeekTotal,
     thisWeekDailyPoints,
     thisWeekAttendancePoints,

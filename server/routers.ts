@@ -183,7 +183,7 @@ export const appRouter = router({
     }),
 
     getGroupLeaderboard: protectedProcedure
-      .input(z.object({ period: z.enum(["week", "overall"]) }))
+      .input(z.object({ period: z.enum(["day", "week", "overall"]) }))
       .query(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user || !user.groupId) {
@@ -199,16 +199,24 @@ export const appRouter = router({
         const leaderboard = await Promise.all(
           groupUsers.map(async (u) => {
             const metrics = await db.getUserMetrics(u.id, group.challengeId!);
+            const points =
+              input.period === "day"
+                ? metrics.todayTotal
+                : input.period === "week"
+                ? metrics.thisWeekTotal
+                : metrics.totalPoints;
+            const maxPoints =
+              input.period === "day" ? 4 : input.period === "week" ? 38 : 456;
             return {
               userId: u.id,
               name: u.name || "Unknown",
-              points: input.period === "week" ? metrics.thisWeekTotal : metrics.totalPoints,
-              maxPoints: input.period === "week" ? 38 : 456,
+              points,
+              maxPoints,
             };
           })
         );
 
-        leaderboard.sort((a, b) => b.points - a.points);
+        leaderboard.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
         return leaderboard;
       }),
 
