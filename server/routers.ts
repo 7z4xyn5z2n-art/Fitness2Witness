@@ -59,6 +59,12 @@ export const appRouter = router({
       return db.getUserCheckins(ctx.user.id);
     }),
 
+    getByDate: protectedProcedure
+      .input(z.object({ dateISO: z.string() }))
+      .query(async ({ ctx, input }) => {
+        return db.getDailyCheckin(ctx.user.id, new Date(input.dateISO));
+      }),
+
     submit: protectedProcedure
       .input(
         z.object({
@@ -91,11 +97,6 @@ export const appRouter = router({
 
         const date = new Date(input.date);
         const existing = await db.getDailyCheckin(ctx.user.id, date);
-
-        if (existing) {
-          throw new Error("Check-in already exists for this date");
-        }
-
         let proofPhotoUrl: string | undefined;
         if (input.proofPhotoBase64) {
           const buffer = Buffer.from(input.proofPhotoBase64, "base64");
@@ -103,8 +104,36 @@ export const appRouter = router({
           const result = await storagePut(filename, buffer, "image/jpeg");
           proofPhotoUrl = result.url;
         }
-
-        // 1) Save check-in to database FIRST (never let AI block this)
+        const workoutAnalysis = input.workoutLog ? await analyzeWorkout(input.workoutLog) : undefined;
+        const allFalse =
+          !input.nutritionDone &&
+          !input.hydrationDone &&
+          !input.movementDone &&
+          !input.scriptureDone;
+        const hasExtras =
+          (input.notes && input.notes.trim().length > 0) ||
+          (input.workoutLog && input.workoutLog.trim().length > 0) ||
+          !!proofPhotoUrl;
+        if (existing && allFalse && !hasExtras) {
+          await db.deleteDailyCheckinById(existing.id);
+          return { success: true, action: "deleted" as const };
+        }
+        if (existing) {
+          await db.updateDailyCheckin(existing.id, {
+            // keep date as provided; lookup is now range-based
+            nutritionDone: input.nutritionDone,
+            hydrationDone: input.hydrationDone,
+            movementDone: input.movementDone,
+            scriptureDone: input.scriptureDone,
+            notes: input.notes,
+            proofPhotoUrl,
+            workoutLog: input.workoutLog,
+            workoutAnalysis,
+            updatedAt: new Date(),
+          });
+          return { success: true, action: "updated" as const, id: existing.id };
+        }
+        // Create new record
         const checkin = await db.createDailyCheckin({
           date,
           userId: ctx.user.id,
@@ -117,47 +146,19 @@ export const appRouter = router({
           notes: input.notes,
           proofPhotoUrl,
           workoutLog: input.workoutLog,
-          workoutAnalysis: undefined, // Will be updated after AI analysis
+          workoutAnalysis: undefined, // Will be updated after AI completes
         });
-
         if (!checkin) {
           throw new Error("Failed to create check-in");
         }
-
-        console.log('[Check-in Submit] SUCCESS: Check-in created:', checkin.id);
-
-        // 2) Optional AI analysis (never block check-in success)
-        let workoutAnalysis: string | undefined;
-        if (input.workoutLog) {
-          try {
-            // Analyze workout for exercise metrics
-            workoutAnalysis = await analyzeWorkout(input.workoutLog);
-            
-            // Extract body metrics (weight, body fat, etc.) from workout text
-            const { extractBodyMetricsFromText } = await import("./ai-metrics.js");
-            const extractedMetrics = await extractBodyMetricsFromText(input.workoutLog);
-            
-            // Save body metrics if any were extracted
-            if (extractedMetrics && Object.keys(extractedMetrics).length > 0) {
-              await db.createBodyMetric({
-                userId: ctx.user.id,
-                groupId: user.groupId,
-                challengeId: group.challengeId,
-                date: new Date(input.date),
-                ...extractedMetrics,
-              });
-              console.log('[Check-in Submit] Body metrics extracted and saved:', extractedMetrics);
-            }
-            // Update check-in with AI analysis
-            await db.updateDailyCheckin(checkin.id, { workoutAnalysis });
-            console.log('[Check-in Submit] AI analysis completed');
-          } catch (error) {
-            console.warn('[Check-in Submit] AI analysis skipped:', error instanceof Error ? error.message : error);
-            // Continue anyway - check-in is already saved
+        try {
+          if (input.workoutLog) {
+            await db.updateDailyCheckin(checkin.id, { workoutAnalysis, updatedAt: new Date() });
           }
+        } catch {
+          // Do not block success if AI fails
         }
-
-        return { success: true, checkinId: checkin.id, workoutAnalysis };
+        return { success: true, action: "created" as const, id: checkin.id };
         } catch (error) {
           console.error('[Check-in Submit] FATAL ERROR:', error);
           throw error;
@@ -1042,10 +1043,20 @@ export const appRouter = router({
 
         // Normalize date to day boundary
         const date = new Date(input.dateISO);
-        date.setHours(0, 0, 0, 0);
+        date.setHours(0, 1, 0, 0);
 
         // Check if check-in exists for this user+date
         const existing = await db.getCheckinByUserIdAndDate(parseInt(input.userId), date);
+        const allFalse =
+          !input.nutritionDone &&
+          !input.hydrationDone &&
+          !input.movementDone &&
+          !input.scriptureDone;
+        const hasNotes = !!(input.notes && input.notes.trim().length > 0);
+        if (existing && allFalse && !hasNotes) {
+          await db.deleteDailyCheckinById(existing.id);
+          return { success: true, action: "deleted", checkInId: existing.id };
+        }
 
         if (existing) {
           // Update existing check-in

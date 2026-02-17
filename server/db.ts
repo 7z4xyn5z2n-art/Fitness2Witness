@@ -1,6 +1,38 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+
+function startOfAppDayLocal(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 1, 0, 0); // 12:01 AM
+  return d;
+}
+
+function endOfAppDayLocal(date: Date) {
+  const start = startOfAppDayLocal(date);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  end.setHours(0, 0, 0, 0); // next day 12:00 AM
+  return end;
+}
+
+function startOfAppWeekLocal(anchor: Date) {
+  // Monday start at 12:01 AM
+  const d = new Date(anchor);
+  const day = d.getDay(); // 0 Sun .. 6 Sat
+  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 1, 0, 0);
+  return d;
+}
+
+function endOfAppWeekLocal(anchor: Date) {
+  const start = startOfAppWeekLocal(anchor);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  end.setHours(0, 0, 0, 0);
+  return end;
+}
 import {
   bodyMetrics,
   challengeComments,
@@ -192,6 +224,17 @@ export async function createDailyCheckin(checkin: InsertDailyCheckin) {
 
   const result = await db.insert(dailyCheckins).values(checkin).returning();
   return result[0];
+}
+
+// Delete a daily check-in by ID
+export async function deleteDailyCheckinById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete check-in: database not available");
+    return false;
+  }
+  await db.delete(dailyCheckins).where(eq(dailyCheckins.id, id));
+  return true;
 }
 
 // Update a daily check-in (for AI analysis updates)
@@ -602,13 +645,14 @@ export async function getCheckinByUserIdAndDate(userId: number, date: Date) {
     console.warn("[Database] Cannot get check-in: database not available");
     return undefined;
   }
-
+  const start = startOfAppDayLocal(date);
+  const end = endOfAppDayLocal(date);
   const result = await db
     .select()
     .from(dailyCheckins)
-    .where(and(eq(dailyCheckins.userId, userId), eq(dailyCheckins.date, date)))
+    .where(and(eq(dailyCheckins.userId, userId), gte(dailyCheckins.date, start), lt(dailyCheckins.date, end)))
+    .orderBy(desc(dailyCheckins.date))
     .limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -619,8 +663,13 @@ export async function getCheckinsByDate(date: Date) {
     console.warn("[Database] Cannot get check-ins: database not available");
     return [];
   }
-
-  return await db.select().from(dailyCheckins).where(eq(dailyCheckins.date, date));
+  const start = startOfAppDayLocal(date);
+  const end = endOfAppDayLocal(date);
+  return await db
+    .select()
+    .from(dailyCheckins)
+    .where(and(gte(dailyCheckins.date, start), lt(dailyCheckins.date, end)))
+    .orderBy(desc(dailyCheckins.date));
 }
 
 // Get all attendance records for a specific week
