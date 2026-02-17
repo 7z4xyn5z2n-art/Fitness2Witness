@@ -15,7 +15,7 @@ type IdleListener = (state: IdleState) => void;
 
 // Internal state
 let lastActivityAt = Date.now();
-let timeoutMs = 180000; // 3 minutes default
+let timeoutMs = 480000; // 8 minutes default
 const warningMs = 30000; // 30 seconds warning
 let showWarning = false;
 let remainingMs = timeoutMs;

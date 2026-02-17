@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Platform, Modal, View, Text, TouchableOpacity, Alert } from "react-native";
+import { Platform, Modal, View, Text, TouchableOpacity, Alert, AppState } from "react-native";
 import { router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { pingActivity, getIdleState, subscribeIdle, setIdleTimeoutMs } from "@/lib/idle";
@@ -14,6 +14,7 @@ export function IdleTimeout({ disabled = false }: IdleTimeoutProps) {
   const pathname = usePathname();
   const logoutTriggeredRef = useRef<boolean>(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const appStateRef = useRef(AppState.currentState);
   
   const [showWarning, setShowWarning] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -21,8 +22,6 @@ export function IdleTimeout({ disabled = false }: IdleTimeoutProps) {
   const logout = async () => {
     if (logoutTriggeredRef.current) return;
     logoutTriggeredRef.current = true;
-
-    console.log("[IdleTimeout] Logging out due to inactivity");
 
     try {
       if (Platform.OS === "web") {
@@ -63,32 +62,29 @@ export function IdleTimeout({ disabled = false }: IdleTimeoutProps) {
 
   // Load saved timeout duration on mount
   useEffect(() => {
-    const loadSavedTimeout = async () => {
+    const forceTimeout = async () => {
       try {
-        let savedTimeout: string | null = null;
+        const ms = 480000; // 8 minutes
+        setIdleTimeoutMs(ms);
+
+        // Persist so future loads match (prevents old 3-min overrides)
         if (Platform.OS === "web") {
-          savedTimeout = localStorage.getItem("idle_timeout_ms");
+          localStorage.setItem("idle_timeout_ms", String(ms));
         } else {
-          savedTimeout = await SecureStore.getItemAsync("idle_timeout_ms");
-        }
-        
-        if (savedTimeout) {
-          const timeoutMs = parseInt(savedTimeout, 10);
-          if (!isNaN(timeoutMs) && timeoutMs > 0) {
-            setIdleTimeoutMs(timeoutMs);
-          }
+          await SecureStore.setItemAsync("idle_timeout_ms", String(ms));
         }
       } catch (error) {
-        console.error("[IdleTimeout] Error loading saved timeout:", error);
+        // Do not block app if storage fails
       }
     };
-    
-    loadSavedTimeout();
+
+    forceTimeout();
   }, []);
 
   // Reset timer on route change
   useEffect(() => {
     if (!shouldDisable) {
+      logoutTriggeredRef.current = false;
       pingActivity();
     }
   }, [pathname, shouldDisable]);
@@ -108,25 +104,61 @@ export function IdleTimeout({ disabled = false }: IdleTimeoutProps) {
     // Reset timer on mount
     pingActivity();
 
-    // Web: Add event listeners
+    // Web: Add event listeners (do not return early; interval must still run on web)
+    let webEvents: string[] | null = null;
     if (Platform.OS === "web") {
-      const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
-      events.forEach((event) => {
+      webEvents = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
+      webEvents.forEach((event) => {
         window.addEventListener(event, pingActivity);
       });
-
-      // Cleanup
-      return () => {
-        events.forEach((event) => {
-          window.removeEventListener(event, pingActivity);
-        });
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-      };
     }
 
-    // Start interval checker (every 500ms for smooth countdown)
+    // Native: stop timers in background to reduce battery drain
+    const appStateSub =
+      Platform.OS === "web"
+        ? null
+        : AppState.addEventListener("change", (nextState) => {
+            appStateRef.current = nextState;
+            if (nextState !== "active") {
+              if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+              }
+              setShowWarning(false);
+              return;
+            }
+            // On resume: evaluate immediately
+            const state = getIdleState();
+            if (state.remainingMs <= 0 && !logoutTriggeredRef.current) {
+              logout();
+              return;
+            }
+          });
+    // Web: pause interval when tab is hidden (battery + correctness)
+    const onVisibility =
+      Platform.OS !== "web"
+        ? null
+        : () => {
+            if (document.hidden) {
+              if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+              }
+              setShowWarning(false);
+              return;
+            }
+            // On visible: evaluate immediately
+            const state = getIdleState();
+            if (state.remainingMs <= 0 && !logoutTriggeredRef.current) {
+              logout();
+              return;
+            }
+          };
+    if (Platform.OS === "web") {
+      document.addEventListener("visibilitychange", onVisibility as any);
+    }
+
+    // Start interval checker (every 1000ms to reduce battery usage)
     intervalRef.current = setInterval(() => {
       const state = getIdleState();
       
@@ -142,11 +174,26 @@ export function IdleTimeout({ disabled = false }: IdleTimeoutProps) {
       if (state.remainingMs <= 0 && !logoutTriggeredRef.current) {
         logout();
       }
-    }, 500);
+    }, 1000);
 
     return () => {
+      // Remove web event listeners if they were attached
+      if (Platform.OS === "web" && webEvents) {
+        webEvents.forEach((event) => {
+          window.removeEventListener(event, pingActivity);
+        });
+      }
+      // Remove web visibility listener
+      if (Platform.OS === "web") {
+        document.removeEventListener("visibilitychange", onVisibility as any);
+      }
+      // Remove native app state listener
+      if (appStateSub) {
+        appStateSub.remove();
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [shouldDisable]);

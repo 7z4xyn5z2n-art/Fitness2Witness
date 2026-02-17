@@ -120,3 +120,16 @@
 - [x] Add modal overlay with 4 toggles, notes input, Cancel/Save buttons
 - [x] Close modal after Save and refetch data
 - [x] Verify 0 TypeScript errors
+
+## 16) Idle Timeout Fixes - 8 Minutes + Web/Native Battery Optimization (Section T1-T2)
+- [x] T1: Change default timeout from 3 minutes to 8 minutes (480000ms) in lib/idle.ts
+- [x] T2A: Add AppState import to idle-timeout.tsx
+- [x] T2B: Add appStateRef to track foreground/background state
+- [x] T2C: Remove inactivity logout console log
+- [x] T2D: Force timeout to 8 minutes and persist to storage
+- [x] T2E: Replace web-only block to allow interval to run on both web and native
+- [x] T2F: Add background/visibility handling (AppState for native, visibilitychange for web)
+- [x] T2F: Change interval from 500ms to 1000ms to reduce battery usage
+- [x] T2G: Reset logoutTriggeredRef on route change to prevent stuck state
+- [x] T2H: Update cleanup to remove all listeners (web events, visibility, AppState)
+- [x] Verify 0 TypeScript errors
