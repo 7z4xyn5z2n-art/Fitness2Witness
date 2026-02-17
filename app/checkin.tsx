@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityInd
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -20,17 +20,8 @@ export default function CheckinScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
   
-  // Date selection state (must be before queries that use it)
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
   // Fetch user targets from InBody scan
   const { data: targets } = trpc.bodyMetrics.getMyTargets.useQuery();
-
-  // Fetch existing check-in for selected date
-  const { data: existingForDate, refetch: refetchForDate } = trpc.checkins.getByDate.useQuery(
-    { date: selectedDate.toISOString() }
-  );
 
   const [nutritionDone, setNutritionDone] = useState(false);
   const [hydrationDone, setHydrationDone] = useState(false);
@@ -55,31 +46,10 @@ export default function CheckinScreen() {
   
   const [showBadgeNotification, setShowBadgeNotification] = useState(false);
   const [earnedBadge, setEarnedBadge] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const checkBadgesMutation = trpc.badges.checkAndAward.useMutation();
-
-  // Populate UI states when selectedDate or existingForDate changes
-  useEffect(() => {
-    if (!existingForDate) {
-      setNutritionDone(false);
-      setHydrationDone(false);
-      setMovementDone(false);
-      setScriptureDone(false);
-      setNotes("");
-      setWorkoutType("");
-      setWorkoutDuration("");
-      setCarbCount("");
-      setCategoryPhotos({ nutrition: null, hydration: null, movement: null, scripture: null });
-      return;
-    }
-
-    setNutritionDone(!!existingForDate.nutritionDone);
-    setHydrationDone(!!existingForDate.hydrationDone);
-    setMovementDone(!!existingForDate.movementDone);
-    setScriptureDone(!!existingForDate.scriptureDone);
-    setNotes(existingForDate.notes ?? "");
-    // do not auto-load photos or workout details (user can re-enter if editing)
-  }, [selectedDate, existingForDate]);
 
   const submitMutation = trpc.checkins.submit.useMutation({
     onSuccess: async () => {
@@ -247,7 +217,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setNutritionDone, nutritionDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${nutritionDone ? "border-primary bg-muted" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${nutritionDone ? "border-primary bg-primary/10" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${nutritionDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {nutritionDone && <Text className="text-background text-sm">✓</Text>}
@@ -315,7 +285,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setHydrationDone, hydrationDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${hydrationDone ? "border-primary bg-muted" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${hydrationDone ? "border-primary bg-primary/10" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${hydrationDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {hydrationDone && <Text className="text-background text-sm">✓</Text>}
@@ -349,7 +319,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setMovementDone, movementDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${movementDone ? "border-primary bg-muted" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${movementDone ? "border-primary bg-primary/10" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${movementDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {movementDone && <Text className="text-background text-sm">✓</Text>}
@@ -393,7 +363,7 @@ export default function CheckinScreen() {
                         <TouchableOpacity
                           key={intensity}
                           onPress={() => setWorkoutIntensity(intensity)}
-                          className={`flex-1 p-3 rounded-xl border-2 ${workoutIntensity === intensity ? "border-primary bg-muted" : "border-border bg-background"}`}
+                          className={`flex-1 p-3 rounded-xl border-2 ${workoutIntensity === intensity ? "border-primary bg-primary/10" : "border-border bg-background"}`}
                         >
                           <Text className={`text-center text-sm font-semibold ${workoutIntensity === intensity ? "text-primary" : "text-muted"}`}>
                             {intensity.charAt(0).toUpperCase() + intensity.slice(1)}
@@ -425,7 +395,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setScriptureDone, scriptureDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${scriptureDone ? "border-primary bg-muted" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${scriptureDone ? "border-primary bg-primary/10" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${scriptureDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {scriptureDone && <Text className="text-background text-sm">✓</Text>}

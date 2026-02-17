@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import {
@@ -47,39 +47,6 @@ import {
   type WeeklyAttendance,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
-
-// Date normalization helpers for app-day boundaries (12:01 AM local)
-function startOfAppDayLocal(date: Date) {
-  const d = new Date(date);
-  d.setHours(0, 1, 0, 0); // 12:01 AM
-  return d;
-}
-
-function endOfAppDayLocal(date: Date) {
-  const start = startOfAppDayLocal(date);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  end.setHours(0, 0, 0, 0); // next day 12:00 AM
-  return end;
-}
-
-function startOfAppWeekLocal(anchor: Date) {
-  // Monday start, at 12:01 AM
-  const d = new Date(anchor);
-  const day = d.getDay(); // 0=Sun..6=Sat
-  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 1, 0, 0);
-  return d;
-}
-
-function endOfAppWeekLocal(anchor: Date) {
-  const start = startOfAppWeekLocal(anchor);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 7);
-  end.setHours(0, 0, 0, 0);
-  return end;
-}
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: Pool | null = null;
@@ -628,7 +595,7 @@ export async function updateAttendance(
     );
 }
 
-// Get check-in by user ID and date (using day-window range query)
+// Get check-in by user ID and date
 export async function getCheckinByUserIdAndDate(userId: number, date: Date) {
   const db = await getDb();
   if (!db) {
@@ -636,20 +603,16 @@ export async function getCheckinByUserIdAndDate(userId: number, date: Date) {
     return undefined;
   }
 
-  const start = startOfAppDayLocal(date);
-  const end = endOfAppDayLocal(date);
-
   const result = await db
     .select()
     .from(dailyCheckins)
-    .where(and(eq(dailyCheckins.userId, userId), gte(dailyCheckins.date, start), lt(dailyCheckins.date, end)))
-    .orderBy(desc(dailyCheckins.date))
+    .where(and(eq(dailyCheckins.userId, userId), eq(dailyCheckins.date, date)))
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
 
-// Get all check-ins for a specific date (using day-window range query)
+// Get all check-ins for a specific date
 export async function getCheckinsByDate(date: Date) {
   const db = await getDb();
   if (!db) {
@@ -657,14 +620,7 @@ export async function getCheckinsByDate(date: Date) {
     return [];
   }
 
-  const start = startOfAppDayLocal(date);
-  const end = endOfAppDayLocal(date);
-
-  return await db
-    .select()
-    .from(dailyCheckins)
-    .where(and(gte(dailyCheckins.date, start), lt(dailyCheckins.date, end)))
-    .orderBy(desc(dailyCheckins.date));
+  return await db.select().from(dailyCheckins).where(eq(dailyCheckins.date, date));
 }
 
 // Get all attendance records for a specific week
@@ -1237,30 +1193,15 @@ export async function getUserMetrics(userId: number, challengeId: number) {
   const adjustments = await getPointAdjustmentsByUserId(userId);
   totalPoints += adjustments.reduce((sum, adj) => sum + adj.pointsDelta, 0);
 
-  // Calculate this week's points using 12:01 AM boundaries
+  // Calculate this week's points
   const now = new Date();
-  const dayStart = startOfAppDayLocal(now);
-  const dayEnd = endOfAppDayLocal(now);
-  const weekStart = startOfAppWeekLocal(now);
-  const weekEnd = endOfAppWeekLocal(now);
+  const dayOfWeek = now.getDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + diff);
+  weekStart.setHours(0, 0, 0, 0);
 
-  // Calculate today's points
-  const todayCheckins = checkins.filter((c) => {
-    const d = new Date(c.date);
-    return d >= dayStart && d < dayEnd;
-  });
-  let todayTotal = 0;
-  for (const c of todayCheckins) {
-    if (c.nutritionDone) todayTotal++;
-    if (c.hydrationDone) todayTotal++;
-    if (c.movementDone) todayTotal++;
-    if (c.scriptureDone) todayTotal++;
-  }
-
-  const weekCheckins = checkins.filter(c => {
-    const d = new Date(c.date);
-    return d >= weekStart && d < weekEnd;
-  });
+  const weekCheckins = checkins.filter(c => new Date(c.date) >= weekStart);
   let thisWeekDailyPoints = 0;
   for (const checkin of weekCheckins) {
     if (checkin.nutritionDone) thisWeekDailyPoints++;
@@ -1285,7 +1226,6 @@ export async function getUserMetrics(userId: number, challengeId: number) {
 
   return {
     totalPoints,
-    todayTotal,
     thisWeekTotal,
     thisWeekDailyPoints,
     thisWeekAttendancePoints,
@@ -1431,99 +1371,4 @@ export async function saveMealSuggestionsCache(userId: number, date: string, dat
 export async function clearMealSuggestionsCache(userId: number, date: string): Promise<void> {
   const key = `${userId}-${date}`;
   mealSuggestionsCache.delete(key);
-}
-
-// Delete a daily check-in by ID
-export async function deleteDailyCheckinById(id: number) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot delete check-in: database not available");
-    return false;
-  }
-  await db.delete(dailyCheckins).where(eq(dailyCheckins.id, id));
-  return true;
-}
-
-// Upsert daily check-in for a specific date (update if exists, insert if not, delete if all false and no extras)
-export async function upsertDailyCheckinForDate(params: {
-  userId: number;
-  groupId: number;
-  challengeId: number;
-  date: Date;
-  nutritionDone: boolean;
-  hydrationDone: boolean;
-  movementDone: boolean;
-  scriptureDone: boolean;
-  notes?: string;
-  proofPhotoUrl?: string;
-  workoutLog?: string;
-  workoutAnalysis?: string;
-}) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert check-in: database not available");
-    return undefined;
-  }
-
-  // normalize stored date to app-day start (12:01 AM) to keep consistency going forward
-  const normalizedDate = startOfAppDayLocal(params.date);
-
-  const existing = await getCheckinByUserIdAndDate(params.userId, params.date);
-
-  const allFalse =
-    !params.nutritionDone &&
-    !params.hydrationDone &&
-    !params.movementDone &&
-    !params.scriptureDone;
-
-  const hasAnyExtra =
-    (params.notes && params.notes.trim().length > 0) ||
-    (params.workoutLog && params.workoutLog.trim().length > 0) ||
-    !!params.proofPhotoUrl;
-
-  if (existing && allFalse && !hasAnyExtra) {
-    await deleteDailyCheckinById(existing.id);
-    return { deleted: true as const };
-  }
-
-  if (existing) {
-    const result = await db
-      .update(dailyCheckins)
-      .set({
-        date: normalizedDate,
-        nutritionDone: params.nutritionDone,
-        hydrationDone: params.hydrationDone,
-        movementDone: params.movementDone,
-        scriptureDone: params.scriptureDone,
-        notes: params.notes,
-        proofPhotoUrl: params.proofPhotoUrl,
-        workoutLog: params.workoutLog,
-        workoutAnalysis: params.workoutAnalysis,
-        updatedAt: new Date(),
-      })
-      .where(eq(dailyCheckins.id, existing.id))
-      .returning();
-
-    return { updated: true as const, row: result[0] };
-  }
-
-  const inserted = await db
-    .insert(dailyCheckins)
-    .values({
-      date: normalizedDate,
-      userId: params.userId,
-      groupId: params.groupId,
-      challengeId: params.challengeId,
-      nutritionDone: params.nutritionDone,
-      hydrationDone: params.hydrationDone,
-      movementDone: params.movementDone,
-      scriptureDone: params.scriptureDone,
-      notes: params.notes,
-      proofPhotoUrl: params.proofPhotoUrl,
-      workoutLog: params.workoutLog,
-      workoutAnalysis: params.workoutAnalysis,
-    })
-    .returning();
-
-  return { inserted: true as const, row: inserted[0] };
 }
