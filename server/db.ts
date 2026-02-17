@@ -349,6 +349,18 @@ export async function getAttendanceByUserIdAndWeek(userId: number, weekStartDate
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function deleteAttendanceByUserIdAndWeek(userId: number, weekStartDate: Date) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete attendance: database not available");
+    return false;
+  }
+  await db
+    .delete(weeklyAttendance)
+    .where(and(eq(weeklyAttendance.userId, userId), eq(weeklyAttendance.weekStartDate, weekStartDate)));
+  return true;
+}
+
 // Get all attendance records for a group and date range
 export async function getAttendanceByGroupIdAndDateRange(
   groupId: number,

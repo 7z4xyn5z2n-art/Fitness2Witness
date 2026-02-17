@@ -147,3 +147,16 @@
 - [x] Add filter(Boolean) to users map in Add Check-In section
 - [x] Add filter(Boolean) to users map in Attendance section
 - [x] Verify 0 TypeScript errors
+
+## 19) Section 11: Admin Calendar Modal with Life Group Toggle
+- [x] A1: Add deleteAttendanceByUserIdAndWeek function to server/db.ts
+- [x] B1: Fix getAttendanceByDate to use Monday week start calculation
+- [x] B2: Fix addUserAttendance to use Monday week start + add upsert logic (delete+create)
+- [x] B3: Add removeUserAttendance mutation to server/routers.ts
+- [x] C1: Add Modal to react-native imports in admin-calendar.tsx
+- [x] C3: Add modal state variables (showAddModal, modalUserId, modalUserName, 5 toggles, mNotes)
+- [x] C4: Add removeAttendanceMutation hook
+- [x] C5: Add openUserCheckinModal function to prefill existing check-in + attendance
+- [x] C6: Change Add Check-In list to call openUserCheckinModal instead of handleQuickAddCheckIn
+- [x] C7: Add modal UI with 5 toggle tiles (Nutrition, Hydration, Movement, Scripture, Life Group) + Submit logic
+- [x] Verify 0 TypeScript errors

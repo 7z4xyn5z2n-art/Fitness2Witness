@@ -974,7 +974,13 @@ export const appRouter = router({
           throw new Error("Only admins can access this");
         }
 
-        return db.getAttendanceByDate(new Date(input.date));
+        const date = new Date(input.date);
+        const startOfWeek = new Date(date);
+        startOfWeek.setHours(0, 1, 0, 0); // 12:01 AM
+        const dayOfWeek = startOfWeek.getDay(); // 0 Sun .. 6 Sat
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday start
+        startOfWeek.setDate(startOfWeek.getDate() + diff);
+        return db.getAttendanceByWeek(startOfWeek);
       }),
 
     addUserCheckIn: protectedProcedure
@@ -1119,10 +1125,16 @@ export const appRouter = router({
 
         const date = new Date(input.date);
         const startOfWeek = new Date(date);
-        startOfWeek.setHours(0, 0, 0, 0);
-        const dayOfWeek = startOfWeek.getDay();
-        const diff = startOfWeek.getDate() - dayOfWeek;
-        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 1, 0, 0); // 12:01 AM
+        const dayOfWeek = startOfWeek.getDay(); // 0 Sun .. 6 Sat
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday start
+        startOfWeek.setDate(startOfWeek.getDate() + diff);
+
+        const existing = await db.getAttendanceByUserIdAndWeek(parseInt(input.userId), startOfWeek);
+        if (existing) {
+          // Update by delete+create to avoid adding a new DB helper; minimal change
+          await db.deleteAttendanceByUserIdAndWeek(parseInt(input.userId), startOfWeek);
+        }
 
         await db.createWeeklyAttendance({
           weekStartDate: startOfWeek,
@@ -1132,6 +1144,31 @@ export const appRouter = router({
           attendedWednesday: input.attended,
         });
 
+        return { success: true };
+      }),
+
+    removeUserAttendance: protectedProcedure
+      .input(z.object({ userId: z.string(), date: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const adminUser = await db.getUserById(ctx.user.id);
+        if (!adminUser || adminUser.role !== "admin") {
+          throw new Error("Only admins can remove attendance");
+        }
+        const targetUser = await db.getUserById(parseInt(input.userId));
+        if (!targetUser || !targetUser.groupId) {
+          throw new Error("User must be assigned to a group");
+        }
+        const group = await db.getGroupById(targetUser.groupId);
+        if (!group || !group.challengeId) {
+          throw new Error("Group must be assigned to a challenge");
+        }
+        const date = new Date(input.date);
+        const startOfWeek = new Date(date);
+        startOfWeek.setHours(0, 1, 0, 0); // 12:01 AM
+        const dayOfWeek = startOfWeek.getDay(); // 0 Sun .. 6 Sat
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday start
+        startOfWeek.setDate(startOfWeek.getDate() + diff);
+        await db.deleteAttendanceByUserIdAndWeek(parseInt(input.userId), startOfWeek);
         return { success: true };
       }),
   }),

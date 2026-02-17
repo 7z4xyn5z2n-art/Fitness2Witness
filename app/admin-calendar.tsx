@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View, TextInput } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View, TextInput, Modal } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
@@ -12,6 +12,15 @@ export default function AdminCalendarScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [modalUserId, setModalUserId] = useState<string | null>(null);
+  const [modalUserName, setModalUserName] = useState("");
+  const [mNutrition, setMNutrition] = useState(false);
+  const [mHydration, setMHydration] = useState(false);
+  const [mMovement, setMMovement] = useState(false);
+  const [mScripture, setMScripture] = useState(false);
+  const [mLifeGroup, setMLifeGroup] = useState(false);
+  const [mNotes, setMNotes] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [editUserName, setEditUserName] = useState("");
   const [editNutrition, setEditNutrition] = useState(false);
@@ -49,6 +58,15 @@ export default function AdminCalendarScreen() {
     },
   });
 
+  const removeAttendanceMutation = trpc.admin.removeUserAttendance.useMutation({
+    onSuccess: () => {
+      refetchAttendance();
+    },
+    onError: (error) => {
+      Alert.alert("Error", error.message || "Failed to remove attendance.");
+    },
+  });
+
   const addAttendanceMutation = trpc.admin.addUserAttendance.useMutation({
     onSuccess: () => {
       console.log("Attendance saved successfully");
@@ -72,6 +90,22 @@ export default function AdminCalendarScreen() {
     setEditScripture(!!row?.scriptureDone);
     setEditNotes(row?.notes ?? "");
     setShowEditModal(true);
+  };
+
+  const openUserCheckinModal = (userId: string, userName: string) => {
+    setModalUserId(String(userId));
+    setModalUserName(userName);
+    // Prefill existing check-in toggles if present
+    const existing = checkIns?.find((c: any) => String(c.userId) === String(userId));
+    setMNutrition(!!existing?.nutritionDone);
+    setMHydration(!!existing?.hydrationDone);
+    setMMovement(!!existing?.movementDone);
+    setMScripture(!!existing?.scriptureDone);
+    setMNotes(existing?.notes ?? "");
+    // Prefill life group attendance (weekly record)
+    const hasAttendance = attendance?.some((a: any) => String(a.userId) === String(userId));
+    setMLifeGroup(!!hasAttendance);
+    setShowAddModal(true);
   };
 
   const handleQuickAddCheckIn = (userId: string, userName: string) => {
@@ -250,7 +284,7 @@ export default function AdminCalendarScreen() {
               {users?.filter(Boolean).map((user: any) => (
                 <TouchableOpacity
                   key={user.id}
-                  onPress={() => handleQuickAddCheckIn(user.id, user.name)}
+                  onPress={() => openUserCheckinModal(user.id, user.name)}
                   className="p-3 bg-background rounded-xl border border-border flex-row items-center justify-between"
                 >
                   <View>
@@ -350,6 +384,92 @@ export default function AdminCalendarScreen() {
           </View>
         </View>
       )}
+
+        {showAddModal && (
+          <Modal transparent animationType="fade" visible={showAddModal} onRequestClose={() => setShowAddModal(false)}>
+            <View className="flex-1 items-center justify-center bg-black/50 p-6">
+              <View className="w-full max-w-md bg-white rounded-2xl p-5">
+                <Text className="text-xl font-bold text-foreground mb-1">{modalUserName}</Text>
+                <Text className="text-xs text-muted mb-4">{selectedDate.toLocaleDateString()}</Text>
+
+                {[
+                  ["🥗 Nutrition", mNutrition, setMNutrition],
+                  ["💧 Hydration", mHydration, setMHydration],
+                  ["🏃 Movement", mMovement, setMMovement],
+                  ["📖 Scripture", mScripture, setMScripture],
+                  ["👥 Life Group", mLifeGroup, setMLifeGroup],
+                ].map(([label, value, setter]: any) => (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => setter(!value)}
+                    className={`p-4 rounded-xl border-2 mb-2 flex-row items-center justify-between ${
+                      value ? "bg-muted border-primary" : "bg-background border-border"
+                    }`}
+                  >
+                    <Text className="text-base font-semibold text-foreground">{label}</Text>
+                    <Text className="text-xs text-muted">{value ? "Selected" : "Tap to select"}</Text>
+                  </TouchableOpacity>
+                ))}
+
+                <TextInput
+                  value={mNotes}
+                  onChangeText={setMNotes}
+                  placeholder="Notes (optional)"
+                  className="border border-border rounded-xl p-3 mt-2"
+                  multiline
+                />
+
+                <View className="flex-row gap-3 mt-4">
+                  <TouchableOpacity
+                    onPress={() => setShowAddModal(false)}
+                    className="flex-1 p-3 rounded-xl bg-gray-200"
+                  >
+                    <Text className="text-center font-semibold">Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (!modalUserId) return;
+
+                      // Save check-in (nutrition/hydration/movement/scripture)
+                      await upsertCheckInMutation.mutateAsync({
+                        userId: modalUserId,
+                        dateISO: selectedDate.toISOString(),
+                        nutritionDone: mNutrition,
+                        hydrationDone: mHydration,
+                        movementDone: mMovement,
+                        scriptureDone: mScripture,
+                        notes: mNotes || undefined,
+                      });
+
+                      // Toggle attendance (life group)
+                      const hasAttendance = attendance?.some((a: any) => String(a.userId) === String(modalUserId));
+                      if (mLifeGroup && !hasAttendance) {
+                        await addAttendanceMutation.mutateAsync({
+                          userId: modalUserId,
+                          date: selectedDate.toISOString(),
+                          attended: true,
+                        });
+                      }
+                      if (!mLifeGroup && hasAttendance) {
+                        await removeAttendanceMutation.mutateAsync({
+                          userId: modalUserId,
+                          date: selectedDate.toISOString(),
+                        });
+                      }
+
+                      setShowAddModal(false);
+                      setModalUserId(null);
+                    }}
+                    className="flex-1 p-3 rounded-xl bg-black"
+                  >
+                    <Text className="text-center font-semibold text-white">Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
     </ScreenContainer>
   );
 }
