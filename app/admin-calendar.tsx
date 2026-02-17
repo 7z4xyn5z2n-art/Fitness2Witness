@@ -29,6 +29,8 @@ export default function AdminCalendarScreen() {
   const [editScripture, setEditScripture] = useState(false);
   const [editNotes, setEditNotes] = useState("");
 
+  const utils = trpc.useUtils();
+
   // Fetch all users
   const { data: users, isLoading: usersLoading } = trpc.admin.getAllUsers.useQuery();
 
@@ -49,6 +51,8 @@ export default function AdminCalendarScreen() {
       console.log("Check-in saved successfully:", data);
       Alert.alert("Success", `Check-in ${data.action} successfully`);
       refetch();
+      utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
+      utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
       setEditMode(false);
       setSelectedUserId(null);
     },

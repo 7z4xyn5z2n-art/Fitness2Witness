@@ -160,3 +160,10 @@
 - [x] C6: Change Add Check-In list to call openUserCheckinModal instead of handleQuickAddCheckIn
 - [x] C7: Add modal UI with 5 toggle tiles (Nutrition, Hydration, Movement, Scripture, Life Group) + Submit logic
 - [x] Verify 0 TypeScript errors
+
+## 20) Section P1-P3: Leaderboard Auto-Refresh
+- [x] P1: Add leaderboard invalidation after check-in submit in checkin.tsx (week + overall)
+- [x] P2: Add utils.metrics.getGroupLeaderboard.invalidate in admin-calendar.tsx after upsertCheckInMutation success
+- [x] P3A: Add useCallback and useFocusEffect imports to leaderboard.tsx
+- [x] P3B: Add useFocusEffect hook to refetch leaderboard when tab is focused
+- [x] Verify 0 TypeScript errors

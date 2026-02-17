@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { trpc } from "@/lib/trpc";
 
 type Period = "day" | "week" | "overall";
@@ -11,6 +12,12 @@ export default function LeaderboardScreen() {
   const { data: leaderboard, isLoading, refetch } = trpc.metrics.getGroupLeaderboard.useQuery({ period });
 
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch, period])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -62,6 +62,8 @@ export default function CheckinScreen() {
       await utils.checkins.getTodayCheckin.invalidate();
       await utils.checkins.getMyCheckins.invalidate();
       await utils.metrics.getMyMetrics.invalidate();
+      await utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
+      await utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
       await utils.checkins.getByDate.invalidate({ dateISO: selectedDate.toISOString() });
       
       // Check for new badges
