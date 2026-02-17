@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityInd
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -49,6 +49,10 @@ export default function CheckinScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const { data: existingForDate } = trpc.checkins.getByDate.useQuery({
+    dateISO: selectedDate.toISOString(),
+  });
+
   const checkBadgesMutation = trpc.badges.checkAndAward.useMutation();
 
   const submitMutation = trpc.checkins.submit.useMutation({
@@ -57,6 +61,7 @@ export default function CheckinScreen() {
       await utils.checkins.getTodayCheckin.invalidate();
       await utils.checkins.getMyCheckins.invalidate();
       await utils.metrics.getMyMetrics.invalidate();
+      await utils.checkins.getByDate.invalidate({ dateISO: selectedDate.toISOString() });
       
       // Check for new badges
       try {
@@ -89,6 +94,20 @@ export default function CheckinScreen() {
       Alert.alert("Error", error.message || "Failed to submit check-in. Please try again.");
     },
   });
+
+  useEffect(() => {
+    if (!existingForDate) {
+      setNutritionDone(false);
+      setHydrationDone(false);
+      setMovementDone(false);
+      setScriptureDone(false);
+      return;
+    }
+    setNutritionDone(!!existingForDate.nutritionDone);
+    setHydrationDone(!!existingForDate.hydrationDone);
+    setMovementDone(!!existingForDate.movementDone);
+    setScriptureDone(!!existingForDate.scriptureDone);
+  }, [selectedDate, existingForDate]);
 
   const totalPoints = [nutritionDone, hydrationDone, movementDone, scriptureDone].filter(Boolean).length;
 
@@ -217,7 +236,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setNutritionDone, nutritionDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${nutritionDone ? "border-primary bg-primary/10" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${nutritionDone ? "border-primary bg-muted" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${nutritionDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {nutritionDone && <Text className="text-background text-sm">✓</Text>}
@@ -285,7 +304,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setHydrationDone, hydrationDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${hydrationDone ? "border-primary bg-primary/10" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${hydrationDone ? "border-primary bg-muted" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${hydrationDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {hydrationDone && <Text className="text-background text-sm">✓</Text>}
@@ -319,7 +338,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setMovementDone, movementDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${movementDone ? "border-primary bg-primary/10" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${movementDone ? "border-primary bg-muted" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${movementDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {movementDone && <Text className="text-background text-sm">✓</Text>}
@@ -363,7 +382,7 @@ export default function CheckinScreen() {
                         <TouchableOpacity
                           key={intensity}
                           onPress={() => setWorkoutIntensity(intensity)}
-                          className={`flex-1 p-3 rounded-xl border-2 ${workoutIntensity === intensity ? "border-primary bg-primary/10" : "border-border bg-background"}`}
+                          className={`flex-1 p-3 rounded-xl border-2 ${workoutIntensity === intensity ? "border-primary bg-muted" : "border-border bg-background"}`}
                         >
                           <Text className={`text-center text-sm font-semibold ${workoutIntensity === intensity ? "text-primary" : "text-muted"}`}>
                             {intensity.charAt(0).toUpperCase() + intensity.slice(1)}
@@ -395,7 +414,7 @@ export default function CheckinScreen() {
             <View className="bg-surface rounded-2xl p-4 border border-border">
               <TouchableOpacity
                 onPress={() => handleToggle(setScriptureDone, scriptureDone)}
-                className={`flex-row items-center p-4 rounded-xl border-2 ${scriptureDone ? "border-primary bg-primary/10" : "border-border"}`}
+                className={`flex-row items-center p-4 rounded-xl border-2 ${scriptureDone ? "border-primary bg-muted" : "border-border"}`}
               >
                 <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${scriptureDone ? "border-primary bg-primary" : "border-muted"}`}>
                   {scriptureDone && <Text className="text-background text-sm">✓</Text>}
@@ -427,7 +446,7 @@ export default function CheckinScreen() {
           </View>
 
           {/* Points Summary */}
-          <View className="bg-primary/10 rounded-2xl p-4 border border-primary/20">
+          <View className="bg-muted rounded-2xl p-4 border border-primary/20">
             <Text className="text-center text-lg font-bold text-foreground">
               Today's Total: {totalPoints} / 4 points
             </Text>
