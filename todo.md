@@ -133,3 +133,11 @@
 - [x] T2G: Reset logoutTriggeredRef on route change to prevent stuck state
 - [x] T2H: Update cleanup to remove all listeners (web events, visibility, AppState)
 - [x] Verify 0 TypeScript errors
+
+## 17) Check-In Web Date Picker Fix
+- [x] Add Modal to react-native imports
+- [x] Add webDateText state for web date input
+- [x] Initialize webDateText when opening date picker on web
+- [x] Replace DateTimePicker with platform-specific rendering (native DateTimePicker, web Modal with text input)
+- [x] Add date validation (YYYY-MM-DD format, valid date, not future)
+- [x] Verify 0 TypeScript errors

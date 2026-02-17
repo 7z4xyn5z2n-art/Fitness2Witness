@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image, Modal } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
@@ -48,6 +48,7 @@ export default function CheckinScreen() {
   const [earnedBadge, setEarnedBadge] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [webDateText, setWebDateText] = useState("");
 
   const { data: existingForDate } = trpc.checkins.getByDate.useQuery({
     dateISO: selectedDate.toISOString(),
@@ -208,7 +209,15 @@ export default function CheckinScreen() {
             </TouchableOpacity>
             <Text className="text-3xl font-bold text-foreground">Daily Check-In</Text>
             <TouchableOpacity 
-              onPress={() => setShowDatePicker(true)}
+              onPress={() => {
+                if (Platform.OS === "web") {
+                  const y = selectedDate.getFullYear();
+                  const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
+                  const d = String(selectedDate.getDate()).padStart(2, "0");
+                  setWebDateText(`${y}-${m}-${d}`);
+                }
+                setShowDatePicker(true);
+              }}
               className="mt-2 flex-row items-center gap-2"
             >
               <Text className="text-base text-muted">
@@ -216,7 +225,7 @@ export default function CheckinScreen() {
               </Text>
               <Text className="text-primary text-sm">(tap to change)</Text>
             </TouchableOpacity>
-            {showDatePicker && (
+            {showDatePicker && Platform.OS !== "web" && (
               <DateTimePicker
                 value={selectedDate}
                 mode="date"
@@ -227,6 +236,72 @@ export default function CheckinScreen() {
                   if (date) setSelectedDate(date);
                 }}
               />
+            )}
+
+            {showDatePicker && Platform.OS === "web" && (
+              <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
+                <View className="flex-1 items-center justify-center bg-black/50 p-6">
+                  <View className="w-full max-w-md bg-white rounded-2xl p-5">
+                    <Text className="text-lg font-bold mb-2">Select Date</Text>
+                    <Text className="text-xs text-muted mb-3">Enter date as YYYY-MM-DD</Text>
+
+                    <TextInput
+                      value={webDateText}
+                      onChangeText={setWebDateText}
+                      placeholder="YYYY-MM-DD"
+                      className="border rounded-xl p-3"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+
+                    <View className="flex-row gap-3 mt-4">
+                      <TouchableOpacity
+                        onPress={() => setShowDatePicker(false)}
+                        className="flex-1 p-3 rounded-xl bg-gray-200"
+                      >
+                        <Text className="text-center font-semibold">Cancel</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(webDateText.trim());
+                          if (!match) {
+                            Alert.alert("Invalid date", "Please use YYYY-MM-DD");
+                            return;
+                          }
+
+                          const year = Number(match[1]);
+                          const month = Number(match[2]);
+                          const day = Number(match[3]);
+
+                          // Build local date and validate it round-trips
+                          const candidate = new Date(year, month - 1, day, 0, 1, 0, 0); // 12:01 AM
+                          if (
+                            candidate.getFullYear() !== year ||
+                            candidate.getMonth() !== month - 1 ||
+                            candidate.getDate() !== day
+                          ) {
+                            Alert.alert("Invalid date", "That date does not exist.");
+                            return;
+                          }
+
+                          const today = new Date();
+                          if (candidate.getTime() > today.getTime()) {
+                            Alert.alert("Invalid date", "You cannot select a future date.");
+                            return;
+                          }
+
+                          setSelectedDate(candidate);
+                          setShowDatePicker(false);
+                        }}
+                        className="flex-1 p-3 rounded-xl bg-black"
+                      >
+                        <Text className="text-center font-semibold text-white">OK</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
             )}
           </View>
 
