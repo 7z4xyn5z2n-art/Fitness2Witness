@@ -111,3 +111,12 @@
 - [x] Update all preview usage to use image?.uri
 - [x] Add Take Photo button next to Select Photo button
 - [x] Verify 0 TypeScript errors
+
+## 15) Admin Calendar Modal for Day Editing (Section 6)
+- [x] Remove invalid useState calls inside handleEditCheckIn function
+- [x] Add modal state variables (showEditModal, editUserName, editNutrition, etc.)
+- [x] Add openEdit function to populate modal state from existing check-in
+- [x] Replace check-in display with TouchableOpacity calling openEdit
+- [x] Add modal overlay with 4 toggles, notes input, Cancel/Save buttons
+- [x] Close modal after Save and refetch data
+- [x] Verify 0 TypeScript errors

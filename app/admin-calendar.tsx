@@ -12,6 +12,13 @@ export default function AdminCalendarScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUserName, setEditUserName] = useState("");
+  const [editNutrition, setEditNutrition] = useState(false);
+  const [editHydration, setEditHydration] = useState(false);
+  const [editMovement, setEditMovement] = useState(false);
+  const [editScripture, setEditScripture] = useState(false);
+  const [editNotes, setEditNotes] = useState("");
 
   // Fetch all users
   const { data: users, isLoading: usersLoading } = trpc.admin.getAllUsers.useQuery();
@@ -55,42 +62,16 @@ export default function AdminCalendarScreen() {
     },
   });
 
-  const handleEditCheckIn = (userId: string, userName: string) => {
-    // Show modal with 4 category checkboxes
-    const [nutrition, setNutrition] = useState(false);
-    const [hydration, setHydration] = useState(false);
-    const [movement, setMovement] = useState(false);
-    const [scripture, setScripture] = useState(false);
-    const [notes, setNotes] = useState("");
-
-    Alert.prompt(
-      `Edit Check-In for ${userName}`,
-      `Date: ${selectedDate.toLocaleDateString()}\n\nSelect categories completed:`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Save",
-          onPress: async (inputNotes?: string) => {
-            try {
-              await upsertCheckInMutation.mutateAsync({
-                userId,
-                dateISO: selectedDate.toISOString(),
-                nutritionDone: nutrition,
-                hydrationDone: hydration,
-                movementDone: movement,
-                scriptureDone: scripture,
-                notes: inputNotes || "Edited by admin",
-              });
-            } catch (error: any) {
-              console.error("Failed to save check-in:", error);
-            }
-          },
-        },
-      ],
-      "plain-text",
-      "",
-      "default"
-    );
+  const openEdit = (userId: string, userName: string) => {
+    setSelectedUserId(userId);
+    setEditUserName(userName);
+    const row = checkIns?.find((c: any) => String(c.userId) === String(userId));
+    setEditNutrition(!!row?.nutritionDone);
+    setEditHydration(!!row?.hydrationDone);
+    setEditMovement(!!row?.movementDone);
+    setEditScripture(!!row?.scriptureDone);
+    setEditNotes(row?.notes ?? "");
+    setShowEditModal(true);
   };
 
   const handleQuickAddCheckIn = (userId: string, userName: string) => {
@@ -239,12 +220,21 @@ export default function AdminCalendarScreen() {
             ) : checkIns && checkIns.length > 0 ? (
               <View className="gap-2">
                 {checkIns.map((checkIn: any) => (
-                  <View key={checkIn.id} className="p-3 bg-background rounded-xl border border-border">
-                    <Text className="text-sm font-semibold text-foreground">{checkIn.user.name}</Text>
-                    <Text className="text-xs text-muted mt-1">
-                      Points: {[checkIn.nutritionDone, checkIn.hydrationDone, checkIn.movementDone, checkIn.scriptureDone].filter(Boolean).length}/4
-                    </Text>
-                  </View>
+                  <TouchableOpacity
+                    key={checkIn.id}
+                    onPress={() => openEdit(String(checkIn.userId), checkIn.user.name)}
+                    className="p-3 bg-background rounded-xl border border-border"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View>
+                        <Text className="text-sm font-semibold text-foreground">{checkIn.user.name}</Text>
+                        <Text className="text-xs text-muted mt-1">
+                          Points: {[checkIn.nutritionDone, checkIn.hydrationDone, checkIn.movementDone, checkIn.scriptureDone].filter(Boolean).length}/4
+                        </Text>
+                      </View>
+                      <Text className="text-primary text-sm">Edit</Text>
+                    </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             ) : (
@@ -305,6 +295,61 @@ export default function AdminCalendarScreen() {
           </View>
         </View>
       </ScrollView>
+      {showEditModal && (
+        <View className="absolute inset-0 bg-black/50 items-center justify-center p-6">
+          <View className="bg-white rounded-2xl p-5 w-full">
+            <Text className="text-xl font-bold mb-2">Edit: {editUserName}</Text>
+            <Text className="text-xs text-muted mb-3">{selectedDate.toLocaleDateString()}</Text>
+            {[
+              ["Nutrition", editNutrition, setEditNutrition],
+              ["Hydration", editHydration, setEditHydration],
+              ["Movement", editMovement, setEditMovement],
+              ["Scripture", editScripture, setEditScripture],
+            ].map(([label, value, setter]: any) => (
+              <TouchableOpacity
+                key={label}
+                onPress={() => setter(!value)}
+                className={`p-4 rounded-xl border-2 mb-2 ${value ? "bg-muted border-primary" : "border-border"}`}
+              >
+                <Text className="text-base font-semibold">{value ? "✅ " : ""}{label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TextInput
+              value={editNotes}
+              onChangeText={setEditNotes}
+              placeholder="Notes (optional)"
+              className="border rounded-xl p-3 mt-2"
+              multiline
+            />
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                onPress={() => setShowEditModal(false)}
+                className="flex-1 p-3 rounded-xl bg-gray-200"
+              >
+                <Text className="text-center font-semibold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!selectedUserId) return;
+                  upsertCheckInMutation.mutate({
+                    userId: selectedUserId,
+                    dateISO: selectedDate.toISOString(),
+                    nutritionDone: editNutrition,
+                    hydrationDone: editHydration,
+                    movementDone: editMovement,
+                    scriptureDone: editScripture,
+                    notes: editNotes || undefined,
+                  });
+                  setShowEditModal(false);
+                }}
+                className="flex-1 p-3 rounded-xl bg-black"
+              >
+                <Text className="text-center font-semibold text-white">Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </ScreenContainer>
   );
 }
