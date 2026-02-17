@@ -181,3 +181,10 @@
 - [x] Section 4D: Update modal UI to include point adjustment input per tile
 - [x] Section 4E: Apply point adjustments for selected date before closing modal
 - [x] Verify 0 TypeScript errors
+
+## 22) Patches 1-3: Router Fix + Navigation Cleanup + Double-Confirmation Removal
+- [x] Patch 1A: Move router declaration above useEffect in community.tsx
+- [x] Patch 1B: Delete duplicate router declaration at line 27
+- [x] Patch 2: Delete wrong navigation line router.push("/community") in checkin.tsx
+- [x] Patch 3A: Replace handleLogout in profile.tsx to remove double-confirmation (use-auth already confirms)
+- [x] Verify 0 TypeScript errors

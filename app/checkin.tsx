@@ -575,7 +575,6 @@ export default function CheckinScreen() {
           badgeDescription={earnedBadge.badgeDescription}
           onDismiss={() => {
             setShowBadgeNotification(false);
-            router.push("/community");
           }}
         />
       )}

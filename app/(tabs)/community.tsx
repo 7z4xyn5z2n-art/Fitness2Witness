@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
 
 export default function CommunityScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams();
   const [didPrompt, setDidPrompt] = useState(false);
 
@@ -22,8 +23,6 @@ export default function CommunityScreen() {
       );
     }
   }, [params, didPrompt]);
-
-  const router = useRouter();
   
   const { data: posts, isLoading, refetch } = trpc.community.getPosts.useQuery();
   const [refreshing, setRefreshing] = useState(false);

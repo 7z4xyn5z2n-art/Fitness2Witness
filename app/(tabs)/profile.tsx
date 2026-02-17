@@ -17,23 +17,13 @@ export default function ProfileScreen() {
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width - 48; // padding
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            Alert.alert("Success", "You have been logged out successfully");
-          } catch (error) {
-            console.error("Logout failed:", error);
-            Alert.alert("Error", "Failed to logout. Please try again.");
-          }
-        },
-      },
-    ]);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      Alert.alert("Error", "Failed to logout. Please try again.");
+    }
   };
 
   return (
