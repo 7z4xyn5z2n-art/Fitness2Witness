@@ -102,3 +102,34 @@
 - [x] Add deactivateUser option to admin-users.tsx handleRemoveUser Alert
 - [x] Change admin-calendar.tsx upsertCheckInMutation.mutate to mutateAsync
 - [x] Change admin-calendar.tsx addAttendanceMutation.mutate to mutateAsync
+
+## 16) Date Normalization & Feature Enhancements
+- [x] Backend: Add date helper functions (startOfAppDayLocal, endOfAppDayLocal, startOfAppWeekLocal, endOfAppWeekLocal)
+- [x] Backend: Update getCheckinByUserIdAndDate to use day-window range query
+- [x] Backend: Update getCheckinsByDate to use day-window range query
+- [x] Backend: Add deleteDailyCheckinById function
+- [x] Backend: Add upsertDailyCheckinForDate function with delete-if-empty logic
+- [ ] Backend: Update checkins.submit to use upsert logic (allow updates)
+- [ ] Backend: Add checkins.getByDate query
+- [ ] Backend: Add admin.getCheckInForUserDate query
+- [ ] Backend: Add admin.upsertCheckInForUserDate mutation
+- [ ] Frontend: Update checkin.tsx to load existing data when date changes
+- [ ] Frontend: Add useEffect to populate UI states from existingForDate
+- [ ] Frontend: Change selected tile style to grey (bg-muted)
+- [ ] Frontend: Fix admin-calendar.tsx invalid hooks (move useState to component level)
+- [ ] Frontend: Add modal for admin calendar editing
+- [ ] Frontend: Add admin.getCheckInForUserDate and admin.upsertCheckInForUserDate hooks
+- [ ] Frontend: Add Edit button to user rows in admin calendar
+- [ ] Frontend: Update create-post.tsx to use image object with base64
+- [ ] Frontend: Add takePhoto function with camera permissions
+- [ ] Frontend: Update submit payload to use image?.base64
+- [ ] Frontend: Add "Take Photo" button next to "Choose Photo"
+- [ ] Frontend: Add Share import to community.tsx
+- [ ] Frontend: Add sharePost function
+- [ ] Frontend: Add Share button to post cards
+- [ ] Backend: Update getUserMetrics to compute dayTotal with 12:01 window
+- [ ] Backend: Add weekend bonus logic (+1 for Sat/Sun if any category done)
+- [ ] Backend: Update getGroupLeaderboard to accept period: "day" | "week" | "overall"
+- [ ] Frontend: Update leaderboard.tsx Period type to include "day"
+- [ ] Frontend: Add 3-tab segmented control (Day/Week/Overall)
+- [ ] Frontend: Update logout in use-auth.ts to clear token and reset cache
