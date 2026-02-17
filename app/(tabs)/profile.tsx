@@ -17,14 +17,15 @@ export default function ProfileScreen() {
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width - 48; // padding
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout failed:", error);
-      Alert.alert("Error", "Failed to logout. Please try again.");
-    }
-  };
+const handleLogout = async () => {
+  try {
+    await logout();
+  } catch (error) {
+    console.error("Logout failed:", error);
+    Alert.alert("Error", "Failed to logout. Please try again.");
+  }
+};
+
 
   return (
     <ScreenContainer className="p-6">
