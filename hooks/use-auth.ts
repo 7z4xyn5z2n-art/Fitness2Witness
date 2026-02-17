@@ -1,8 +1,8 @@
-import { router } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import * as SecureStore from "expo-secure-store";
 import { Alert, Platform } from "react-native";
 import { useEffect } from "react";
+import { router } from "expo-router";
 
 export function useAuth() {
   const utils = trpc.useUtils();
@@ -14,19 +14,17 @@ export function useAuth() {
     if (error && !isLoading) {
       console.log("Auth error detected, clearing invalid token:", error.message);
 
-      // Clear invalid token
       if (Platform.OS !== "web") {
         SecureStore.deleteItemAsync("auth_token").catch(console.error);
       } else if (typeof window !== "undefined") {
         window.localStorage.removeItem("auth_token");
       }
 
-      // Redirect to auth screen
       router.replace("/auth");
     }
   }, [error, isLoading]);
 
-  // ✅ Clean logout that always resolves after local logout finishes
+  // Clean logout that always resolves after local logout finishes
   const logout = async () => {
     return new Promise<void>((resolve) => {
       Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -36,8 +34,8 @@ export function useAuth() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Best-effort server logout (do not block local logout)
-              logoutMutation.mutateAsync().catch(() => {});
+              // IMPORTANT: await server logout so cookies/session are cleared first
+              await logoutMutation.mutateAsync().catch(() => {});
 
               // Remove stored token
               if (Platform.OS !== "web") {
@@ -46,13 +44,12 @@ export function useAuth() {
                 window.localStorage.removeItem("auth_token");
               }
 
-              // Clear cached auth state immediately
+              // Clear cached user immediately
               utils.auth.me.setData(undefined, null);
 
-              // Invalidate everything so no screen can keep stale auth
+              // Invalidate everything so no screen keeps stale auth
               await utils.invalidate();
 
-              // Go to auth screen
               router.replace("/auth");
             } finally {
               resolve();
@@ -63,10 +60,11 @@ export function useAuth() {
     });
   };
 
-  // ✅ IMPORTANT: return the hook API (this is what was missing)
   return {
     user,
+    // Keep both names so the rest of the app is consistent
     isLoading,
+    loading: isLoading,
     error,
     refetch,
     logout,
