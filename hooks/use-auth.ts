@@ -24,7 +24,6 @@ export function useAuth() {
     }
   }, [error, isLoading]);
 
-  // Clean logout that always resolves after local logout finishes
   const logout = async () => {
     return new Promise<void>((resolve) => {
       Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -34,7 +33,7 @@ export function useAuth() {
           style: "destructive",
           onPress: async () => {
             try {
-              // IMPORTANT: await server logout so cookies/session are cleared first
+              // Await server logout so cookies/session clear before redirect
               await logoutMutation.mutateAsync().catch(() => {});
 
               // Remove stored token
@@ -62,9 +61,8 @@ export function useAuth() {
 
   return {
     user,
-    // Keep both names so the rest of the app is consistent
     isLoading,
-    loading: isLoading,
+    loading: isLoading, // compatibility for screens using "loading"
     error,
     refetch,
     logout,
