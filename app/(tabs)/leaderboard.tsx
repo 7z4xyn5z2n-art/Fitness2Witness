@@ -9,7 +9,18 @@ type Period = "day" | "week" | "overall";
 export default function LeaderboardScreen() {
   const [period, setPeriod] = useState<Period>("week");
 
-  const { data: leaderboard, isLoading, refetch } = trpc.metrics.getGroupLeaderboard.useQuery({ period });
+ const {
+  data: leaderboard,
+  isLoading,
+  refetch,
+} = trpc.metrics.getGroupLeaderboard.useQuery(
+  { period },
+  {
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  }
+);
 
   const [refreshing, setRefreshing] = useState(false);
 
