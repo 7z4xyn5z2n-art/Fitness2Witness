@@ -36,8 +36,7 @@ export default function AdminCalendarScreen() {
   const [editNotes, setEditNotes] = useState("");
 
   const utils = trpc.useUtils();
-
-  // Fetch all users
+   // Fetch all users
   const { data: users, isLoading: usersLoading } = trpc.admin.getAllUsers.useQuery();
 
   // Fetch check-ins for selected date
@@ -95,6 +94,92 @@ export default function AdminCalendarScreen() {
       Alert.alert("Error", `${error.message}\n\nCheck console for details.`);
     },
   });
+         // Disable buttons/spinners while requests are running
+  const isSubmittingAdd =
+    upsertCheckInMutation.isPending ||
+    addAttendanceMutation.isPending ||
+    removeAttendanceMutation.isPending ||
+    adjustPointsMutation.isPending;
+
+  // Edit modal only uses the upsert mutation
+  
+  const isSavingEdit = upsertCheckInMutation.isPending;
+  const handleAddCheckin = async () => {
+  if (!modalUserId) {
+    Alert.alert("Error", "No user selected.");
+    return;
+  }
+
+  try {
+    // 1) Upsert the check-in
+    await upsertCheckInMutation.mutateAsync({
+      userId: String(modalUserId),
+      dateISO: selectedDate.toISOString(),
+      nutritionDone: mNutrition,
+      hydrationDone: mHydration,
+      movementDone: mMovement,
+      scriptureDone: mScripture,
+      lifeGroupAttended: mLifeGroup,
+      notes: mNotes?.trim() ? mNotes.trim() : undefined,
+    });
+
+    // 2) Attendance: add/remove based on toggle
+    // (We check what current attendance is for this user)
+    const currentlyPresent = attendance?.some((a: any) => String(a.userId) === String(modalUserId));
+
+    if (mLifeGroup && !currentlyPresent) {
+      await addAttendanceMutation.mutateAsync({
+        userId: String(modalUserId),
+        date: selectedDate.toISOString(),
+        attended: true,
+      });
+    }
+
+    if (!mLifeGroup && currentlyPresent) {
+      await removeAttendanceMutation.mutateAsync({
+        userId: String(modalUserId),
+        date: selectedDate.toISOString(),
+      });
+    }
+
+    // 3) Optional point adjustments (only if non-zero)
+    const adjustments = [
+      { label: "Nutrition", value: adjNutrition },
+      { label: "Hydration", value: adjHydration },
+      { label: "Movement", value: adjMovement },
+      { label: "Scripture", value: adjScripture },
+      { label: "Life Group", value: adjLifeGroup },
+    ];
+
+    for (const adj of adjustments) {
+      const delta = Number(adj.value || "0");
+      if (!Number.isFinite(delta) || delta === 0) continue;
+
+      await adjustPointsMutation.mutateAsync({
+        userId: String(modalUserId),
+        dateISO: selectedDate.toISOString(),
+        pointsDelta: delta,
+        reason: `Admin adjustment: ${adj.label}`,
+        category: adj.label,
+      });
+    }
+
+    // 4) Refresh UI + close modal
+    await refetch();
+    await refetchAttendance();
+
+    // refresh leaderboard (you can include day too if you want)
+    await utils.metrics.getGroupLeaderboard.invalidate({ period: "day" });
+    await utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
+    await utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
+
+    setShowAddModal(false);
+    setModalUserId(null);
+  } catch (error: any) {
+    console.error("handleAddCheckin failed:", error);
+    Alert.alert("Error", error?.message || "Failed to submit check-in.");
+  }
+};
 
   const openEdit = (userId: string, userName: string) => {
     setSelectedUserId(userId);
@@ -350,186 +435,258 @@ export default function AdminCalendarScreen() {
           </View>
         </View>
       </ScrollView>
-      {showEditModal && (
-        <View className="absolute inset-0 bg-black/50 items-center justify-center p-6">
-          <View className="bg-white rounded-2xl p-5 w-full">
-            <Text className="text-xl font-bold mb-2">Edit: {editUserName}</Text>
-            <Text className="text-xs text-muted mb-3">{selectedDate.toLocaleDateString()}</Text>
-            {[
-              ["Nutrition", editNutrition, setEditNutrition],
-              ["Hydration", editHydration, setEditHydration],
-              ["Movement", editMovement, setEditMovement],
-              ["Scripture", editScripture, setEditScripture],
-            ].map(([label, value, setter]: any) => (
-              <TouchableOpacity
-                key={label}
-                onPress={() => setter(!value)}
-                className={`p-4 rounded-xl border-2 mb-2 ${value ? "bg-muted border-primary" : "border-border"}`}
-              >
-                <Text className="text-base font-semibold">{value ? "✅ " : ""}{label}</Text>
-              </TouchableOpacity>
-            ))}
+       {showEditModal && (
+  <Modal
+    transparent
+    animationType="fade"
+    visible={showEditModal}
+    onRequestClose={() => setShowEditModal(false)}
+  >
+    <View className="flex-1 bg-black/50 items-center justify-center p-4">
+      <View
+        className="w-full max-w-xl bg-white rounded-2xl overflow-hidden"
+        style={{ maxHeight: "90%" as any }}
+      >
+        <ScrollView
+          contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text className="text-xl font-bold mb-2">Edit Check-In</Text>
+          <Text className="text-sm text-muted mb-4">{editUserName}</Text>
+
+          <View className="gap-3">
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setEditNutrition((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">🥗 Nutrition</Text>
+              <Text className="text-sm font-bold text-foreground">{editNutrition ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setEditHydration((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">💧 Hydration</Text>
+              <Text className="text-sm font-bold text-foreground">{editHydration ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setEditMovement((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">🏃 Movement</Text>
+              <Text className="text-sm font-bold text-foreground">{editMovement ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setEditScripture((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">📖 Scripture</Text>
+              <Text className="text-sm font-bold text-foreground">{editScripture ? "1" : "0"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-5">
+            <Text className="text-base font-semibold text-foreground mb-2">
+              Notes (optional)
+            </Text>
             <TextInput
               value={editNotes}
               onChangeText={setEditNotes}
-              placeholder="Notes (optional)"
-              className="border rounded-xl p-3 mt-2"
+              placeholder="Add notes..."
               multiline
+              className="border border-border rounded-2xl p-4"
+              style={{ minHeight: 90, textAlignVertical: "top" }}
             />
-            <View className="flex-row gap-3 mt-4">
-              <TouchableOpacity
-                onPress={() => setShowEditModal(false)}
-                className="flex-1 p-3 rounded-xl bg-gray-200"
-              >
-                <Text className="text-center font-semibold">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  if (!selectedUserId) return;
-                  upsertCheckInMutation.mutate({
-                    userId: selectedUserId,
-                    dateISO: selectedDate.toISOString(),
-                    nutritionDone: editNutrition,
-                    hydrationDone: editHydration,
-                    movementDone: editMovement,
-                    scriptureDone: editScripture,
-                    notes: editNotes || undefined,
-                  });
-                  setShowEditModal(false);
-                }}
-                className="flex-1 p-3 rounded-xl bg-black"
-              >
-                <Text className="text-center font-semibold text-white">Save</Text>
-              </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+                <View className="flex-row gap-3 p-4 border-t border-border bg-white">
+          <TouchableOpacity
+            className="flex-1 p-4 rounded-2xl bg-gray-200"
+            onPress={() => setShowEditModal(false)}
+            disabled={isSavingEdit}
+          >
+            <Text className="text-center font-semibold">Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-1 p-4 rounded-2xl bg-primary"
+            onPress={async () => {
+              if (!selectedUserId) {
+                Alert.alert("Error", "Missing user ID");
+                return;
+              }
+              await upsertCheckInMutation.mutateAsync({
+                userId: String(selectedUserId),
+                dateISO: selectedDate.toISOString(),
+                nutritionDone: editNutrition,
+                hydrationDone: editHydration,
+                movementDone: editMovement,
+                scriptureDone: editScripture,
+                notes: editNotes?.trim() ? editNotes.trim() : undefined,
+              });
+              setShowEditModal(false);
+            }}
+            disabled={isSavingEdit}
+          >
+            {isSavingEdit ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-center font-semibold text-white">Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+)}
+  
+        {showAddModal && (
+  <Modal
+    transparent
+    animationType="fade"
+    visible={showAddModal}
+    onRequestClose={() => setShowAddModal(false)}
+  >
+    <View className="flex-1 bg-black/50 items-center justify-center p-4">
+      <View
+        className="w-full max-w-xl bg-white rounded-2xl overflow-hidden"
+        style={{ maxHeight: "90%" as any }}
+      >
+        {/* SCROLL AREA */}
+        <ScrollView
+          contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text className="text-xl font-bold mb-2">Add Check-In</Text>
+          <Text className="text-sm text-muted mb-4">
+            {modalUserName || "Selected user"}
+          </Text>
+
+          {/* Toggle cards */}
+          <View className="gap-3">
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setMNutrition((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">🥗 Nutrition</Text>
+              <Text className="text-sm font-bold text-foreground">{mNutrition ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setMHydration((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">💧 Hydration</Text>
+              <Text className="text-sm font-bold text-foreground">{mHydration ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setMMovement((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">🏃 Movement</Text>
+              <Text className="text-sm font-bold text-foreground">{mMovement ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setMScripture((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">📖 Scripture</Text>
+              <Text className="text-sm font-bold text-foreground">{mScripture ? "1" : "0"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+              onPress={() => setMLifeGroup((v) => !v)}
+            >
+              <Text className="text-base font-semibold text-foreground">👥 Life Group</Text>
+              <Text className="text-sm font-bold text-foreground">{mLifeGroup ? "1" : "0"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Notes */}
+          <View className="mt-5">
+            <Text className="text-base font-semibold text-foreground mb-2">
+              Notes (optional)
+            </Text>
+            <TextInput
+              value={mNotes}
+              onChangeText={setMNotes}
+              placeholder="Add notes..."
+              multiline
+              className="border border-border rounded-2xl p-4"
+              style={{ minHeight: 90, textAlignVertical: "top" }}
+            />
+          </View>
+
+          {/* Optional adjustments */}
+          <View className="mt-6">
+            <Text className="text-base font-semibold text-foreground mb-2">
+              Point Adjustments (optional)
+            </Text>
+            <Text className="text-xs text-muted mb-3">
+              Use + / - values (example: 1, -1). Leave 0 for none.
+            </Text>
+
+            <View className="gap-3">
+              {[
+                { label: "Nutrition", value: adjNutrition, setValue: setAdjNutrition },
+                { label: "Hydration", value: adjHydration, setValue: setAdjHydration },
+                { label: "Movement", value: adjMovement, setValue: setAdjMovement },
+                { label: "Scripture", value: adjScripture, setValue: setAdjScripture },
+                { label: "Life Group", value: adjLifeGroup, setValue: setAdjLifeGroup },
+              ].map((row) => (
+                <View
+                  key={row.label}
+                  className="border border-border rounded-2xl p-4 bg-surface flex-row items-center justify-between"
+                >
+                  <Text className="text-sm font-semibold text-foreground">{row.label}</Text>
+                  <TextInput
+                    value={row.value}
+                    onChangeText={row.setValue}
+                    keyboardType="numeric"
+                    className="border border-border rounded-xl px-3 py-2"
+                    style={{ width: 90 }}
+                  />
+                </View>
+              ))}
             </View>
           </View>
-        </View>
-      )}
+        </ScrollView>
 
-        {showAddModal && (
-          <Modal transparent animationType="fade" visible={showAddModal} onRequestClose={() => setShowAddModal(false)}>
-            <View className="flex-1 items-center justify-center bg-black/50 p-6">
-              <View className="w-full max-w-md bg-white rounded-2xl p-5">
-                <Text className="text-xl font-bold text-foreground mb-1">{modalUserName}</Text>
-                <Text className="text-xs text-muted mb-4">{selectedDate.toLocaleDateString()}</Text>
+        {/* FIXED FOOTER (always visible) */}
+                        {/* FIXED FOOTER (always visible) */}
+                {/* FIXED FOOTER (always visible) */}
+        <View className="flex-row gap-3 p-4 border-t border-border bg-white">
+          <TouchableOpacity
+            className="flex-1 p-4 rounded-2xl bg-gray-200"
+            onPress={() => setShowAddModal(false)}
+            disabled={isSubmittingAdd}
+          >
+            <Text className="text-center font-semibold">Cancel</Text>
+          </TouchableOpacity>
 
-                {[
-                  ["🥗 Nutrition", mNutrition, setMNutrition, adjNutrition, setAdjNutrition, "Nutrition"],
-                  ["💧 Hydration", mHydration, setMHydration, adjHydration, setAdjHydration, "Hydration"],
-                  ["🏃 Movement", mMovement, setMMovement, adjMovement, setAdjMovement, "Movement"],
-                  ["📖 Scripture", mScripture, setMScripture, adjScripture, setAdjScripture, "Scripture"],
-                  ["👥 Life Group", mLifeGroup, setMLifeGroup, adjLifeGroup, setAdjLifeGroup, "Life Group"],
-                ].map(([label, value, setter, adj, setAdj, category]: any) => {
-                  const n = Number(String(adj).trim());
-                  const hasAdj = !Number.isNaN(n) && n !== 0;
-
-                  return (
-                    <View key={label} className={`p-4 rounded-xl border-2 mb-2 ${
-                      value || hasAdj ? "bg-muted border-primary" : "bg-background border-border"
-                    }`}>
-                      <TouchableOpacity onPress={() => setter(!value)} className="flex-row items-center justify-between">
-                        <Text className="text-base font-semibold text-foreground">{label}</Text>
-                        <Text className="text-xs text-muted">{value ? "Selected" : "Tap to select"}</Text>
-                      </TouchableOpacity>
-
-                      <View className="flex-row items-center justify-between mt-3">
-                        <Text className="text-xs text-muted">Points (+ / -)</Text>
-                        <TextInput
-                          value={String(adj)}
-                          onChangeText={setAdj}
-                          placeholder="0"
-                          keyboardType="numeric"
-                          className="border border-border rounded-lg px-3 py-2 w-24 text-right"
-                        />
-                      </View>
-                    </View>
-                  );
-                })}
-
-                <TextInput
-                  value={mNotes}
-                  onChangeText={setMNotes}
-                  placeholder="Notes (optional)"
-                  className="border border-border rounded-xl p-3 mt-2"
-                  multiline
-                />
-
-                <View className="flex-row gap-3 mt-4">
-                  <TouchableOpacity
-                    onPress={() => setShowAddModal(false)}
-                    className="flex-1 p-3 rounded-xl bg-gray-200"
-                  >
-                    <Text className="text-center font-semibold">Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={async () => {
-                      if (!modalUserId) return;
-
-                      // Save check-in (nutrition/hydration/movement/scripture)
-                      await upsertCheckInMutation.mutateAsync({
-                        userId: modalUserId,
-                        dateISO: selectedDate.toISOString(),
-                        nutritionDone: mNutrition,
-                        hydrationDone: mHydration,
-                        movementDone: mMovement,
-                        scriptureDone: mScripture,
-                        notes: mNotes || undefined,
-                      });
-
-                      // Toggle attendance (life group)
-                      const hasAttendance = attendance?.some((a: any) => String(a.userId) === String(modalUserId));
-                      if (mLifeGroup && !hasAttendance) {
-                        await addAttendanceMutation.mutateAsync({
-                          userId: modalUserId,
-                          date: selectedDate.toISOString(),
-                          attended: true,
-                        });
-                      }
-                      if (!mLifeGroup && hasAttendance) {
-                        await removeAttendanceMutation.mutateAsync({
-                          userId: modalUserId,
-                          date: selectedDate.toISOString(),
-                        });
-                      }
-
-                      const adjustments = [
-                        { category: "Nutrition", v: adjNutrition },
-                        { category: "Hydration", v: adjHydration },
-                        { category: "Movement", v: adjMovement },
-                        { category: "Scripture", v: adjScripture },
-                        { category: "Life Group", v: adjLifeGroup },
-                      ];
-
-                      for (const a of adjustments) {
-                        const delta = Number(String(a.v).trim());
-                        if (!Number.isFinite(delta) || delta === 0) continue;
-
-                        await adjustPointsMutation.mutateAsync({
-                          userId: Number(modalUserId),
-                          dateISO: selectedDate.toISOString(),
-                          pointsDelta: delta,
-                          reason: `${a.category} adjustment`,
-                          category: a.category,
-                        });
-                      }
-
-                      // Refresh check-ins/attendance and leaderboards
-                      refetch();
-                      refetchAttendance();
-
-                      setShowAddModal(false);
-                      setModalUserId(null);
-                    }}
-                    className="flex-1 p-3 rounded-xl bg-black"
-                  >
-                    <Text className="text-center font-semibold text-white">Submit</Text>
-                  </TouchableOpacity>
-                </View>
+          <TouchableOpacity
+            className="flex-1 p-4 rounded-2xl bg-primary"
+            onPress={handleAddCheckin}
+            disabled={isSubmittingAdd}
+          >
+            {isSubmittingAdd ? (
+              <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-center font-semibold text-white">Submit</Text>
+                )}
+              </TouchableOpacity>
               </View>
             </View>
-          </Modal>
-        )}
+          </View>
+        </Modal>
+      )}
     </ScreenContainer>
   );
 }
