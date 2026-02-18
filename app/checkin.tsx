@@ -61,54 +61,39 @@ export default function CheckinScreen() {
 
 const submitMutation = trpc.checkins.submit.useMutation({
   onSuccess: async () => {
-    // Invalidate queries to refresh data
-    await utils.checkins.getTodayCheckin.invalidate();
-    await utils.checkins.getMyCheckins.invalidate();
-    await utils.metrics.getMyMetrics.invalidate();
+  try {
+    // 1️⃣ Invalidate everything at once
+    await Promise.all([
+      utils.checkins.getTodayCheckin.invalidate(),
+      utils.checkins.getMyCheckins.invalidate(),
+      utils.metrics.getMyMetrics.invalidate(),
+      utils.metrics.getGroupLeaderboard.invalidate({ period: "day" }),
+      utils.metrics.getGroupLeaderboard.invalidate({ period: "week" }),
+      utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" }),
+    ]);
 
-    await utils.metrics.getGroupLeaderboard.invalidate({ period: "day" });
-    await utils.metrics.getGroupLeaderboard.invalidate({ period: "week" });
-    await utils.metrics.getGroupLeaderboard.invalidate({ period: "overall" });
-
-    // Warm cache so it shows immediately when user taps leaderboard
-    await utils.metrics.getGroupLeaderboard.fetch({ period: "day" });
-    await utils.metrics.getGroupLeaderboard.fetch({ period: "week" });
-    await utils.metrics.getGroupLeaderboard.fetch({ period: "overall" });
-
-    // Invalidate checkin-by-date cache (safe: do both formats)
+    // 2️⃣ Invalidate selected date
     const dateISO = selectedDate.toISOString();
-    const dateYMD = dateISO.slice(0, 10);
     await utils.checkins.getByDate.invalidate({ dateISO });
-    await utils.checkins.getByDate.invalidate({ dateISO: dateYMD });
 
-    // Check for new badges
-    try {
-      const newBadges = await checkBadgesMutation.mutateAsync();
-      if (newBadges && newBadges.length > 0) {
-        await utils.badges.getMyBadges.invalidate();
+    // 3️⃣ Check for badges
+    const newBadges = await checkBadgesMutation.mutateAsync().catch(() => []);
 
-        const badge = newBadges[0];
-        setEarnedBadge(badge);
-        setShowBadgeNotification(true);
-
-        if (Platform.OS !== "web") {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-
-        // Badge modal will handle navigation on dismiss
-        return;
-      }
-    } catch (error) {
-      console.warn("Badge check failed:", error);
+    if (newBadges && newBadges.length > 0) {
+      await utils.badges.getMyBadges.invalidate();
+      setEarnedBadge(newBadges[0]);
+      setShowBadgeNotification(true);
+      return; // Badge modal handles navigation
     }
 
-    if (Platform.OS !== "web") {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-
-    // No badge: navigate immediately
+    // 4️⃣ Navigate immediately if no badge
     goToCommunityWithPrompt();
-  },
+
+  } catch (err) {
+    console.error("Submit success handler failed:", err);
+    goToCommunityWithPrompt(); // failsafe
+  }
+},
 
   onError: (error) => {
     Alert.alert("Error", error.message || "Failed to submit check-in. Please try again.");
