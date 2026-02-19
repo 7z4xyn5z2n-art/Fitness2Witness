@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, RefreshControl } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, RefreshControl, Image } from "react-native";
 import { useState, useEffect } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -91,12 +91,14 @@ export default function CommunityScreen() {
                 {/* Post Content */}
                 {item.postText && <Text className="text-base text-foreground mb-3">{item.postText}</Text>}
 
-                {/* Post Image */}
-                {item.postImageUrl && (
-                  <View className="bg-border rounded-xl h-48 items-center justify-center mb-3">
-                    <Text className="text-muted">🖼️ Image</Text>
-                  </View>
-                )}
+               {/* Post Image */}
+              {item.postImageUrl && (
+                <Image
+                  source={{ uri: item.postImageUrl }}
+                  style={{ width: "100%", height: 240, borderRadius: 12, marginBottom: 12 }}
+                  resizeMode="cover"
+                />
+              )}
 
                 {/* Post Video */}
                 {item.postVideoUrl && (
