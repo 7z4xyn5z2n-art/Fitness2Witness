@@ -144,20 +144,25 @@ export default function PostDetailScreen() {
 
                 {canDelete && (
                   <TouchableOpacity
-                    onPress={() => {
-                      Alert.alert(
-                        "Delete Post",
-                        "Are you sure you want to delete this post?",
-                        [
-                          { text: "Cancel", style: "cancel" },
-                          {
-                            text: "Delete",
-                            style: "destructive",
-                            onPress: () => deletePostMutation.mutate({ postId }),
-                          },
-                        ]
-                      );
-                    }}
+                onPress={() => {
+                // ✅ Web: use window.confirm so the callback actually runs
+                if (Platform.OS === "web") {
+                const ok = window.confirm("Are you sure you want to delete this post?");
+                if (ok) deletePostMutation.mutate({ postId });
+                return;
+              }
+
+              // ✅ Mobile: use native Alert buttons
+              Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => deletePostMutation.mutate({ postId }),
+                },
+              ]);
+            }}
+
                     className="bg-red-100 px-3 py-1 rounded-full"
                   >
                     <Text className="text-red-600 text-xs font-semibold">
