@@ -478,15 +478,26 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    deletePost: protectedProcedure.input(z.object({ postId: z.number() })).mutation(async ({ ctx, input }) => {
-      const user = await db.getUserById(ctx.user.id);
-      if (!user || user.role !== "admin") {
-        throw new Error("Only admins can delete posts");
-      }
+    deletePost: protectedProcedure
+  .input(z.object({ postId: z.number() }))
+  .mutation(async ({ ctx, input }) => {
+    const user = await db.getUserById(ctx.user.id);
+    if (!user) throw new Error("User not found");
 
-      await db.deletePost(input.postId);
-      return { success: true };
-    }),
+    const post = await db.getPostById(input.postId);
+    if (!post) throw new Error("Post not found");
+
+    const isAdmin = user.role === "admin";
+    const isAuthor = post.userId === user.id;
+    const isLeaderInSameGroup = user.role === "leader" && user.groupId && user.groupId === post.groupId;
+
+    if (!isAdmin && !isAuthor && !isLeaderInSameGroup) {
+      throw new Error("Not authorized to delete this post");
+    }
+
+    await db.deletePost(input.postId);
+    return { success: true };
+  }),
 
     // Public endpoint - anyone can view comments (read-only)
     getComments: publicProcedure.input(z.object({ postId: z.number() })).query(async ({ input }) => {
