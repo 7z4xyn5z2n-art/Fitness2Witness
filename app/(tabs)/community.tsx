@@ -1,5 +1,14 @@
-import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, RefreshControl, Image } from "react-native";
-import { useState, useEffect } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useEffect, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
@@ -17,20 +26,23 @@ export default function CommunityScreen() {
         "Share your progress",
         "Want to post to the community and encourage others?",
         [
-          { text: "Not now", style: "cancel", onPress: () => {} },
+          { text: "Not now", style: "cancel" },
           { text: "Create Post", onPress: () => router.push("/create-post") },
         ]
       );
     }
-  }, [params, didPrompt]);
-  
+  }, [params, didPrompt, router]);
+
   const { data: posts, isLoading, refetch } = trpc.community.getPosts.useQuery();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
@@ -64,7 +76,10 @@ export default function CommunityScreen() {
             keyExtractor={(item) => item.id.toString()}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             renderItem={({ item }) => (
-              <View className="bg-surface rounded-2xl p-4 mb-3 border border-border">
+              <TouchableOpacity
+                onPress={() => router.push(`/post/${item.id}` as any)}
+                className="bg-surface rounded-2xl p-4 mb-3 border border-border active:opacity-80"
+              >
                 {/* Post Header */}
                 <View className="flex-row items-center mb-3">
                   <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mr-3">
@@ -72,7 +87,9 @@ export default function CommunityScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-semibold text-foreground">{item.authorName}</Text>
-                    <Text className="text-xs text-muted">{new Date(item.createdAt).toLocaleDateString()}</Text>
+                    <Text className="text-xs text-muted">
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ""}
+                    </Text>
                   </View>
                   {item.isPinned && (
                     <View className="bg-warning/20 px-2 py-1 rounded">
@@ -89,29 +106,31 @@ export default function CommunityScreen() {
                 </View>
 
                 {/* Post Content */}
-                {item.postText && <Text className="text-base text-foreground mb-3">{item.postText}</Text>}
+                {item.postText ? (
+                  <Text className="text-base text-foreground mb-3">{item.postText}</Text>
+                ) : null}
 
-               {/* Post Image */}
-              {item.postImageUrl && (
-                <Image
-                  source={{ uri: item.postImageUrl }}
-                  style={{ width: "100%", height: 240, borderRadius: 12, marginBottom: 12 }}
-                  resizeMode="cover"
-                />
-              )}
+                {/* Post Image */}
+                {item.postImageUrl ? (
+                  <Image
+                    source={{ uri: item.postImageUrl }}
+                    style={{ width: "100%", height: 240, borderRadius: 12, marginBottom: 12 }}
+                    resizeMode="cover"
+                  />
+                ) : null}
 
-                {/* Post Video */}
-                {item.postVideoUrl && (
+                {/* Post Video (placeholder until you wire video player) */}
+                {item.postVideoUrl ? (
                   <View className="bg-border rounded-xl h-48 items-center justify-center mb-3">
-                    <Text className="text-muted">🎥 Video</Text>
+                    <Text className="text-muted">🎥 Video attached</Text>
                   </View>
-                )}
+                ) : null}
 
                 {/* Footer */}
                 <View className="mt-2 pt-2 border-t border-border">
                   <Text className="text-xs text-muted">💬 Tap to view and comment</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
             ListEmptyComponent={
               <View className="items-center justify-center py-12">
