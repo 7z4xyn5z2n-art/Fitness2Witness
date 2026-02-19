@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, Alert, RefreshControl } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Alert, RefreshControl, Platform } from "react-native";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -31,22 +31,28 @@ export default function ContentModerationScreen() {
   };
 
   const handleDeletePost = (postId: number, postText: string) => {
-    Alert.alert(
-      "Delete Post",
-      `Are you sure you want to delete this post?\n\n"${(postText || "").substring(0, 100)}..."`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deletePostMutation.mutateAsync({ postId: Number(postId) });
-            Alert.alert("Success", "Post deleted successfully");
-          },
-        },
-      ]
-    );
-  };
+  const msg = `Are you sure you want to delete this post?\n\n"${(postText || "").substring(0, 100)}..."`;
+
+  // ✅ WEB confirm (Alert buttons are flaky on web)
+  if (Platform.OS === "web") {
+    const ok = window.confirm(msg);
+    if (ok) {
+      deletePostMutation.mutate({ postId: Number(postId) });
+    }
+    return;
+  }
+
+  // ✅ Mobile confirm
+  Alert.alert("Delete Post", msg, [
+    { text: "Cancel", style: "cancel" },
+    {
+      text: "Delete",
+      style: "destructive",
+      onPress: () => deletePostMutation.mutate({ postId: Number(postId) }),
+    },
+  ]);
+};
+
 
   return (
     <ScreenContainer className="bg-background">
@@ -172,3 +178,4 @@ export default function ContentModerationScreen() {
     </ScreenContainer>
   );
 }
+      
