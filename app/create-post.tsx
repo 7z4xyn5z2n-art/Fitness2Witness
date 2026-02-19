@@ -222,10 +222,15 @@ export default function CreatePostScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={createPostMutation.isPending}
-              className="bg-primary px-6 py-4 rounded-full active:opacity-80"
-            >
+            onPress={(e) => {
+            if (Platform.OS === "web") {
+              (e.target as any)?.blur?.();
+            }
+            handleSubmit();
+            }}
+            disabled={createPostMutation.isPending}
+            className="bg-primary px-6 py-4 rounded-full active:opacity-80"
+        >
               {createPostMutation.isPending ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
