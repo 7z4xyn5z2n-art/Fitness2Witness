@@ -11,37 +11,37 @@ export default function ContentModerationScreen() {
 
   const { data: posts, refetch: refetchPosts } = trpc.community.getPosts.useQuery();
   const utils = trpc.useUtils();
+
   const deletePostMutation = trpc.community.deletePost.useMutation({
-    onSuccess: () => {
-      utils.community.getPosts.invalidate();
+    onSuccess: async () => {
+      await utils.community.getPosts.invalidate();
+    },
+    onError: (error: any) => {
+      Alert.alert("Error", error?.message || "Failed to delete post");
     },
   });
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetchPosts();
-    setRefreshing(false);
+    try {
+      await refetchPosts();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleDeletePost = (postId: number, postText: string) => {
     Alert.alert(
       "Delete Post",
-      `Are you sure you want to delete this post?\n\n"${postText?.substring(0, 100)}..."`,
+      `Are you sure you want to delete this post?\n\n"${(postText || "").substring(0, 100)}..."`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            try {
-              const payload = { postId: Number(postId) };
-              console.log("Delete post payload:", payload);
-              console.log("Payload types:", { postId: typeof payload.postId });
-              await deletePostMutation.mutateAsync(payload);
-              Alert.alert("Success", "Post deleted successfully");
-            } catch (error: any) {
-              Alert.alert("Error", error.message || "Failed to delete post");
-            }
+            await deletePostMutation.mutateAsync({ postId: Number(postId) });
+            Alert.alert("Success", "Post deleted successfully");
           },
         },
       ]
@@ -91,12 +91,9 @@ export default function ContentModerationScreen() {
                 {/* Post Header */}
                 <View className="flex-row items-start justify-between mb-3">
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-foreground">
-                      {(post as any).authorName}
-                    </Text>
+                    <Text className="text-base font-semibold text-foreground">{(post as any).authorName}</Text>
                     <Text className="text-xs text-muted">
-                      {new Date(post.createdAt).toLocaleDateString()} at{" "}
-                      {new Date(post.createdAt).toLocaleTimeString()}
+                      {new Date(post.createdAt).toLocaleDateString()} at {new Date(post.createdAt).toLocaleTimeString()}
                     </Text>
                   </View>
                   <View className="px-3 py-1 rounded-full bg-primary/10">
@@ -107,38 +104,38 @@ export default function ContentModerationScreen() {
                 </View>
 
                 {/* Post Content */}
-                {post.postText && (
+                {post.postText ? (
                   <Text className="text-sm text-foreground mb-3" numberOfLines={5}>
                     {post.postText}
                   </Text>
-                )}
+                ) : null}
 
-                {post.postImageUrl && (
+                {post.postImageUrl ? (
                   <View className="bg-primary/5 rounded-lg p-3 mb-3">
                     <Text className="text-xs text-muted">📷 Image attached</Text>
                   </View>
-                )}
+                ) : null}
 
-                {post.postVideoUrl && (
+                {post.postVideoUrl ? (
                   <View className="bg-primary/5 rounded-lg p-3 mb-3">
                     <Text className="text-xs text-muted">🎥 Video attached</Text>
                   </View>
-                )}
+                ) : null}
 
-                {/* Post Metadata */}
+                {/* Metadata */}
                 <View className="flex-row gap-4 mb-3 p-2 bg-background rounded-lg">
                   <View className="flex-1">
                     <Text className="text-xs text-muted">Visibility</Text>
                     <Text className="text-sm font-semibold text-foreground">{post.visibility}</Text>
                   </View>
-                  {post.isPinned && (
+                  {post.isPinned ? (
                     <View className="flex-1">
                       <Text className="text-xs text-muted">Status</Text>
                       <Text className="text-sm font-semibold" style={{ color: colors.primary }}>
                         📌 Pinned
                       </Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
 
                 {/* Actions */}
@@ -151,11 +148,14 @@ export default function ContentModerationScreen() {
                       View Details
                     </Text>
                   </TouchableOpacity>
+
                   <TouchableOpacity
                     onPress={() => handleDeletePost(post.id, post.postText || "")}
                     className="flex-1 bg-error/10 py-2 rounded-lg"
                   >
-                    <Text className="text-center text-sm font-semibold text-error">Delete</Text>
+                    <Text className="text-center text-sm font-semibold text-error">
+                      {deletePostMutation.isPending ? "Deleting..." : "Delete"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -164,9 +164,7 @@ export default function ContentModerationScreen() {
             <View className="bg-surface rounded-xl p-8 items-center">
               <Text className="text-5xl mb-4">📭</Text>
               <Text className="text-lg font-semibold text-foreground mb-2">No Posts Yet</Text>
-              <Text className="text-sm text-muted text-center">
-                Community posts will appear here for moderation
-              </Text>
+              <Text className="text-sm text-muted text-center">Community posts will appear here for moderation</Text>
             </View>
           )}
         </View>
