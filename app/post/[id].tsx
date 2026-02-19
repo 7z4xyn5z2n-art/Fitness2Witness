@@ -8,11 +8,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -22,10 +23,22 @@ export default function PostDetailScreen() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
-  const postId = parseInt(id || "0", 10);
+  const postId = useMemo(() => {
+    const n = parseInt(String(id || "0"), 10);
+    return Number.isFinite(n) ? n : 0;
+  }, [id]);
 
-  const { data: post, isLoading: postLoading } = trpc.community.getPostById.useQuery({ postId });
-  const { data: comments, isLoading: commentsLoading } = trpc.community.getComments.useQuery({ postId });
+  const { data: post, isLoading: postLoading } =
+    trpc.community.getPostById.useQuery(
+      { postId },
+      { enabled: postId > 0 }
+    );
+
+  const { data: comments, isLoading: commentsLoading } =
+    trpc.community.getComments.useQuery(
+      { postId },
+      { enabled: postId > 0 }
+    );
 
   const [commentText, setCommentText] = useState("");
 
@@ -38,20 +51,20 @@ export default function PostDetailScreen() {
       setCommentText("");
     },
     onError: (error: any) => {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", error?.message || "Failed to add comment");
     },
   });
-// 🔴 DELETE POST MUTATION (ADD HERE)
-const deletePostMutation = trpc.community.deletePost.useMutation({
-  onSuccess: async () => {
-    await utils.community.getPosts.invalidate();
-    await utils.community.getPostById.invalidate({ postId });
-    router.back();
-  },
-  onError: (error: any) => {
-    Alert.alert("Error", error.message || "Failed to delete post");
-  },
-});
+
+  const deletePostMutation = trpc.community.deletePost.useMutation({
+    onSuccess: async () => {
+      await utils.community.getPosts.invalidate();
+      await utils.community.getPostById.invalidate({ postId });
+      router.back();
+    },
+    onError: (error: any) => {
+      Alert.alert("Error", error?.message || "Failed to delete post");
+    },
+  });
 
   const handleSubmitComment = () => {
     if (!commentText.trim()) {
@@ -84,9 +97,48 @@ const deletePostMutation = trpc.community.deletePost.useMutation({
     );
   }
 
+  // --- Permission (UI only; backend still enforces real rules)
+  const postUserId = (post as any)?.userId ?? (post as any)?.user?.id;
+  const canDelete =
+    !!user &&
+    (user.role === "admin" ||
+      user.role === "leader" ||
+      (postUserId != null && user.id === postUserId));
+
+  const authorName =
+    (post as any)?.user?.displayName ||
+    `${(post as any)?.user?.firstName || ""} ${(post as any)?.user?.lastName || ""}`.trim() ||
+    "Member";
+
+  const createdAt =
+    (post as any)?.createdAt ||
+    (post as any)?.created_at ||
+    null;
+
+  const formattedDate = createdAt
+    ? new Date(createdAt).toLocaleString()
+    : "";
+
+  const postText =
+    (post as any)?.content ||
+    (post as any)?.text ||
+    (post as any)?.message ||
+    "";
+
+  const mediaUrl =
+    (post as any)?.postImageUrl ||
+    (post as any)?.imageUrl ||
+    (post as any)?.mediaUrl ||
+    undefined;
+
+  const isPinned = Boolean((post as any)?.isPinned);
+
   return (
     <ScreenContainer className="p-6">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-6">
             {/* Header */}
@@ -96,101 +148,127 @@ const deletePostMutation = trpc.community.deletePost.useMutation({
               </TouchableOpacity>
             </View>
 
-            {/* Post */}
+            {/* Post Card */}
             <View className="bg-surface rounded-2xl p-4 border border-border">
-              {/* Post Header */}
+              {/* Post Header ROW (this is where the Delete button goes) */}
               <View className="flex-row items-center mb-3">
-                <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mr-3">
-                  <Text className="text-background font-bold">{post.authorName?.[0] || "?"}</Text>
-                </View>
                 <View className="flex-1">
-                  <Text className="text-base font-semibold text-foreground">{post.authorName}</Text>
-                  <Text className="text-xs text-muted">{new Date(post.createdAt).toLocaleDateString()}</Text>
+                  <Text className="text-base font-bold text-text">
+                    {authorName}
+                  </Text>
+                  {!!formattedDate && (
+                    <Text className="text-xs text-muted">{formattedDate}</Text>
+                  )}
                 </View>
-                {post.isPinned && (
-                  <View className="bg-warning/20 px-2 py-1 rounded">
-                    <Text className="text-xs text-warning font-semibold">📌 Pinned</Text>
+
+                {isPinned && (
+                  <View className="bg-primary/10 px-2 py-1 rounded-full mr-2">
+                    <Text className="text-primary text-xs font-semibold">
+                      Pinned
+                    </Text>
                   </View>
+                )}
+
+                {canDelete && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert(
+                        "Delete Post",
+                        "Are you sure you want to delete this post?",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Delete",
+                            style: "destructive",
+                            onPress: () => deletePostMutation.mutate({ postId }),
+                          },
+                        ]
+                      );
+                    }}
+                    className="bg-red-100 px-3 py-1 rounded-full"
+                  >
+                    <Text className="text-red-600 text-xs font-semibold">
+                      {deletePostMutation.isPending ? "Deleting..." : "Delete"}
+                    </Text>
+                  </TouchableOpacity>
                 )}
               </View>
 
-              {/* Post Type Badge */}
-              <View className="mb-2">
-                <View className="bg-primary/10 px-3 py-1 rounded-full self-start">
-                  <Text className="text-xs text-primary font-semibold">{post.postType}</Text>
-                </View>
-              </View>
-
               {/* Post Content */}
-              {post.postText && <Text className="text-base text-foreground mb-3">{post.postText}</Text>}
-
-              {/* Post Image */}
-              {post.postImageUrl && (
-                <View className="bg-border rounded-xl h-48 items-center justify-center mb-3">
-                  <Text className="text-muted">🖼️ Image</Text>
-                </View>
+              {!!postText && (
+                <Text className="text-text text-base leading-6">
+                  {postText}
+                </Text>
               )}
 
-              {/* Post Video */}
-              {post.postVideoUrl && (
-                <View className="bg-border rounded-xl h-48 items-center justify-center mb-3">
-                  <Text className="text-muted">🎥 Video</Text>
-                </View>
+              {/* Post Image (simple support) */}
+              {!!mediaUrl && (
+                <Image
+                  source={{ uri: mediaUrl }}
+                  style={{ width: "100%", height: 220, borderRadius: 16, marginTop: 12 }}
+                  resizeMode="cover"
+                />
               )}
             </View>
 
-            {/* Comments Section */}
+            {/* Comments */}
             <View className="bg-surface rounded-2xl p-4 border border-border">
-              <Text className="text-lg font-semibold text-foreground mb-4">
-                Comments ({comments?.length || 0})
+              <Text className="text-text font-bold text-base mb-3">
+                Comments
               </Text>
 
-              {/* Comment Input */}
-              <View className="mb-4">
-                <TextInput
-                  className="text-foreground text-base p-3 bg-background rounded-xl border border-border min-h-[80px]"
-                  placeholder="Write a comment..."
-                  placeholderTextColor="#9BA1A6"
-                  multiline
-                  value={commentText}
-                  onChangeText={setCommentText}
-                />
-                <TouchableOpacity
-                  onPress={handleSubmitComment}
-                  disabled={createCommentMutation.isPending}
-                  className="bg-primary px-4 py-2 rounded-full mt-2 self-end active:opacity-80"
-                >
-                  {createCommentMutation.isPending ? (
-                    <ActivityIndicator color="#ffffff" size="small" />
-                  ) : (
-                    <Text className="text-background font-semibold">Post Comment</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {/* Comments List */}
               {commentsLoading ? (
                 <ActivityIndicator />
               ) : comments && comments.length > 0 ? (
                 <View className="gap-3">
-                  {comments.map((comment) => (
-                    <View key={comment.id} className="bg-background rounded-xl p-3 border border-border">
-                      <View className="flex-row items-center mb-2">
-                        <View className="w-8 h-8 rounded-full bg-primary items-center justify-center mr-2">
-                          <Text className="text-background text-xs font-bold">{comment.authorName?.[0] || "?"}</Text>
+                  {comments.map((c: any) => {
+                    const name =
+                      c?.user?.displayName ||
+                      `${c?.user?.firstName || ""} ${c?.user?.lastName || ""}`.trim() ||
+                      "Member";
+
+                    const date = c?.createdAt
+                      ? new Date(c.createdAt).toLocaleString()
+                      : "";
+
+                    return (
+                      <View key={c.id} className="border border-border rounded-2xl p-3">
+                        <View className="flex-row items-center justify-between mb-1">
+                          <Text className="font-semibold text-text">{name}</Text>
+                          {!!date && (
+                            <Text className="text-xs text-muted">{date}</Text>
+                          )}
                         </View>
-                        <View>
-                          <Text className="text-sm font-semibold text-foreground">{comment.authorName}</Text>
-                          <Text className="text-xs text-muted">{new Date(comment.createdAt).toLocaleDateString()}</Text>
-                        </View>
+                        <Text className="text-text">{c.commentText}</Text>
                       </View>
-                      <Text className="text-sm text-foreground">{comment.commentText}</Text>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               ) : (
-                <Text className="text-muted text-center py-4">No comments yet. Be the first to comment!</Text>
+                <Text className="text-muted">No comments yet.</Text>
               )}
+
+              {/* Add Comment */}
+              <View className="mt-4 gap-3">
+                <TextInput
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  placeholder="Write a comment..."
+                  placeholderTextColor="#999"
+                  className="border border-border rounded-2xl p-3 text-text"
+                  multiline
+                />
+
+                <TouchableOpacity
+                  onPress={handleSubmitComment}
+                  disabled={createCommentMutation.isPending}
+                  className="bg-primary rounded-2xl p-3 items-center"
+                >
+                  <Text className="text-white font-semibold">
+                    {createCommentMutation.isPending ? "Posting..." : "Post Comment"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </ScrollView>
