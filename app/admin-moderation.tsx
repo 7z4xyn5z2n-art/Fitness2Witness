@@ -144,7 +144,7 @@ export default function ContentModerationScreen() {
                 {/* Actions */}
                 <View className="flex-row gap-2">
                   <TouchableOpacity
-                    onPress={() => router.push(`/post-detail?postId=${post.id}` as any)}
+                    onPress={() => router.push(`/post/${post.id}` as any)}
                     className="flex-1 bg-primary/10 py-2 rounded-lg"
                   >
                     <Text className="text-center text-sm font-semibold" style={{ color: colors.primary }}>
