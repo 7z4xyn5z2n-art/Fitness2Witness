@@ -41,6 +41,17 @@ export default function PostDetailScreen() {
       Alert.alert("Error", error.message);
     },
   });
+// 🔴 DELETE POST MUTATION (ADD HERE)
+const deletePostMutation = trpc.community.deletePost.useMutation({
+  onSuccess: async () => {
+    await utils.community.getPosts.invalidate();
+    await utils.community.getPostById.invalidate({ postId });
+    router.back();
+  },
+  onError: (error: any) => {
+    Alert.alert("Error", error.message || "Failed to delete post");
+  },
+});
 
   const handleSubmitComment = () => {
     if (!commentText.trim()) {
