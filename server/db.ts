@@ -447,6 +447,10 @@ export async function deleteCommunityPost(postId: number) {
     return;
   }
 
+  // Delete comments first to keep data tidy
+  await db.delete(postComments).where(eq(postComments.postId, postId));
+
+  // Then delete the post
   await db.delete(communityPosts).where(eq(communityPosts.id, postId));
 }
 
