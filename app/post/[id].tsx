@@ -28,17 +28,15 @@ export default function PostDetailScreen() {
     return Number.isFinite(n) ? n : 0;
   }, [id]);
 
-  const { data: post, isLoading: postLoading } =
-    trpc.community.getPostById.useQuery(
-      { postId },
-      { enabled: postId > 0 }
-    );
+  const { data: post, isLoading: postLoading } = trpc.community.getPostById.useQuery(
+    { postId },
+    { enabled: postId > 0 }
+  );
 
-  const { data: comments, isLoading: commentsLoading } =
-    trpc.community.getComments.useQuery(
-      { postId },
-      { enabled: postId > 0 }
-    );
+  const { data: comments, isLoading: commentsLoading } = trpc.community.getComments.useQuery(
+    { postId },
+    { enabled: postId > 0 }
+  );
 
   const [commentText, setCommentText] = useState("");
 
@@ -97,7 +95,7 @@ export default function PostDetailScreen() {
     );
   }
 
-  // --- Permission (UI only; backend still enforces real rules)
+  // UI permission only — backend still enforces real rules.
   const postUserId = (post as any)?.userId ?? (post as any)?.user?.id;
   const canDelete =
     !!user &&
@@ -105,31 +103,12 @@ export default function PostDetailScreen() {
       user.role === "leader" ||
       (postUserId != null && user.id === postUserId));
 
-  const authorName =
-    (post as any)?.user?.displayName ||
-    `${(post as any)?.user?.firstName || ""} ${(post as any)?.user?.lastName || ""}`.trim() ||
-    "Member";
+  const authorName = (post as any)?.authorName || "Member";
+  const createdAt = (post as any)?.createdAt || null;
+  const formattedDate = createdAt ? new Date(createdAt).toLocaleString() : "";
 
-  const createdAt =
-    (post as any)?.createdAt ||
-    (post as any)?.created_at ||
-    null;
-
-  const formattedDate = createdAt
-    ? new Date(createdAt).toLocaleString()
-    : "";
-
-  const postText =
-    (post as any)?.content ||
-    (post as any)?.text ||
-    (post as any)?.message ||
-    "";
-
-  const mediaUrl =
-    (post as any)?.postImageUrl ||
-    (post as any)?.imageUrl ||
-    (post as any)?.mediaUrl ||
-    undefined;
+  const postText = (post as any)?.postText || "";
+  const imageUrl = (post as any)?.postImageUrl || undefined;
 
   const isPinned = Boolean((post as any)?.isPinned);
 
@@ -150,22 +129,16 @@ export default function PostDetailScreen() {
 
             {/* Post Card */}
             <View className="bg-surface rounded-2xl p-4 border border-border">
-              {/* Post Header ROW (this is where the Delete button goes) */}
+              {/* Header Row */}
               <View className="flex-row items-center mb-3">
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-text">
-                    {authorName}
-                  </Text>
-                  {!!formattedDate && (
-                    <Text className="text-xs text-muted">{formattedDate}</Text>
-                  )}
+                  <Text className="text-base font-bold text-foreground">{authorName}</Text>
+                  {!!formattedDate && <Text className="text-xs text-muted">{formattedDate}</Text>}
                 </View>
 
                 {isPinned && (
-                  <View className="bg-primary/10 px-2 py-1 rounded-full mr-2">
-                    <Text className="text-primary text-xs font-semibold">
-                      Pinned
-                    </Text>
+                  <View className="bg-warning/20 px-2 py-1 rounded-full mr-2">
+                    <Text className="text-warning text-xs font-semibold">📌 Pinned</Text>
                   </View>
                 )}
 
@@ -194,18 +167,21 @@ export default function PostDetailScreen() {
                 )}
               </View>
 
-              {/* Post Content */}
+              {/* Post Text */}
               {!!postText && (
-                <Text className="text-text text-base leading-6">
-                  {postText}
-                </Text>
+                <Text className="text-foreground text-base leading-6">{postText}</Text>
               )}
 
-              {/* Post Image (simple support) */}
-              {!!mediaUrl && (
+              {/* Image */}
+              {!!imageUrl && (
                 <Image
-                  source={{ uri: mediaUrl }}
-                  style={{ width: "100%", height: 220, borderRadius: 16, marginTop: 12 }}
+                  source={{ uri: imageUrl }}
+                  style={{
+                    width: "100%",
+                    height: 240,
+                    borderRadius: 16,
+                    marginTop: 12,
+                  }}
                   resizeMode="cover"
                 />
               )}
@@ -213,36 +189,27 @@ export default function PostDetailScreen() {
 
             {/* Comments */}
             <View className="bg-surface rounded-2xl p-4 border border-border">
-              <Text className="text-text font-bold text-base mb-3">
-                Comments
+              <Text className="text-lg font-semibold text-foreground mb-3">
+                Comments ({comments?.length || 0})
               </Text>
 
               {commentsLoading ? (
                 <ActivityIndicator />
               ) : comments && comments.length > 0 ? (
                 <View className="gap-3">
-                  {comments.map((c: any) => {
-                    const name =
-                      c?.user?.displayName ||
-                      `${c?.user?.firstName || ""} ${c?.user?.lastName || ""}`.trim() ||
-                      "Member";
-
-                    const date = c?.createdAt
-                      ? new Date(c.createdAt).toLocaleString()
-                      : "";
-
-                    return (
-                      <View key={c.id} className="border border-border rounded-2xl p-3">
-                        <View className="flex-row items-center justify-between mb-1">
-                          <Text className="font-semibold text-text">{name}</Text>
-                          {!!date && (
-                            <Text className="text-xs text-muted">{date}</Text>
-                          )}
-                        </View>
-                        <Text className="text-text">{c.commentText}</Text>
+                  {comments.map((c: any) => (
+                    <View key={c.id} className="bg-background rounded-xl p-3 border border-border">
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-sm font-semibold text-foreground">
+                          {c.authorName || "Member"}
+                        </Text>
+                        <Text className="text-xs text-muted">
+                          {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ""}
+                        </Text>
                       </View>
-                    );
-                  })}
+                      <Text className="text-sm text-foreground">{c.commentText}</Text>
+                    </View>
+                  ))}
                 </View>
               ) : (
                 <Text className="text-muted">No comments yet.</Text>
@@ -254,19 +221,21 @@ export default function PostDetailScreen() {
                   value={commentText}
                   onChangeText={setCommentText}
                   placeholder="Write a comment..."
-                  placeholderTextColor="#999"
-                  className="border border-border rounded-2xl p-3 text-text"
+                  placeholderTextColor="#9BA1A6"
+                  className="text-foreground text-base p-3 bg-background rounded-xl border border-border min-h-[80px]"
                   multiline
                 />
 
                 <TouchableOpacity
                   onPress={handleSubmitComment}
                   disabled={createCommentMutation.isPending}
-                  className="bg-primary rounded-2xl p-3 items-center"
+                  className="bg-primary rounded-xl p-3 items-center"
                 >
-                  <Text className="text-white font-semibold">
-                    {createCommentMutation.isPending ? "Posting..." : "Post Comment"}
-                  </Text>
+                  {createCommentMutation.isPending ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text className="text-background font-semibold">Post Comment</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
