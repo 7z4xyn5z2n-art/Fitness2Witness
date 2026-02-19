@@ -77,7 +77,7 @@ export default function CommunityScreen() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             renderItem={({ item }) => (
               <TouchableOpacity
-                onPress={() => router.push(`/post/${item.id}` as any)}
+                onPress={() => router.push(`/post/${item.id}`)}
                 className="bg-surface rounded-2xl p-4 mb-3 border border-border active:opacity-80"
               >
                 {/* Post Header */}
